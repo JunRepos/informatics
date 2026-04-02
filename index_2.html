@@ -13,16 +13,14 @@
 body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f3ef;color:#1c1c1c;min-height:100vh;line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:24px 16px 60px}
 
-/* ── Header ── */
 .header{background:#fff;border-radius:16px;border:1px solid #e4e3de;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.hbrand{display:flex;align-items:center;gap:12px}
-.hicon{width:40px;height:40px;background:#1c1c1c;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
-.htitle{font-size:16px;font-weight:600;letter-spacing:-.3px}
-.hsub{font-size:12px;color:#999;margin-top:1px}
-.hright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.tc-badge{font-size:12px;font-weight:600;background:#1c1c1c;color:#fff;padding:3px 10px;border-radius:20px}
+.header-brand{display:flex;align-items:center;gap:12px}
+.header-icon{width:40px;height:40px;background:#1c1c1c;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.header-title{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.header-sub{font-size:12px;color:#999;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.teacher-badge{font-size:12px;font-weight:600;background:#1c1c1c;color:#fff;padding:3px 10px;border-radius:20px}
 
-/* ── Buttons ── */
 button{cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;padding:8px 16px;border-radius:10px;border:1px solid #ddddd8;background:#fff;color:#1c1c1c;transition:background .12s,transform .08s;white-space:nowrap}
 button:hover{background:#f0efeb}
 button:active{transform:scale(.98)}
@@ -36,48 +34,32 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .btn-warn{color:#92400e;border-color:#fde68a;background:#fffbeb}
 .btn-warn:hover{background:#fef3c7}
 
-/* ── Inputs ── */
 input[type=text],input[type=password]{width:100%;font-family:inherit;font-size:14px;padding:10px 13px;border:1px solid #ddddd8;border-radius:10px;background:#fff;color:#1c1c1c;outline:none;transition:border-color .15s}
 input:focus{border-color:#1c1c1c}
 input[type=file]{width:100%;font-family:inherit;font-size:13px;padding:10px 13px;border:1.5px dashed #d0cfc8;border-radius:10px;background:#fafaf7;cursor:pointer;color:#555}
 input[type=file]:hover{border-color:#aaa;background:#f4f3ef}
-select{width:100%;font-family:inherit;font-size:14px;padding:10px 13px;border:1px solid #ddddd8;border-radius:10px;background:#fff;color:#1c1c1c;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-select:focus{border-color:#1c1c1c}
 label{font-size:13px;color:#555;font-weight:500}
 
-/* ── Tabs ── */
 .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .tab{font-size:13px;padding:7px 14px;border-color:#e4e3de;background:transparent;color:#666;font-weight:400}
 .tab.active{background:#1c1c1c;color:#fff;border-color:#1c1c1c;font-weight:500}
 .tab:hover:not(.active){background:#efefeb}
 
-/* ── Class Grid (Home) ── */
-.class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:4px}
-.class-card{background:#fff;border:1px solid #e4e3de;border-radius:14px;padding:20px 16px;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .1s;text-align:center}
-.class-card:hover{border-color:#bbb;box-shadow:0 3px 14px rgba(0,0,0,.08);transform:translateY(-1px)}
-.class-card:active{transform:translateY(0)}
-.class-card-emoji{font-size:26px;margin-bottom:8px}
-.class-card-label{font-size:15px;font-weight:600;color:#1c1c1c}
-.class-card-count{font-size:12px;color:#aaa;margin-top:3px}
-.class-card.info-type{border-color:#dbeafe;background:#f0f7ff}
-.class-card.info-type:hover{border-color:#93c5fd;box-shadow:0 3px 14px rgba(59,130,246,.1)}
-
-/* ── Section / Form ── */
 .section{background:#fff;border:1px solid #e4e3de;border-radius:14px;padding:20px 22px;margin-bottom:12px}
 .section-title{font-size:14px;font-weight:600;margin-bottom:14px;color:#1c1c1c}
 .form{display:flex;flex-direction:column;gap:9px}
 .err{font-size:12px;color:#b91c1c;min-height:16px}
-.info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:13px;color:#1d4ed8;margin-bottom:14px;line-height:1.6}
 
-/* ── Progress ── */
 .prog-wrap{display:none}
 .prog-bar{width:100%;height:4px;background:#e4e3de;border-radius:3px;overflow:hidden;margin-top:5px}
 .prog-fill{height:100%;background:#1c1c1c;border-radius:3px;transition:width .2s}
 .prog-label{font-size:12px;color:#888}
 
-/* ── Board ── */
-.board-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:13px;color:#1d4ed8;margin-bottom:14px;line-height:1.6}
+
+.board-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .board-count{font-size:13px;color:#888}
+
 .post-row{background:#fff;border:1px solid #e4e3de;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;margin-bottom:8px}
 .post-row:hover{border-color:#bbb;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 .post-icon{width:38px;height:38px;min-width:38px;border-radius:9px;background:#f4f3ef;display:flex;align-items:center;justify-content:center;font-size:17px}
@@ -85,53 +67,40 @@ label{font-size:13px;color:#555;font-weight:500}
 .post-title{font-size:14px;font-weight:600;color:#1c1c1c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .post-meta{font-size:12px;color:#999;margin-top:2px}
 
-/* ── Teacher file row ── */
-.tc-file-row{background:#fff;border:1px solid #e4e3de;border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.tc-file-info{flex:1;min-width:0}
-.tc-file-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tc-file-meta{font-size:12px;color:#999;margin-top:2px}
-
-/* ── Back button ── */
 .back-btn{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#666;cursor:pointer;margin-bottom:16px;padding:6px 12px;border-radius:8px;background:#fff;border:1px solid #e4e3de}
 .back-btn:hover{background:#f4f3ef}
 
-/* ── Post detail ── */
 .file-card{background:#f4f3ef;border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .file-card-icon{font-size:28px}
 .file-card-info{flex:1;min-width:0}
 .file-card-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-card-meta{font-size:12px;color:#888;margin-top:2px}
+
+.tc-file-row{background:#fff;border:1px solid #e4e3de;border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.tc-file-row-info{flex:1;min-width:0}
+.tc-file-row-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-file-row-meta{font-size:12px;color:#999;margin-top:2px}
+
 .reset-section{margin-top:18px;padding-top:16px;border-top:1px solid #e4e3de}
 .reset-row{display:flex;gap:7px;margin-top:8px}
 .reset-row input{flex:1;font-size:13px;padding:8px 11px}
-.divider{height:1px;background:#e4e3de;margin:16px 0}
 
-/* ── Teacher class selector ── */
-.tc-class-bar{background:#fff;border:1px solid #e4e3de;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.tc-class-bar label{font-size:13px;color:#555;white-space:nowrap}
-.tc-class-bar select{flex:1;min-width:140px;font-size:13px;padding:7px 11px}
-
-/* ── Empty / Success ── */
 .empty{text-align:center;padding:50px 20px;color:#ccc;font-size:14px}
 .empty-icon{font-size:34px;margin-bottom:10px}
+
 .success-box{text-align:center;padding:36px 20px}
 .success-icon{font-size:44px;margin-bottom:12px}
 .success-title{font-size:15px;font-weight:600;color:#1c1c1c}
 .success-sub{font-size:13px;color:#888;margin-top:5px}
 
-/* ── Login ── */
 .login-wrap{max-width:360px;margin:0 auto}
 
-/* ── Class breadcrumb ── */
-.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:#999;margin-bottom:16px}
-.breadcrumb-cur{font-weight:600;color:#1c1c1c}
-.breadcrumb-sep{color:#ccc}
+.divider{height:1px;background:#e4e3de;margin:16px 0}
 
 @media(max-width:500px){
   .header{flex-direction:column;align-items:flex-start}
-  .class-grid{grid-template-columns:repeat(2,1fr)}
+  .board-header{flex-direction:column;align-items:flex-start;gap:8px}
   .reset-row{flex-direction:column}
-  .board-header{flex-direction:column;align-items:flex-start}
 }
 </style>
 </head>
@@ -150,21 +119,6 @@ const FIREBASE_CONFIG = {
   appId:             "1:542931253736:web:d83620fe9079c3f0998c5d"
 };
 </script>
-
-<!-- ★ 반 목록 설정 — 여기서 반을 추가·수정하세요 ★ -->
-<script>
-const CLASSES = [
-  { id: 'c2-1',    label: '2-1반',   emoji: '🏫', type: 'normal' },
-  { id: 'c2-2',    label: '2-2반',   emoji: '🏫', type: 'normal' },
-  { id: 'c2-3',    label: '2-3반',   emoji: '🏫', type: 'normal' },
-  { id: 'c2-4',    label: '2-4반',   emoji: '🏫', type: 'normal' },
-  { id: 'c2-5',    label: '2-5반',   emoji: '🏫', type: 'normal' },
-  { id: 'c2-6',    label: '2-6반',   emoji: '🏫', type: 'normal' },
-  { id: 'info-2A', label: '정보 2-A', emoji: '💻', type: 'info'   },
-  { id: 'info-2B', label: '정보 2-B', emoji: '💻', type: 'info'   },
-];
-</script>
-
 <div id="root"><div style="text-align:center;padding:80px;color:#ccc;font-size:14px">로딩 중...</div></div>
 </div>
 
@@ -174,23 +128,20 @@ const db      = firebase.database();
 const storage = firebase.storage();
 
 /* ── 상태 ── */
-let view          = 'home';
-let studentTab    = 'board';
-let teacherTab    = 'board';
-let isTeacher     = false;
-let isFirstSetup  = false;
-let selectedClass = null;   // { id, label, emoji, type }
-let tcClass       = null;   // 선생님이 현재 관리 중인 반
-let posts         = [];
-let teacherFiles  = [];
-let selectedPost  = null;
-let postUnlocked  = false;
-let postCounts    = {};     // { classId: count } 홈 화면용
+let view         = 'board';
+let studentTab   = 'board';
+let teacherTab   = 'board';
+let isTeacher    = false;
+let isFirstSetup = false;
+let posts        = [];
+let teacherFiles = [];
+let selectedPost = null;
+let postUnlocked = false;
 
 /* ── 유틸 ── */
 async function sha256(s){
-  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
@@ -202,57 +153,35 @@ function fileIcon(name){
           png:'🖼️',jpg:'🖼️',jpeg:'🖼️',gif:'🖼️',zip:'📦',rar:'📦',hwp:'📃',
           mp4:'🎬',mp3:'🎵',txt:'📄'}[e]||'📁';
 }
-function dlFile(name,url){const a=document.createElement('a');a.href=url;a.download=name;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);}
-function classById(id){return CLASSES.find(c=>c.id===id)||null;}
+function dl(name,url){const a=document.createElement('a');a.href=url;a.download=name;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 /* ── Firebase ── */
 async function getAuth(){const s=await db.ref('auth/teacher').get();return s.exists()?s.val():null;}
-
-async function loadPostCounts(){
+async function loadPosts(){
   const s=await db.ref('posts').get();
-  postCounts={};
-  if(!s.exists())return;
-  const val=s.val();
-  CLASSES.forEach(c=>{
-    postCounts[c.id]=val[c.id]?Object.keys(val[c.id]).length:0;
-  });
-}
-
-async function loadPosts(classId){
-  const s=await db.ref(`posts/${classId}`).get();
   if(!s.exists()){posts=[];return;}
-  posts=Object.entries(s.val()).map(([id,v])=>({id,...v}))
-    .sort((a,b)=>b.uploadedAt.localeCompare(a.uploadedAt));
+  posts=Object.entries(s.val()).map(([id,v])=>({id,...v})).sort((a,b)=>b.uploadedAt.localeCompare(a.uploadedAt));
 }
-
-async function loadTeacherFiles(classId){
-  const s=await db.ref(`teacherFiles/${classId}`).get();
+async function loadTeacherFiles(){
+  const s=await db.ref('teacherFiles').get();
   if(!s.exists()){teacherFiles=[];return;}
-  teacherFiles=Object.entries(s.val()).map(([id,v])=>({id,...v}))
-    .sort((a,b)=>b.uploadedAt.localeCompare(a.uploadedAt));
+  teacherFiles=Object.entries(s.val()).map(([id,v])=>({id,...v})).sort((a,b)=>b.uploadedAt.localeCompare(a.uploadedAt));
 }
+async function loadAll(){await Promise.all([loadPosts(),loadTeacherFiles()]);}
 
-async function loadClassData(classId){
-  await Promise.all([loadPosts(classId),loadTeacherFiles(classId)]);
-}
-
-/* ── 초기화 ── */
 async function init(){
-  try{const auth=await getAuth();isFirstSetup=!auth;await loadPostCounts();}catch(e){console.error(e);}
+  try{const auth=await getAuth();isFirstSetup=!auth;await loadAll();}catch(e){console.error(e);}
   render();
 }
 
-/* ════════════════════════════
-   렌더
-════════════════════════════ */
+/* ════════════ 렌더 ════════════ */
 function render(){
   const headerRight = isTeacher
-    ? `<div class="tc-badge">👩‍🏫 선생님</div><button class="btn-sm" onclick="logoutTeacher()">로그아웃</button>`
+    ? `<div class="teacher-badge">👩‍🏫 선생님</div><button class="btn-sm" onclick="logoutTeacher()">로그아웃</button>`
     : `<button class="btn-sm" onclick="go('teacher-login')">👩‍🏫 선생님 로그인</button>`;
 
   let body='';
-  if     (view==='home')          body=renderHome();
-  else if(view==='board')         body=renderBoard();
+  if     (view==='board')         body=renderBoard();
   else if(view==='new-post')      body=renderNewPost();
   else if(view==='post-detail')   body=renderPostDetail();
   else if(view==='teacher-login') body=renderLogin();
@@ -260,11 +189,11 @@ function render(){
 
   document.getElementById('root').innerHTML=`
     <div class="header">
-      <div class="hbrand">
-        <div class="hicon">📂</div>
-        <div><div class="htitle">학급 파일함</div><div class="hsub">반을 선택하세요</div></div>
+      <div class="header-brand">
+        <div class="header-icon">📂</div>
+        <div><div class="header-title">학급 파일함</div><div class="header-sub">게시판 · 선생님 파일 다운로드</div></div>
       </div>
-      <div class="hright">${headerRight}</div>
+      <div class="header-right">${headerRight}</div>
     </div>${body}`;
   bindEvents();
 }
@@ -274,62 +203,32 @@ function go(v,extra={}){
   if(extra.post){selectedPost=extra.post;postUnlocked=false;}
   render();
 }
-function logoutTeacher(){isTeacher=false;view='home';tcClass=null;render();}
-function tabBtn(label,key,active,fn){return `<button class="tab${active===key?' active':''}" onclick="${fn}">${label}</button>`;}
+function logoutTeacher(){isTeacher=false;view='board';render();}
+function tab(label,key,active,fn){return `<button class="tab${active===key?' active':''}" onclick="${fn}">${label}</button>`;}
 
-/* ════════════
-   홈 — 반 선택
-════════════ */
-function renderHome(){
-  const cards=CLASSES.map(c=>{
-    const cnt=postCounts[c.id]||0;
-    return `<div class="class-card${c.type==='info'?' info-type':''}" data-cid="${c.id}">
-      <div class="class-card-emoji">${c.emoji}</div>
-      <div class="class-card-label">${esc(c.label)}</div>
-      <div class="class-card-count">게시물 ${cnt}개</div>
-    </div>`;
-  }).join('');
-  return `
-    <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:12px">반을 선택하세요</div>
-    <div class="class-grid">${cards}</div>
-    ${isTeacher?`<div style="margin-top:18px"><button class="btn-dark btn-sm" onclick="go('teacher')">👩‍🏫 선생님 관리 페이지로</button></div>`:''}`;
-}
-
-/* ════════════
-   학생 게시판
-════════════ */
+/* ════════════ 학생 게시판 ════════════ */
 function renderBoard(){
-  const cls=selectedClass;
-  const bc=`<div class="breadcrumb">
-    <span style="cursor:pointer;color:#999" onclick="goHome()">전체 반</span>
-    <span class="breadcrumb-sep">›</span>
-    <span class="breadcrumb-cur">${esc(cls.label)}</span>
-  </div>`;
-
   const tabs=`<div class="tabs">
-    ${tabBtn('📋 게시판','board',studentTab,"setStTab('board')")}
-    ${tabBtn('📥 선생님 파일','tf',studentTab,"setStTab('tf')")}
+    ${tab('📋 게시판','board',studentTab,"setStTab('board')")}
+    ${tab('📥 선생님 파일','tf',studentTab,"setStTab('tf')")}
   </div>`;
 
   if(studentTab==='tf'){
-    const body=teacherFiles.length===0
-      ?`<div class="empty"><div class="empty-icon">📭</div>선생님이 올린 파일이 없습니다.</div>`
-      :teacherFiles.map(f=>`
-        <div class="tc-file-row">
-          <div class="post-icon">${fileIcon(f.name)}</div>
-          <div class="tc-file-info">
-            <div class="tc-file-name">${esc(f.name)}</div>
-            <div class="tc-file-meta">${fmtSize(f.size)} · ${fmtDate(f.uploadedAt)}</div>
-          </div>
-          <button class="btn-dark btn-sm" data-tcdl="${f.id}">다운로드</button>
-        </div>`).join('');
-    return bc+tabs+body;
+    if(!teacherFiles.length) return tabs+`<div class="empty"><div class="empty-icon">📭</div>선생님이 올린 파일이 없습니다.</div>`;
+    return tabs+teacherFiles.map(f=>`
+      <div class="tc-file-row">
+        <div class="post-icon">${fileIcon(f.name)}</div>
+        <div class="tc-file-row-info">
+          <div class="tc-file-row-name">${esc(f.name)}</div>
+          <div class="tc-file-row-meta">${fmtSize(f.size)} · ${fmtDate(f.uploadedAt)}</div>
+        </div>
+        <button class="btn-dark btn-sm" data-tcdl="${f.id}">다운로드</button>
+      </div>`).join('');
   }
 
-  const list=posts.length===0
-    ?`<div class="empty"><div class="empty-icon">📭</div>아직 게시물이 없습니다.<br><br>
-       <button class="btn-dark btn-sm" onclick="go('new-post')">+ 첫 게시물 올리기</button></div>`
-    :posts.map(p=>`
+  const list = posts.length===0
+    ? `<div class="empty"><div class="empty-icon">📭</div>아직 게시물이 없습니다.<br><br><button class="btn-dark btn-sm" onclick="go('new-post')">+ 첫 게시물 올리기</button></div>`
+    : posts.map(p=>`
       <div class="post-row" data-pid="${p.id}">
         <div class="post-icon">${fileIcon(p.fileName)}</div>
         <div class="post-info">
@@ -339,21 +238,18 @@ function renderBoard(){
         <span style="font-size:15px;color:#ccc">🔒</span>
       </div>`).join('');
 
-  return bc+tabs+`
+  return tabs+`
     <div class="board-header">
       <span class="board-count">게시물 ${posts.length}개</span>
       <button class="btn-dark btn-sm" onclick="go('new-post')">+ 게시물 올리기</button>
     </div>${list}`;
 }
 function setStTab(t){studentTab=t;render();}
-async function goHome(){view='home';selectedClass=null;await loadPostCounts();render();}
 
-/* ════════════
-   게시물 작성
-════════════ */
+/* ════════════ 게시물 작성 ════════════ */
 function renderNewPost(){
   return `
-    <div class="back-btn" onclick="go('board')">← ${esc(selectedClass.label)} 게시판으로</div>
+    <div class="back-btn" onclick="go('board')">← 게시판으로</div>
     <div class="section">
       <div class="section-title">📤 새 게시물 올리기</div>
       <div class="info">비밀번호를 알아야 파일을 다운로드할 수 있습니다.<br>비밀번호는 선생님께 따로 알려드리세요.</div>
@@ -376,16 +272,15 @@ function renderNewPost(){
     </div>`;
 }
 
-/* ════════════
-   게시물 상세
-════════════ */
+/* ════════════ 게시물 상세 ════════════ */
 function renderPostDetail(){
   const p=selectedPost;
   if(!p) return `<div class="back-btn" onclick="go('board')">← 게시판으로</div><div class="empty">게시물을 찾을 수 없습니다.</div>`;
-  const back=`<div class="back-btn" onclick="go('board')">← ${esc((selectedClass||tcClass||{label:'게시판'}).label)} 게시판으로</div>`;
+  const back=`<div class="back-btn" onclick="go('board')">← 게시판으로</div>`;
 
+  /* 선생님 또는 비밀번호 통과 */
   if(isTeacher||postUnlocked){
-    const tcControls=isTeacher?`
+    const teacherControls = isTeacher ? `
       <div class="reset-section">
         <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:4px">🔐 학생 비밀번호 초기화</div>
         <div style="font-size:12px;color:#999;margin-bottom:8px">빈칸으로 두면 <b>0000</b>으로 초기화됩니다.</div>
@@ -396,7 +291,8 @@ function renderPostDetail(){
         <div id="reset-msg" style="font-size:12px;margin-top:7px;min-height:16px"></div>
       </div>
       <div class="divider"></div>
-      <button id="del-post-btn" class="btn-danger btn-sm">이 게시물 삭제</button>`:'';
+      <button id="del-post-btn" class="btn-danger btn-sm">이 게시물 삭제</button>` : '';
+
     return back+`
       <div class="section">
         <div class="section-title">${esc(p.title)}</div>
@@ -409,10 +305,11 @@ function renderPostDetail(){
           </div>
         </div>
         <button id="pd-dl" class="btn-dark btn-full">📥 파일 다운로드</button>
-        ${tcControls}
+        ${teacherControls}
       </div>`;
   }
 
+  /* 비밀번호 입력 */
   return back+`
     <div class="section" style="max-width:360px;margin:0 auto">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -431,70 +328,56 @@ function renderPostDetail(){
     </div>`;
 }
 
-/* ════════════
-   선생님 로그인
-════════════ */
+/* ════════════ 선생님 로그인 ════════════ */
 function renderLogin(){
   if(isFirstSetup) return `
-    <div class="login-wrap"><div class="section">
-      <div class="section-title">🔐 선생님 비밀번호 초기 설정</div>
-      <div class="info">처음 사용하시네요. 선생님 비밀번호를 설정해주세요.</div>
-      <div class="form">
-        <label>새 비밀번호</label>
-        <input id="tl-pw" type="password" placeholder="4자 이상" autocomplete="new-password"/>
-        <label>비밀번호 확인</label>
-        <input id="tl-pw2" type="password" placeholder="동일하게 입력" autocomplete="new-password"/>
-        <div id="tl-err" class="err"></div>
-        <button id="tl-btn" class="btn-dark btn-full" style="margin-top:4px">설정 후 로그인</button>
+    <div class="login-wrap">
+      <div class="section">
+        <div class="section-title">🔐 선생님 비밀번호 초기 설정</div>
+        <div class="info">처음 사용하시네요. 선생님 비밀번호를 설정해주세요.</div>
+        <div class="form">
+          <label>새 비밀번호</label>
+          <input id="tl-pw" type="password" placeholder="4자 이상" autocomplete="new-password"/>
+          <label>비밀번호 확인</label>
+          <input id="tl-pw2" type="password" placeholder="동일하게 입력" autocomplete="new-password"/>
+          <div id="tl-err" class="err"></div>
+          <button id="tl-btn" class="btn-dark btn-full" style="margin-top:4px">설정 후 로그인</button>
+        </div>
       </div>
-    </div></div>`;
-  return `
-    <div class="login-wrap"><div class="section">
-      <div class="section-title">👩‍🏫 선생님 로그인</div>
-      <div class="form">
-        <label>비밀번호</label>
-        <input id="tl-pw" type="password" placeholder="비밀번호" autocomplete="current-password"/>
-        <div id="tl-err" class="err"></div>
-        <button id="tl-btn" class="btn-dark btn-full" style="margin-top:4px">로그인</button>
-      </div>
-    </div></div>`;
-}
-
-/* ════════════
-   선생님 대시보드
-════════════ */
-function renderTeacher(){
-  const clsOptions=CLASSES.map(c=>`<option value="${c.id}"${tcClass&&tcClass.id===c.id?' selected':''}>${c.emoji} ${c.label}</option>`).join('');
-
-  const classBar=`
-    <div class="tc-class-bar">
-      <label>관리할 반:</label>
-      <select id="tc-cls-sel">${clsOptions}</select>
-      <button class="btn-dark btn-sm" id="tc-cls-go">이동</button>
     </div>`;
 
+  return `
+    <div class="login-wrap">
+      <div class="section">
+        <div class="section-title">👩‍🏫 선생님 로그인</div>
+        <div class="form">
+          <label>비밀번호</label>
+          <input id="tl-pw" type="password" placeholder="비밀번호" autocomplete="current-password"/>
+          <div id="tl-err" class="err"></div>
+          <button id="tl-btn" class="btn-dark btn-full" style="margin-top:4px">로그인</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ════════════ 선생님 대시보드 ════════════ */
+function renderTeacher(){
   const tabs=`<div class="tabs">
-    ${tabBtn('📋 학생 게시판','board',teacherTab,"setTcTab('board')")}
-    ${tabBtn('📤 파일 올리기','upload',teacherTab,"setTcTab('upload')")}
-    ${tabBtn('📋 내 파일 관리','myfiles',teacherTab,"setTcTab('myfiles')")}
-    ${tabBtn('🔐 비밀번호 변경','settings',teacherTab,"setTcTab('settings')")}
-  </div>`;
-
-  if(!tcClass) return classBar+`<div class="empty" style="padding:30px"><div class="empty-icon">👆</div>관리할 반을 선택하세요</div>`;
-
-  const bc=`<div class="breadcrumb" style="margin-bottom:14px">
-    <span>선생님</span><span class="breadcrumb-sep">›</span>
-    <span class="breadcrumb-cur">${esc(tcClass.label)}</span>
+    ${tab(`📋 학생 게시판`,'board',teacherTab,"setTcTab('board')")}
+    ${tab('📤 파일 올리기','upload',teacherTab,"setTcTab('upload')")}
+    ${tab('📋 내 파일 관리','myfiles',teacherTab,"setTcTab('myfiles')")}
+    ${tab('🔐 비밀번호 변경','settings',teacherTab,"setTcTab('settings')")}
   </div>`;
 
   let body='';
 
   if(teacherTab==='board'){
-    body=posts.length===0
-      ?`<div class="empty"><div class="empty-icon">📭</div>학생이 올린 게시물이 없습니다.</div>`
-      :`<div style="font-size:12px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px">
-          🔓 선생님은 비밀번호 없이 모든 게시물을 열람할 수 있습니다.
-        </div>`
+    if(!posts.length){
+      body=`<div class="empty"><div class="empty-icon">📭</div>학생이 올린 게시물이 없습니다.</div>`;
+    } else {
+      body=`<div style="font-size:12px;color:#999;margin-bottom:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px">
+        🔓 선생님은 비밀번호 없이 모든 게시물을 열람할 수 있습니다.
+      </div>`
       +posts.map(p=>`
         <div class="post-row" data-pid="${p.id}">
           <div class="post-icon">${fileIcon(p.fileName)}</div>
@@ -504,101 +387,68 @@ function renderTeacher(){
           </div>
           <span style="font-size:14px;color:#34d399">🔓</span>
         </div>`).join('');
+    }
   }
 
   else if(teacherTab==='upload'){
-    body=`<div class="section">
-      <div class="section-title">${esc(tcClass.label)}에 파일 공유하기</div>
-      <div class="info">이 반 학생들만 로그인 없이 다운로드할 수 있습니다. (최대 50MB)</div>
-      <div class="form">
-        <label>파일 선택</label>
-        <input id="tc-file" type="file"/>
-        <div class="prog-wrap" id="tc-prog">
-          <div class="prog-label">업로드 중... <span id="tc-pct">0%</span></div>
-          <div class="prog-bar"><div class="prog-fill" id="tc-pfill" style="width:0%"></div></div>
+    body=`
+      <div class="section">
+        <div class="section-title">학생에게 파일 공유하기</div>
+        <div class="info">학생들이 로그인 없이 바로 다운로드할 수 있습니다. (최대 50MB)</div>
+        <div class="form">
+          <label>파일 선택</label>
+          <input id="tc-file" type="file"/>
+          <div class="prog-wrap" id="tc-prog">
+            <div class="prog-label">업로드 중... <span id="tc-pct">0%</span></div>
+            <div class="prog-bar"><div class="prog-fill" id="tc-pfill" style="width:0%"></div></div>
+          </div>
+          <div id="tc-err" class="err"></div>
+          <button id="tc-upload" class="btn-dark btn-full" style="margin-top:4px">학생에게 공유하기</button>
         </div>
-        <div id="tc-err" class="err"></div>
-        <button id="tc-upload" class="btn-dark btn-full" style="margin-top:4px">학생에게 공유하기</button>
-      </div>
-    </div>`;
+      </div>`;
   }
 
   else if(teacherTab==='myfiles'){
-    body=teacherFiles.length===0
-      ?`<div class="empty"><div class="empty-icon">📭</div>올린 파일이 없습니다.</div>`
-      :teacherFiles.map(f=>`
+    if(!teacherFiles.length){
+      body=`<div class="empty"><div class="empty-icon">📭</div>올린 파일이 없습니다.</div>`;
+    } else {
+      body=teacherFiles.map(f=>`
         <div class="tc-file-row">
           <div class="post-icon">${fileIcon(f.name)}</div>
-          <div class="tc-file-info">
-            <div class="tc-file-name">${esc(f.name)}</div>
-            <div class="tc-file-meta">${fmtSize(f.size)} · ${fmtDate(f.uploadedAt)}</div>
+          <div class="tc-file-row-info">
+            <div class="tc-file-row-name">${esc(f.name)}</div>
+            <div class="tc-file-row-meta">${fmtSize(f.size)} · ${fmtDate(f.uploadedAt)}</div>
           </div>
           <button class="btn-sm btn-danger" data-del="${f.id}" data-dpath="${esc(f.storagePath||'')}" data-dname="${esc(f.name)}">삭제</button>
         </div>`).join('');
+    }
   }
 
   else if(teacherTab==='settings'){
-    body=`<div class="section" style="max-width:340px">
-      <div class="section-title">비밀번호 변경</div>
-      <div class="form">
-        <label>현재 비밀번호</label>
-        <input id="cp-cur" type="password" autocomplete="current-password"/>
-        <label>새 비밀번호 (4자 이상)</label>
-        <input id="cp-new" type="password" autocomplete="new-password"/>
-        <label>새 비밀번호 확인</label>
-        <input id="cp-con" type="password" autocomplete="new-password"/>
-        <div id="cp-msg" style="font-size:13px;min-height:16px"></div>
-        <button id="cp-btn" class="btn-dark" style="margin-top:4px">비밀번호 변경</button>
-      </div>
-    </div>`;
+    body=`
+      <div class="section" style="max-width:340px">
+        <div class="section-title">비밀번호 변경</div>
+        <div class="form">
+          <label>현재 비밀번호</label>
+          <input id="cp-cur" type="password" autocomplete="current-password"/>
+          <label>새 비밀번호 (4자 이상)</label>
+          <input id="cp-new" type="password" autocomplete="new-password"/>
+          <label>새 비밀번호 확인</label>
+          <input id="cp-con" type="password" autocomplete="new-password"/>
+          <div id="cp-msg" style="font-size:13px;min-height:16px"></div>
+          <button id="cp-btn" class="btn-dark" style="margin-top:4px">비밀번호 변경</button>
+        </div>
+      </div>`;
   }
 
-  return classBar+bc+tabs+body;
+  return tabs+body;
 }
 function setTcTab(t){teacherTab=t;render();}
 
-/* ════════════════════════════
-   이벤트
-════════════════════════════ */
+/* ════════════ 이벤트 ════════════ */
 function bindEvents(){
 
-  /* ① 홈 — 반 카드 클릭 */
-  document.querySelectorAll('[data-cid]').forEach(card=>{
-    card.addEventListener('click',async()=>{
-      const cls=classById(card.dataset.cid);
-      if(!cls)return;
-      selectedClass=cls;studentTab='board';
-      card.style.opacity='.5';
-      await loadClassData(cls.id);
-      card.style.opacity='1';
-      view='board';render();
-    });
-  });
-
-  /* ② 선생님 관리 페이지 반 이동 */
-  document.getElementById('tc-cls-go')?.addEventListener('click',async()=>{
-    const sel=document.getElementById('tc-cls-sel');
-    const cls=classById(sel.value);if(!cls)return;
-    tcClass=cls;teacherTab='board';
-    const btn=document.getElementById('tc-cls-go');
-    btn.textContent='...';btn.disabled=true;
-    await loadClassData(cls.id);
-    btn.textContent='이동';btn.disabled=false;
-    render();
-  });
-
-  /* ③ 선생님 공유 파일 다운로드 (학생) */
-  document.querySelectorAll('[data-tcdl]').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
-      const f=teacherFiles.find(x=>x.id===btn.dataset.tcdl);if(!f)return;
-      btn.textContent='...';btn.disabled=true;
-      try{dlFile(f.name,f.url||await storage.ref(f.storagePath).getDownloadURL());}
-      catch(e){alert('다운로드 실패: '+e.message);}
-      btn.textContent='다운로드';btn.disabled=false;
-    });
-  });
-
-  /* ④ 게시판 — 게시물 클릭 */
+  /* 게시물 클릭 (학생 게시판 & 선생님 게시판) */
   document.querySelectorAll('[data-pid]').forEach(row=>{
     row.addEventListener('click',()=>{
       const p=posts.find(x=>x.id===row.dataset.pid);
@@ -606,7 +456,18 @@ function bindEvents(){
     });
   });
 
-  /* ⑤ 게시물 작성 */
+  /* 선생님 공유 파일 다운 */
+  document.querySelectorAll('[data-tcdl]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const f=teacherFiles.find(x=>x.id===btn.dataset.tcdl);if(!f)return;
+      btn.textContent='...';btn.disabled=true;
+      try{dl(f.name,f.url||await storage.ref(f.storagePath).getDownloadURL());}
+      catch(e){alert('다운로드 실패: '+e.message);}
+      btn.textContent='다운로드';btn.disabled=false;
+    });
+  });
+
+  /* 게시물 작성 */
   document.getElementById('np-submit')?.addEventListener('click',async()=>{
     const name=document.getElementById('np-name').value.trim();
     const title=document.getElementById('np-title').value.trim();
@@ -622,10 +483,8 @@ function bindEvents(){
     const btn=document.getElementById('np-submit');
     btn.disabled=true;document.getElementById('np-prog').style.display='block';
     try{
-      const classId=selectedClass.id;
       const passwordHash=await sha256(pw);
-      const id=genId();
-      const path=`posts/${classId}/${id}/${file.name}`;
+      const id=genId();const path=`posts/${id}/${file.name}`;
       const ref=storage.ref(path);const task=ref.put(file);
       await new Promise((res,rej)=>task.on('state_changed',snap=>{
         const pct=Math.round(snap.bytesTransferred/snap.totalBytes*100);
@@ -633,11 +492,8 @@ function bindEvents(){
         document.getElementById('np-pfill').style.width=pct+'%';
       },rej,res));
       const url=await ref.getDownloadURL();
-      await db.ref(`posts/${classId}/${id}`).set({
-        title,authorName:name,fileName:file.name,fileSize:file.size,
-        uploadedAt:new Date().toISOString(),passwordHash,storagePath:path,url
-      });
-      await loadPosts(classId);
+      await db.ref(`posts/${id}`).set({title,authorName:name,fileName:file.name,fileSize:file.size,uploadedAt:new Date().toISOString(),passwordHash,storagePath:path,url});
+      await loadPosts();
       document.getElementById('np-form').innerHTML=`
         <div class="success-box">
           <div class="success-icon">✅</div>
@@ -652,7 +508,7 @@ function bindEvents(){
     }
   });
 
-  /* ⑥ 비밀번호 확인 (학생) */
+  /* 비밀번호 확인 (학생) */
   const pdConfirm=document.getElementById('pd-confirm');
   if(pdConfirm){
     const check=async()=>{
@@ -669,15 +525,15 @@ function bindEvents(){
     document.getElementById('pd-pw')?.addEventListener('keydown',e=>e.key==='Enter'&&check());
   }
 
-  /* ⑦ 파일 다운로드 (게시물 상세) */
+  /* 파일 다운로드 (게시물 상세) */
   document.getElementById('pd-dl')?.addEventListener('click',async function(){
     this.textContent='...';this.disabled=true;
-    try{dlFile(selectedPost.fileName,selectedPost.url||await storage.ref(selectedPost.storagePath).getDownloadURL());}
+    try{dl(selectedPost.fileName,selectedPost.url||await storage.ref(selectedPost.storagePath).getDownloadURL());}
     catch(e){alert('다운로드 실패: '+e.message);}
     this.textContent='📥 파일 다운로드';this.disabled=false;
   });
 
-  /* ⑧ 선생님 — 비밀번호 초기화 */
+  /* 선생님 — 비밀번호 초기화 */
   document.getElementById('reset-btn')?.addEventListener('click',async()=>{
     const input=document.getElementById('reset-pw');
     const newPw=input.value||'0000';
@@ -685,31 +541,29 @@ function bindEvents(){
     const btn=document.getElementById('reset-btn');
     btn.disabled=true;
     try{
-      const classId=(tcClass||selectedClass).id;
       const h=await sha256(newPw);
-      await db.ref(`posts/${classId}/${selectedPost.id}/passwordHash`).set(h);
+      await db.ref(`posts/${selectedPost.id}/passwordHash`).set(h);
       selectedPost.passwordHash=h;
       const label=input.value?`"${input.value}"`:'0000';
       msg.style.color='#166534';
-      msg.textContent=`✓ 비밀번호가 ${label} 으로 초기화됐습니다.`;
+      msg.textContent=`✓ 비밀번호가 ${label} 으로 초기화됐습니다. 학생에게 알려주세요.`;
       input.value='';
     }catch(e){msg.style.color='#b91c1c';msg.textContent='오류: '+e.message;}
     btn.disabled=false;
   });
 
-  /* ⑨ 선생님 — 게시물 삭제 */
+  /* 선생님 — 게시물 삭제 */
   document.getElementById('del-post-btn')?.addEventListener('click',async()=>{
     if(!confirm(`"${selectedPost.title}" 게시물을 삭제할까요?`))return;
     try{
-      const classId=(tcClass||selectedClass).id;
       if(selectedPost.storagePath) await storage.ref(selectedPost.storagePath).delete().catch(()=>{});
-      await db.ref(`posts/${classId}/${selectedPost.id}`).remove();
-      await loadPosts(classId);
+      await db.ref(`posts/${selectedPost.id}`).remove();
+      await loadPosts();
       teacherTab='board';go('teacher');
     }catch(e){alert('삭제 실패: '+e.message);}
   });
 
-  /* ⑩ 선생님 로그인 */
+  /* 선생님 로그인 */
   const tlBtn=document.getElementById('tl-btn');
   if(tlBtn){
     const doLogin=async()=>{
@@ -727,17 +581,16 @@ function bindEvents(){
           const h=await sha256(pw);const auth=await getAuth();
           if(!auth||auth.h!==h){err.textContent='비밀번호가 틀렸습니다.';tlBtn.textContent='로그인';tlBtn.disabled=false;return;}
         }
-        isTeacher=true;view='teacher';teacherTab='board';tcClass=null;
-        render();
+        isTeacher=true;view='teacher';teacherTab='board';
+        await loadAll();render();
       }catch(e){err.textContent='오류: '+e.message;tlBtn.textContent=isFirstSetup?'설정 후 로그인':'로그인';tlBtn.disabled=false;}
     };
     tlBtn.addEventListener('click',doLogin);
     document.getElementById('tl-pw')?.addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
   }
 
-  /* ⑪ 선생님 — 파일 올리기 */
+  /* 선생님 — 파일 올리기 */
   document.getElementById('tc-upload')?.addEventListener('click',async()=>{
-    if(!tcClass)return;
     const file=document.getElementById('tc-file').files[0];
     if(!file){alert('파일을 선택하세요.');return;}
     if(file.size>50*1024*1024){document.getElementById('tc-err').textContent='50MB 이하만 가능합니다.';return;}
@@ -745,7 +598,7 @@ function bindEvents(){
     btn.disabled=true;document.getElementById('tc-prog').style.display='block';
     document.getElementById('tc-err').textContent='';
     try{
-      const id=genId();const path=`teacherFiles/${tcClass.id}/${id}/${file.name}`;
+      const id=genId();const path=`teacherFiles/${id}/${file.name}`;
       const ref=storage.ref(path);const task=ref.put(file);
       await new Promise((res,rej)=>task.on('state_changed',snap=>{
         const pct=Math.round(snap.bytesTransferred/snap.totalBytes*100);
@@ -753,25 +606,25 @@ function bindEvents(){
         document.getElementById('tc-pfill').style.width=pct+'%';
       },rej,res));
       const url=await ref.getDownloadURL();
-      await db.ref(`teacherFiles/${tcClass.id}/${id}`).set({name:file.name,size:file.size,uploadedAt:new Date().toISOString(),storagePath:path,url});
-      await loadTeacherFiles(tcClass.id);teacherTab='myfiles';render();
+      await db.ref(`teacherFiles/${id}`).set({name:file.name,size:file.size,uploadedAt:new Date().toISOString(),storagePath:path,url});
+      await loadTeacherFiles();teacherTab='myfiles';render();
     }catch(e){document.getElementById('tc-err').textContent='업로드 실패: '+e.message;document.getElementById('tc-prog').style.display='none';btn.disabled=false;}
   });
 
-  /* ⑫ 선생님 — 파일 삭제 */
+  /* 선생님 — 공유 파일 삭제 */
   document.querySelectorAll('[data-del]').forEach(btn=>{
     btn.addEventListener('click',async()=>{
       if(!confirm(`"${btn.dataset.dname}" 을 삭제할까요?`))return;
       btn.disabled=true;
       try{
         if(btn.dataset.dpath) await storage.ref(btn.dataset.dpath).delete().catch(()=>{});
-        await db.ref(`teacherFiles/${tcClass.id}/${btn.dataset.del}`).remove();
-        await loadTeacherFiles(tcClass.id);render();
+        await db.ref(`teacherFiles/${btn.dataset.del}`).remove();
+        await loadTeacherFiles();render();
       }catch(e){alert('삭제 실패: '+e.message);}
     });
   });
 
-  /* ⑬ 선생님 — 비밀번호 변경 */
+  /* 선생님 — 비밀번호 변경 */
   document.getElementById('cp-btn')?.addEventListener('click',async()=>{
     const cur=document.getElementById('cp-cur').value;
     const nw=document.getElementById('cp-new').value;
