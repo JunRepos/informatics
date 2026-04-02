@@ -181,38 +181,6 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 /* ── Student number input ── */
 .big-input{font-size:20px!important;font-weight:700!important;letter-spacing:.12em;text-align:center}
 
-/* ── Attendance ── */
-.at-date-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.at-date-bar input[type=date]{flex:1;min-width:130px;font-size:14px;padding:7px 11px}
-.at-day-nav{display:flex;gap:4px}
-.at-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
-.at-stat{border-radius:var(--r-md);padding:10px 12px;text-align:center;border:1px solid}
-.at-stat.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok-txt)}
-.at-stat.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn-txt)}
-.at-stat.bad{background:var(--danger-bg);border-color:var(--danger-bd);color:var(--danger-txt)}
-.at-stat-num{font-size:20px;font-weight:700}
-.at-stat-label{font-size:11px;margin-top:2px}
-.at-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.at-row-info{min-width:80px;flex-shrink:0}
-.at-row-num{font-size:11px;color:var(--text3)}
-.at-row-name{font-size:14px;font-weight:600}
-.at-btns{display:flex;gap:4px;flex-wrap:wrap;flex:1}
-.at-btn{font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);transition:all .1s}
-.at-btn.sel-출석{background:var(--ok);color:#fff;border-color:var(--ok)}
-.at-btn.sel-지각{background:#F59E0B;color:#fff;border-color:#D97706}
-.at-btn.sel-결석{background:var(--danger);color:#fff;border-color:var(--danger)}
-.at-reason{display:flex;gap:3px;flex-wrap:wrap}
-.at-rbtn{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3)}
-.at-rbtn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
-.at-chip-ok{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--ok-bg);color:var(--ok-txt);border:1px solid var(--ok-bd)}
-.at-chip-late{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
-.at-chip-abs{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--danger-bg);color:var(--danger-txt);border:1px solid var(--danger-bd)}
-.at-chip-none{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
-.at-hist-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
-.at-hist-row:last-child{border-bottom:none}
-.at-hist-date{font-size:13px;font-weight:600;min-width:56px;color:var(--text2)}
-.at-hist-detail{font-size:12px;color:var(--text3);margin-top:1px}
-
 /* ── Responsive ── */
 @media(max-width:600px){
   .header{flex-direction:column;align-items:flex-start}
@@ -305,11 +273,6 @@ let POST_COUNTS={};
 let SEL_POST=null, SEL_ASSIGN=null;
 let POST_UNLOCKED=false;
 
-// attendance
-let ATTENDANCE={};      // { [studentNum]: {status,reason,updatedAt} } for selected date
-let AT_DATE=new Date().toISOString().slice(0,10); // YYYY-MM-DD
-let AT_MONTH_DATA={};   // { [date]: { [studentNum]: record } } for student history view
-
 /* ════════════════════════════════════════════════════════
    UTILS
 ════════════════════════════════════════════════════════ */
@@ -388,27 +351,6 @@ async function loadStudents(cid){
   if(!s.exists()){STUDENTS=[];return;}
   STUDENTS=Object.entries(s.val()).map(([num,v])=>({number:num,...v}))
     .sort((a,b)=>a.number.localeCompare(b.number));
-}
-
-// ── Attendance ──
-async function loadAttendance(cid,date){
-  const s=await db.ref(`attendance/${cid}/${date}`).get();
-  ATTENDANCE=s.exists()?s.val():{};
-}
-async function loadAttendanceMonth(cid,ym){ // ym = 'YYYY-MM'
-  const s=await db.ref(`attendance/${cid}`).get();
-  AT_MONTH_DATA={};
-  if(!s.exists())return;
-  Object.entries(s.val()).forEach(([date,recs])=>{
-    if(date.startsWith(ym)) AT_MONTH_DATA[date]=recs;
-  });
-}
-async function saveAttendance(cid,date,num,status,reason){
-  const rec={status,updatedAt:new Date().toISOString()};
-  if(reason)rec.reason=reason; else rec.reason=null;
-  await db.ref(`attendance/${cid}/${date}/${num}`).set(rec);
-  if(!ATTENDANCE[num])ATTENDANCE[num]={};
-  ATTENDANCE[num]=rec;
 }
 async function loadSubmissions(cid,aid){
   const s=await db.ref(`submissions/${cid}/${aid}`).get();
@@ -574,7 +516,6 @@ function vStudent(){
     ${tab('📚 과제','assign',ST_TAB,"setST('assign')")}
     ${tab('📋 게시판','board',ST_TAB,"setST('board')")}
     ${tab('📥 파일','files',ST_TAB,"setST('files')")}
-    ${tab('🗓️ 내 출결','attend',ST_TAB,"setST('attend')")}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
   let body='';
@@ -582,19 +523,10 @@ function vStudent(){
   else if(ST_TAB==='assign') body=vStAssign();
   else if(ST_TAB==='board')  body=vStBoard();
   else if(ST_TAB==='files')  body=vStFiles();
-  else if(ST_TAB==='attend') body=vStAttend();
   else if(ST_TAB==='mine')   body=vStMine();
   return tabs+body;
 }
-function setST(t){
-  ST_TAB=t;
-  if(t==='attend'&&SEL_CLS){
-    const ym=new Date().toISOString().slice(0,7);
-    loadAttendanceMonth(SEL_CLS.id,ym).then(render);
-  } else {
-    render();
-  }
-}
+function setST(t){ST_TAB=t;render();}
 
 /* ─── Student: Notices ─── */
 function vStNotice(){
@@ -669,44 +601,6 @@ function vStFiles(){
         <button class="btn-p btn-sm" data-action="dl-tc-file" data-id="${f.id}">다운로드</button>
       </div>
     </div>`).join('');
-}
-
-/* ─── Student: Attendance ─── */
-function vStAttend(){
-  const myRecs=Object.entries(AT_MONTH_DATA)
-    .sort(([a],[b])=>b.localeCompare(a))
-    .map(([date,recs])=>({date,rec:recs[ST_USER?.number]||null}));
-
-  let cntOk=0,cntLate=0,cntAbs=0;
-  myRecs.forEach(({rec})=>{
-    if(!rec)return;
-    if(rec.status==='출석')cntOk++;
-    else if(rec.status==='지각')cntLate++;
-    else if(rec.status==='결석')cntAbs++;
-  });
-
-  const histRows=myRecs.filter(({rec})=>rec).map(({date,rec})=>{
-    const chip=rec.status==='출석'
-      ?`<span class="at-chip-ok">출석</span>`
-      :rec.status==='지각'
-      ?`<span class="at-chip-late">지각${rec.reason?' ('+esc(rec.reason)+')':''}</span>`
-      :`<span class="at-chip-abs">결석${rec.reason?' ('+esc(rec.reason)+')':''}</span>`;
-    return `<div class="at-hist-row">
-      <div class="at-hist-date">${date.slice(5).replace('-','/')}</div>
-      <div style="flex:1">${chip}</div>
-    </div>`;
-  }).join('');
-
-  return `
-    <div class="at-summary">
-      <div class="at-stat ok"><div class="at-stat-num">${cntOk}</div><div class="at-stat-label">출석</div></div>
-      <div class="at-stat warn"><div class="at-stat-num">${cntLate}</div><div class="at-stat-label">지각</div></div>
-      <div class="at-stat bad"><div class="at-stat-num">${cntAbs}</div><div class="at-stat-label">결석</div></div>
-    </div>
-    <div class="section">
-      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px">이번 달 출결 기록</div>
-      ${histRows||emptyBox('🗓️','이번 달 출결 기록이 없습니다.')}
-    </div>`;
 }
 
 /* ─── Student: My Stuff ─── */
@@ -901,7 +795,6 @@ function vTeacher(){
     ${tab('📢 공지','notice',TC_TAB,"setTC('notice')")}
     ${tab('📚 과제','assign',TC_TAB,"setTC('assign')")}
     ${tab('📋 게시판','board',TC_TAB,"setTC('board')")}
-    ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
     ${tab('📁 파일','files',TC_TAB,"setTC('files')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
@@ -914,21 +807,13 @@ function vTeacher(){
   if     (TC_TAB==='notice')   body=vTcNotice();
   else if(TC_TAB==='assign')   body=vTcAssign();
   else if(TC_TAB==='board')    body=vTcBoard();
-  else if(TC_TAB==='attend')   body=vTcAttend();
   else if(TC_TAB==='students') body=vTcStudents();
   else if(TC_TAB==='files')    body=vTcFiles();
   else if(TC_TAB==='settings') body=vTcSettings();
 
   return clsBar+tabs+body;
 }
-function setTC(t){
-  TC_TAB=t;
-  if(t==='attend'&&TC_CLS){
-    loadAttendance(TC_CLS.id,AT_DATE).then(render);
-  } else {
-    render();
-  }
-}
+function setTC(t){TC_TAB=t;render();}
 
 /* ─── Teacher: Notices ─── */
 function vTcNotice(){
@@ -1066,84 +951,6 @@ function vTcBoard(){
         </div>
         <div class="row-right"><span style="font-size:14px;color:var(--ok)">🔓</span></div>
       </div>`).join('');
-}
-
-/* ─── Teacher: Attendance ─── */
-function vTcAttend(){
-  const cntOk=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='출석').length;
-  const cntLate=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='지각').length;
-  const cntAbs=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='결석').length;
-  const cntNone=STUDENTS.length-cntOk-cntLate-cntAbs;
-
-  const rows=!STUDENTS.length?emptyBox('👥','등록된 학생이 없습니다. 학생관리 탭에서 먼저 추가하세요.'):STUDENTS.map(st=>{
-    const rec=ATTENDANCE[st.number]||{};
-    const status=rec.status||'';
-    const reason=rec.reason||'';
-    const needReason=status==='지각'||status==='결석';
-    const reasons=['질병','인정','미인정'];
-    return `<div class="at-row" id="atr-${st.number}">
-      <div class="at-row-info">
-        <div class="at-row-num">${esc(st.number)}</div>
-        <div class="at-row-name">${esc(st.name)}</div>
-      </div>
-      <div class="at-btns">
-        ${['출석','지각','결석'].map(s=>`
-          <button class="at-btn${status===s?' sel-'+s:''}"
-            data-action="at-set" data-num="${st.number}" data-status="${s}">${s==='출석'?'✓ 출석':s==='지각'?'⏰ 지각':'✗ 결석'}</button>`).join('')}
-        ${needReason?`<div class="at-reason">
-          ${reasons.map(r=>`<button class="at-rbtn${reason===r?' sel':''}"
-            data-action="at-reason" data-num="${st.number}" data-reason="${r}">${r}</button>`).join('')}
-        </div>`:''}
-      </div>
-      <div style="flex-shrink:0">
-        ${!status?`<span class="at-chip-none">미체크</span>`
-          :status==='출석'?`<span class="at-chip-ok">출석</span>`
-          :status==='지각'?`<span class="at-chip-late">지각${reason?' ('+reason+')':''}</span>`
-          :`<span class="at-chip-abs">결석${reason?' ('+reason+')':''}</span>`}
-      </div>
-    </div>`;
-  }).join('');
-
-  return `
-    <div class="at-date-bar">
-      <div class="at-day-nav">
-        <button class="btn-sm" data-action="at-prev-day">◀</button>
-        <button class="btn-sm" data-action="at-next-day">▶</button>
-      </div>
-      <input type="date" id="at-date-input" value="${AT_DATE}" style="flex:1;min-width:130px"/>
-      <button class="btn-p btn-sm" data-action="at-go-today">오늘</button>
-      <button class="btn-ok btn-sm" data-action="at-export">📋 현황 내보내기</button>
-    </div>
-    <div class="at-summary">
-      <div class="at-stat ok"><div class="at-stat-num">${cntOk}</div><div class="at-stat-label">출석</div></div>
-      <div class="at-stat warn"><div class="at-stat-num">${cntLate}</div><div class="at-stat-label">지각</div></div>
-      <div class="at-stat bad"><div class="at-stat-num">${cntAbs}</div><div class="at-stat-label">결석</div></div>
-    </div>
-    ${cntNone>0?`<div class="box-warn" style="margin-bottom:12px">⚠️ 미체크 ${cntNone}명 — 출결 체크를 완료해주세요.</div>`:''}
-    <div id="at-rows">${rows}</div>`;
-}
-
-/* ─── Teacher: Attendance Export (text summary) ─── */
-function atExport(){
-  const dateStr=AT_DATE.replace(/-/g,'/');
-  let lines=[`[출결] ${TC_CLS?.label} ${dateStr}`,''];
-  const groups={출석:[],지각:[],결석:[],미체크:[]};
-  STUDENTS.forEach(st=>{
-    const rec=ATTENDANCE[st.number]||{};
-    const s=rec.status||'미체크';
-    const label=s==='미체크'?`${st.name}(${st.number})`
-      :s==='출석'?`${st.name}(${st.number})`
-      :`${st.name}(${st.number})${rec.reason?' ['+rec.reason+']':''}`;
-    groups[s].push(label);
-  });
-  if(groups['출석'].length) lines.push(`✓ 출석(${groups['출석'].length}명): `+groups['출석'].join(', '));
-  if(groups['지각'].length) lines.push(`⏰ 지각(${groups['지각'].length}명): `+groups['지각'].join(', '));
-  if(groups['결석'].length) lines.push(`✗ 결석(${groups['결석'].length}명): `+groups['결석'].join(', '));
-  if(groups['미체크'].length) lines.push(`? 미체크(${groups['미체크'].length}명): `+groups['미체크'].join(', '));
-  const text=lines.join('\n');
-  navigator.clipboard.writeText(text).then(()=>{
-    alert('📋 클립보드에 복사됐습니다!\n\n'+text);
-  }).catch(()=>alert(text));
 }
 
 /* ─── Teacher: Students ─── */
@@ -1564,71 +1371,6 @@ document.addEventListener('keydown', e=>{
   if(t.id==='cp-new'||t.id==='cp-con') document.getElementById('cp-btn')?.click();
 });
 
-// 출결 날짜 input 변경
-document.addEventListener('change', async e=>{
-  if(e.target.id==='at-date-input'){
-    AT_DATE=e.target.value;
-    if(TC_CLS) await loadAttendance(TC_CLS.id,AT_DATE);
-    render();
-  }
-});
-
-/* ── 출결 행 단일 빌드 헬퍼 ── */
-function buildAtRow(st){
-  const rec=ATTENDANCE[st.number]||{};
-  const status=rec.status||'';
-  const reason=rec.reason||'';
-  const needReason=status==='지각'||status==='결석';
-  const reasons=['질병','인정','미인정'];
-  return `<div class="at-row" id="atr-${st.number}">
-    <div class="at-row-info">
-      <div class="at-row-num">${esc(st.number)}</div>
-      <div class="at-row-name">${esc(st.name)}</div>
-    </div>
-    <div class="at-btns">
-      ${['출석','지각','결석'].map(s=>`
-        <button class="at-btn${status===s?' sel-'+s:''}"
-          data-action="at-set" data-num="${st.number}" data-status="${s}">${s==='출석'?'✓ 출석':s==='지각'?'⏰ 지각':'✗ 결석'}</button>`).join('')}
-      ${needReason?`<div class="at-reason">
-        ${reasons.map(r=>`<button class="at-rbtn${reason===r?' sel':''}"
-          data-action="at-reason" data-num="${st.number}" data-reason="${r}">${r}</button>`).join('')}
-      </div>`:''}
-    </div>
-    <div style="flex-shrink:0">
-      ${!status?`<span class="at-chip-none">미체크</span>`
-        :status==='출석'?`<span class="at-chip-ok">출석</span>`
-        :status==='지각'?`<span class="at-chip-late">지각${reason?' ('+reason+')':''}</span>`
-        :`<span class="at-chip-abs">결석${reason?' ('+reason+')':''}</span>`}
-    </div>
-  </div>`;
-}
-
-/* ── 요약 카드만 갱신 ── */
-function updateAtSummary(){
-  const ok=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='출석').length;
-  const late=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='지각').length;
-  const abs=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='결석').length;
-  const none=STUDENTS.length-ok-late-abs;
-  document.querySelectorAll('.at-stat').forEach(el=>{
-    if(el.classList.contains('ok')) el.querySelector('.at-stat-num').textContent=ok;
-    if(el.classList.contains('warn')) el.querySelector('.at-stat-num').textContent=late;
-    if(el.classList.contains('bad')) el.querySelector('.at-stat-num').textContent=abs;
-  });
-  // 미체크 경고 토글
-  let warn=document.querySelector('.at-none-warn');
-  if(none>0){
-    if(!warn){
-      warn=document.createElement('div');
-      warn.className='box-warn at-none-warn';
-      warn.style.marginBottom='12px';
-      document.getElementById('at-rows')?.before(warn);
-    }
-    warn.textContent=`⚠️ 미체크 ${none}명 — 출결 체크를 완료해주세요.`;
-  } else {
-    warn?.remove();
-  }
-}
-
 // Bind dynamic form submit buttons (re-bound after each render via root click delegation supplement)
 document.addEventListener('click', async e=>{
   const t=e.target;
@@ -1640,58 +1382,9 @@ document.addEventListener('click', async e=>{
     TC_CLS=cls;t.textContent='...';t.disabled=true;
     await loadAllClassData(cls.id);
     for(const a of ASSIGNMENTS) await loadSubmissions(cls.id,a.id);
-    // 출결 탭이면 오늘 데이터 로드
-    if(TC_TAB==='attend') await loadAttendance(cls.id,AT_DATE);
     t.textContent='이동';t.disabled=false;
     render();return;
   }
-
-  /* ── Attendance: set status ── */
-  if(e.target.closest('[data-action=at-set]')){
-    const el=e.target.closest('[data-action=at-set]');
-    const num=el.dataset.num, status=el.dataset.status;
-    const cid=TC_CLS?.id;if(!cid)return;
-    el.disabled=true;
-    const prev=ATTENDANCE[num]||{};
-    // 출석이면 reason 초기화, 지각/결석이면 기존 reason 유지 or null
-    const reason=(status==='출석')?null:(prev.reason||null);
-    await saveAttendance(cid,AT_DATE,num,status,reason);
-    // 해당 행만 업데이트
-    const row=document.getElementById('atr-'+num);
-    if(row){row.outerHTML=buildAtRow({number:num,name:STUDENTS.find(s=>s.number===num)?.name||num});}
-    updateAtSummary(cid);
-    return;
-  }
-
-  /* ── Attendance: set reason ── */
-  if(e.target.closest('[data-action=at-reason]')){
-    const el=e.target.closest('[data-action=at-reason]');
-    const num=el.dataset.num, reason=el.dataset.reason;
-    const cid=TC_CLS?.id;if(!cid)return;
-    el.disabled=true;
-    const status=ATTENDANCE[num]?.status||'지각';
-    await saveAttendance(cid,AT_DATE,num,status,reason);
-    const row=document.getElementById('atr-'+num);
-    if(row){row.outerHTML=buildAtRow({number:num,name:STUDENTS.find(s=>s.number===num)?.name||num});}
-    return;
-  }
-
-  /* ── Attendance: prev/next/today/export ── */
-  if(e.target.closest('[data-action=at-prev-day]')){
-    const d=new Date(AT_DATE);d.setDate(d.getDate()-1);
-    AT_DATE=d.toISOString().slice(0,10);
-    await loadAttendance(TC_CLS?.id,AT_DATE);render();return;
-  }
-  if(e.target.closest('[data-action=at-next-day]')){
-    const d=new Date(AT_DATE);d.setDate(d.getDate()+1);
-    AT_DATE=d.toISOString().slice(0,10);
-    await loadAttendance(TC_CLS?.id,AT_DATE);render();return;
-  }
-  if(e.target.closest('[data-action=at-go-today]')){
-    AT_DATE=new Date().toISOString().slice(0,10);
-    await loadAttendance(TC_CLS?.id,AT_DATE);render();return;
-  }
-  if(e.target.closest('[data-action=at-export]')){atExport();return;}
 
   /* ── Student login ── */
   if(t.id==='sl-btn'){
@@ -1710,9 +1403,6 @@ document.addEventListener('click', async e=>{
       FORCE_PW=!!data.isFirstLogin;
       await loadAllClassData(SEL_CLS.id);
       for(const a of ASSIGNMENTS) await loadSubmissions(SEL_CLS.id,a.id);
-      // 이번 달 출결 로드
-      const ym=new Date().toISOString().slice(0,7);
-      await loadAttendanceMonth(SEL_CLS.id,ym);
       if(FORCE_PW){go('change-pw');}else{ST_TAB='notice';go('student');}
     }catch(err2){err.textContent='오류: '+err2.message;t.textContent='로그인';t.disabled=false;}
     return;
