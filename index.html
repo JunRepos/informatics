@@ -241,7 +241,6 @@ const FIREBASE_CONFIG = {
   appId:             "1:542931253736:web:d83620fe9079c3f0998c5d"
 };
 </script>
-
 <!-- ★★★ 반 목록 설정 ★★★ -->
 <script>
 const CLASSES = [
@@ -596,21 +595,40 @@ function setST(t){
   }
 }
 
+/* ─── Notice card helper (shared by student & teacher views) ─── */
+function noticeCard(n, isTeacher=false){
+  const imgHtml = n.fileName&&isImg(n.fileName)
+    ? `<img src="${esc(n.fileUrl)}" alt="${esc(n.fileName)}"
+        style="max-width:100%;border-radius:var(--r-md);margin-top:10px;display:block;cursor:pointer"
+        data-action="preview-img" data-url="${esc(n.fileUrl)}" data-name="${esc(n.fileName)}"/>`
+    : n.fileName
+      ? `<div class="file-card" style="margin-top:10px;margin-bottom:0">
+          <div class="file-icon">${fIcon(n.fileName)}</div>
+          <div class="file-info"><div class="file-name">${esc(n.fileName)}</div></div>
+          <button class="btn-p btn-sm" data-action="dl-notice-file" data-url="${esc(n.fileUrl)}" data-name="${esc(n.fileName)}">다운로드</button>
+        </div>`
+      : '';
+  const tcBtns = isTeacher ? `
+    <div style="display:flex;gap:5px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn-xs" data-action="edit-notice" data-nid="${n.id}"
+        data-ntitle="${esc(n.title)}" data-ncontent="${esc(n.content)}" data-npin="${n.isPinned}">✏️ 수정</button>
+      <button class="btn-xs" data-action="toggle-pin" data-nid="${n.id}" data-pinned="${n.isPinned}">${n.isPinned?'📌 고정해제':'📌 고정'}</button>
+      <button class="btn-xs btn-danger" data-action="del-notice" data-nid="${n.id}" data-ntitle="${esc(n.title)}">삭제</button>
+    </div>` : '';
+  return `<div class="${n.isPinned?'box-pin section':'section'}" style="margin-bottom:10px">
+    ${n.isPinned?`<div class="pin-label">📌 고정 공지</div>`:''}
+    <div style="font-size:14px;font-weight:700;margin-bottom:5px">${esc(n.title)}</div>
+    <div style="font-size:13px;color:var(--text2);white-space:pre-line">${esc(n.content)}</div>
+    ${imgHtml}
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">${fmtDt(n.createdAt)}</div>
+    ${tcBtns}
+  </div>`;
+}
+
 /* ─── Student: Notices ─── */
 function vStNotice(){
   if(!NOTICES.length) return emptyBox('📢','등록된 공지가 없습니다.');
-  return NOTICES.map(n=>`
-    <div class="${n.isPinned?'box-pin section':'section'}" style="margin-bottom:10px;cursor:pointer" data-action="view-notice" data-nid="${n.id}">
-      ${n.isPinned?`<div class="pin-label">📌 고정 공지</div>`:''}
-      <div style="font-size:14px;font-weight:700;margin-bottom:5px">${esc(n.title)}</div>
-      <div style="font-size:13px;color:var(--text2);white-space:pre-line">${esc(n.content)}</div>
-      ${n.fileName?`<div class="file-card" style="margin-top:10px;margin-bottom:0">
-        <div class="file-icon">${fIcon(n.fileName)}</div>
-        <div class="file-info"><div class="file-name">${esc(n.fileName)}</div></div>
-        <button class="btn-p btn-sm" data-action="dl-notice-file" data-url="${esc(n.fileUrl)}" data-name="${esc(n.fileName)}">다운로드</button>
-      </div>`:''}
-      <div style="font-size:11px;color:var(--text3);margin-top:8px">${fmtDt(n.createdAt)}</div>
-    </div>`).join('');
+  return NOTICES.map(n=>noticeCard(n,false)).join('');
 }
 
 /* ─── Student: Assignments ─── */
@@ -660,14 +678,26 @@ function vStBoard(){
 /* ─── Student: Teacher Files ─── */
 function vStFiles(){
   if(!TC_FILES.length) return emptyBox('📥','선생님이 올린 파일이 없습니다.');
-  return TC_FILES.map(f=>`
-    <div class="list-row">
-      <div class="row-icon">${fIcon(f.name)}</div>
-      <div class="row-info"><div class="row-title">${esc(f.name)}</div><div class="row-meta">${fmtSz(f.size)} · ${fmtDt(f.uploadedAt)}</div></div>
-      <div class="row-right">
-        ${isImg(f.name)?`<button class="btn-sm" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">미리보기</button>`:''}
-        <button class="btn-p btn-sm" data-action="dl-tc-file" data-id="${f.id}">다운로드</button>
-      </div>
+  const groups={};
+  TC_FILES.forEach(f=>{
+    const gid=f.groupId||f.id;
+    if(!groups[gid]) groups[gid]={title:f.groupTitle||'',desc:f.groupDesc||'',uploadedAt:f.uploadedAt,files:[]};
+    groups[gid].files.push(f);
+  });
+  return Object.entries(groups).map(([gid,g])=>`
+    <div class="section" style="margin-bottom:10px">
+      ${g.title?`<div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(g.title)}</div>`:''}
+      ${g.desc?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${esc(g.desc)}</div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${fmtDt(g.uploadedAt)} · ${g.files.length}개 파일</div>
+      ${g.files.map(f=>`<div class="file-card" style="margin-bottom:6px">
+        <div class="file-icon">${fIcon(f.name)}</div>
+        <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">${fmtSz(f.size)}</div></div>
+        <div style="display:flex;gap:4px">
+          ${isImg(f.name)?`<button class="btn-xs" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">👁</button>`:''}
+          <button class="btn-p btn-sm" data-action="dl-tc-file" data-id="${f.id}">↓ 다운</button>
+        </div>
+      </div>`).join('')}
+      ${g.files.length>1?`<button class="btn-xs btn-ok" data-action="dl-group-zip" data-gid="${gid}" style="margin-top:4px">📦 전체 다운로드</button>`:''}
     </div>`).join('');
 }
 
@@ -834,13 +864,33 @@ function vAssignDetail(){
       </div>`:''}
     </div>
     ${sub?`<div class="section">
-      <div class="sec-title">✅ 제출한 파일</div>
-      <div class="file-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="sec-title" style="margin:0">✅ 제출한 파일</div>
+        ${!locked?`<button class="btn-sm" id="resub-toggle-btn" onclick="
+          const f=document.getElementById('resub-form');
+          f.style.display=f.style.display==='none'?'block':'none';
+          this.textContent=f.style.display==='none'?'📤 재제출':'✕ 취소';
+        ">📤 재제출</button>`:''}
+      </div>
+      <div class="file-card" style="margin-bottom:${sub.memo?'8px':'0'}">
         <div class="file-icon">${fIcon(sub.fileName)}</div>
         <div class="file-info"><div class="file-name">${esc(sub.fileName)}</div><div class="file-meta2">${fmtSz(sub.fileSize)} · ${fmtDt(sub.uploadedAt)}</div></div>
-        <button class="btn-sm" data-action="dl-my-sub" data-url="${esc(sub.url)}" data-name="${esc(sub.fileName)}">다운로드</button>
+        <button class="btn-p btn-sm" data-action="dl-my-sub" data-url="${esc(sub.url)}" data-name="${esc(sub.fileName)}">📥 다운로드</button>
       </div>
-      ${sub.memo?`<div class="box-info">💬 메모: ${esc(sub.memo)}</div>`:''}
+      ${sub.memo?`<div class="box-info" style="margin-bottom:0">💬 내 메모: ${esc(sub.memo)}</div>`:''}
+      <div id="resub-form" style="display:none;margin-top:12px">
+        <div class="divider" style="margin-top:0"></div>
+        <div class="form">
+          <div class="field"><label>재제출 파일 선택 (최대 50MB)</label><input id="sf-file" type="file"/></div>
+          <div class="field"><label>메모 (선택)</label><textarea id="sf-memo" placeholder="수정 사항 등을 남겨주세요">${esc(sub.memo||'')}</textarea></div>
+          <div class="prog-wrap" id="sf-prog">
+            <div class="prog-label">업로드 중... <span id="sf-pct">0%</span></div>
+            <div class="prog-bar"><div class="prog-fill" id="sf-pfill" style="width:0%"></div></div>
+          </div>
+          <div id="sf-err" class="err"></div>
+          <button id="sf-submit" class="btn-p">재제출하기</button>
+        </div>
+      </div>
     </div>`:''}
     ${!sub&&locked?`<div class="box-warn">⏰ 마감일이 지나 제출이 불가합니다.</div>`:''}
     ${!sub&&!locked?`<div class="section" id="sub-form-sec">
@@ -932,16 +982,20 @@ function setTC(t){
 
 /* ─── Teacher: Notices ─── */
 function vTcNotice(){
+  const editId=window._ncEditId||null;
+  const editData=editId?NOTICES.find(n=>n.id===editId):null;
+
   const form=`<div class="section">
-    <div class="sec-title">📢 공지 등록</div>
+    <div class="sec-title">${editData?'📢 공지 수정':'📢 공지 등록'}</div>
+    ${editData?`<div class="box-warn" style="margin-bottom:10px">수정 중: <b>${esc(editData.title)}</b></div>`:''}
     <div class="form">
-      <div class="field"><label>제목</label><input id="nc-title" type="text" placeholder="공지 제목"/></div>
-      <div class="field"><label>내용</label><textarea id="nc-content" placeholder="공지 내용을 입력하세요"></textarea></div>
+      <div class="field"><label>제목</label><input id="nc-title" type="text" placeholder="공지 제목" value="${editData?esc(editData.title):''}"/></div>
+      <div class="field"><label>내용</label><textarea id="nc-content" placeholder="공지 내용을 입력하세요">${editData?esc(editData.content):''}</textarea></div>
       <div class="form-row">
-        <div class="field"><label>첨부파일 (선택)</label><input id="nc-file" type="file"/></div>
+        <div class="field"><label>첨부파일 ${editData?'(교체 시에만 선택)':'(선택)'}</label><input id="nc-file" type="file" accept="image/*,*/*"/></div>
         <div class="field" style="flex:0 0 auto;display:flex;align-items:flex-end">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0">
-            <input type="checkbox" id="nc-pin" style="width:auto"/> 📌 상단 고정
+            <input type="checkbox" id="nc-pin" style="width:auto" ${editData?.isPinned?'checked':''}/> 📌 상단 고정
           </label>
         </div>
       </div>
@@ -950,43 +1004,41 @@ function vTcNotice(){
         <div class="prog-bar"><div class="prog-fill" id="nc-pfill" style="width:0%"></div></div>
       </div>
       <div id="nc-err" class="err"></div>
-      <button id="nc-submit" class="btn-p">공지 등록</button>
+      <div style="display:flex;gap:7px">
+        <button id="nc-submit" class="btn-p" data-edit-id="${editData?.id||''}">${editData?'수정 완료':'공지 등록'}</button>
+        ${editData?`<button onclick="window._ncEditId=null;setTC('notice')" class="btn-sm">취소</button>`:''}
+      </div>
     </div>
   </div>`;
 
-  const list=!NOTICES.length?emptyBox('📢','공지가 없습니다.'):NOTICES.map(n=>`
-    <div class="list-row">
-      <div class="row-icon">${n.isPinned?'📌':'📢'}</div>
-      <div class="row-info">
-        <div class="row-title">${esc(n.title)}</div>
-        <div class="row-meta">${fmtDt(n.createdAt)}${n.isPinned?' · 고정됨':''}</div>
-      </div>
-      <div class="row-right">
-        <button class="btn-xs" data-action="toggle-pin" data-nid="${n.id}" data-pinned="${n.isPinned}">${n.isPinned?'고정해제':'고정'}</button>
-        <button class="btn-xs btn-danger" data-action="del-notice" data-nid="${n.id}" data-ntitle="${esc(n.title)}">삭제</button>
-      </div>
-    </div>`).join('');
-
+  const list=!NOTICES.length?emptyBox('📢','공지가 없습니다.'):NOTICES.map(n=>noticeCard(n,true)).join('');
   return form+`<div class="sec-title" style="margin-top:4px">등록된 공지</div>`+list;
 }
 
 /* ─── Teacher: Assignments ─── */
 function vTcAssign(){
+  const editId=window._acEditId||null;
+  const editData=editId?ASSIGNMENTS.find(a=>a.id===editId):null;
+
   const form=`<div class="section">
-    <div class="sec-title">📚 과제 등록</div>
+    <div class="sec-title">${editData?'📚 과제 수정':'📚 과제 등록'}</div>
+    ${editData?`<div class="box-warn" style="margin-bottom:10px">수정 중: <b>${esc(editData.title)}</b></div>`:''}
     <div class="form">
-      <div class="field"><label>과제 제목</label><input id="ac-title" type="text" placeholder="과제 제목"/></div>
-      <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="과제 설명 (선택)"></textarea></div>
+      <div class="field"><label>과제 제목</label><input id="ac-title" type="text" placeholder="과제 제목" value="${editData?esc(editData.title):''}"/></div>
+      <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="과제 설명 (선택)">${editData?esc(editData.description||''):''}</textarea></div>
       <div class="form-row">
-        <div class="field"><label>마감일 (선택)</label><input id="ac-due" type="date"/></div>
-        <div class="field"><label>첨부파일 (선택)</label><input id="ac-file" type="file"/></div>
+        <div class="field"><label>마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate||''}"/></div>
+        <div class="field"><label>첨부파일 ${editData?'(교체 시에만 선택)':'(선택)'}</label><input id="ac-file" type="file"/></div>
       </div>
       <div class="prog-wrap" id="ac-prog">
         <div class="prog-label">업로드 중... <span id="ac-pct">0%</span></div>
         <div class="prog-bar"><div class="prog-fill" id="ac-pfill" style="width:0%"></div></div>
       </div>
       <div id="ac-err" class="err"></div>
-      <button id="ac-submit" class="btn-p">과제 등록</button>
+      <div style="display:flex;gap:7px">
+        <button id="ac-submit" class="btn-p" data-edit-id="${editData?.id||''}">${editData?'수정 완료':'과제 등록'}</button>
+        ${editData?`<button onclick="window._acEditId=null;setTC('assign')" class="btn-sm">취소</button>`:''}
+      </div>
     </div>
   </div>`;
 
@@ -1004,6 +1056,7 @@ function vTcAssign(){
       <div class="row-right">
         ${a.dueDate?dday(a.dueDate):''}
         <button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>
+        <button class="btn-xs" data-action="edit-assign" data-aid="${a.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="del-assign" data-aid="${a.id}" data-atitle="${esc(a.title)}">삭제</button>
       </div>
     </div>`;
@@ -1012,7 +1065,7 @@ function vTcAssign(){
   return form+`<div class="sec-title" style="margin-top:4px">등록된 과제</div>`+list;
 }
 
-/* ─── Teacher: Submission Status Modal (rendered inline) ─── */
+/* ─── Teacher: Submission Status (rendered inline) ─── */
 function vStatusTable(aid){
   const a=ASSIGNMENTS.find(x=>x.id===aid);if(!a)return'';
   const subs=SUBMISSIONS[aid]||{};
@@ -1024,10 +1077,11 @@ function vStatusTable(aid){
       <td>${esc(st.number)}</td>
       <td>${esc(st.name)}</td>
       <td>${sub?`<span class="cell-ok">✓ 제출</span>`:`<span class="cell-no">-</span>`}</td>
-      <td>${sub?fmtDt(sub.uploadedAt):'-'}</td>
-      <td>${sub?`<button class="btn-xs btn-p" data-action="dl-sub-file" data-url="${esc(sub.url)}" data-name="${esc(sub.fileName)}">다운</button>`
+      <td style="font-size:11px">${sub?fmtDt(sub.uploadedAt):'-'}</td>
+      <td>${sub?`<button class="btn-xs btn-p" data-action="dl-sub-file" data-url="${esc(sub.url)}" data-name="${esc(sub.fileName)}">${esc(sub.fileName||'').slice(0,10)}…</button>`
                :`<span class="cell-no">-</span>`}</td>
-      <td>${sub&&sub.memo?esc(sub.memo):'-'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:160px;word-break:break-word">${sub&&sub.memo?esc(sub.memo):'-'}</td>
+      ${sub?.resubCount?`<td style="font-size:11px;color:var(--text3)">재제출 ${sub.resubCount}회</td>`:'<td>-</td>'}
     </tr>`;
   }).join('');
 
@@ -1035,9 +1089,9 @@ function vStatusTable(aid){
   return `<div class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div class="sec-title" style="margin:0">📊 ${esc(a.title)} — 제출 현황</div>
-      <div style="display:flex;gap:6px">
-        ${submittedSubs.length?`<button class="btn-ok btn-sm" id="zip-btn" data-aid="${aid}">📦 ZIP 다운로드 (${submittedSubs.length}개)</button>`:''}
-        <button class="btn-sm" onclick="setTC('assign')">← 닫기</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${submittedSubs.length?`<button class="btn-ok btn-sm" id="zip-btn" data-aid="${aid}">📦 ZIP (${submittedSubs.length}개)</button>`:''}
+        <button class="btn-sm" data-action="close-status" data-aid="${aid}">✕ 닫기</button>
       </div>
     </div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
@@ -1046,8 +1100,8 @@ function vStatusTable(aid){
     </div>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>학번</th><th>이름</th><th>제출</th><th>제출일시</th><th>파일</th><th>메모</th></tr></thead>
-        <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:var(--text3)">학생이 없습니다</td></tr>'}</tbody>
+        <thead><tr><th>학번</th><th>이름</th><th>제출</th><th>제출일시</th><th>파일</th><th>메모</th><th>재제출</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--text3)">학생이 없습니다</td></tr>'}</tbody>
       </table>
     </div>
   </div>`;
@@ -1070,39 +1124,21 @@ function vTcBoard(){
 
 /* ─── Teacher: Attendance ─── */
 function vTcAttend(){
-  const cntOk=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='출석').length;
-  const cntLate=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='지각').length;
+  // 기본값 출석 — 명시적으로 결석/지각 체크된 것만 표시
   const cntAbs=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='결석').length;
-  const cntNone=STUDENTS.length-cntOk-cntLate-cntAbs;
+  const cntLate=STUDENTS.filter(s=>ATTENDANCE[s.number]?.status==='지각').length;
+  const cntOk=STUDENTS.length-cntAbs-cntLate;
 
-  const rows=!STUDENTS.length?emptyBox('👥','등록된 학생이 없습니다. 학생관리 탭에서 먼저 추가하세요.'):STUDENTS.map(st=>{
-    const rec=ATTENDANCE[st.number]||{};
-    const status=rec.status||'';
-    const reason=rec.reason||'';
-    const needReason=status==='지각'||status==='결석';
-    const reasons=['질병','인정','미인정'];
-    return `<div class="at-row" id="atr-${st.number}">
-      <div class="at-row-info">
-        <div class="at-row-num">${esc(st.number)}</div>
-        <div class="at-row-name">${esc(st.name)}</div>
-      </div>
-      <div class="at-btns">
-        ${['출석','지각','결석'].map(s=>`
-          <button class="at-btn${status===s?' sel-'+s:''}"
-            data-action="at-set" data-num="${st.number}" data-status="${s}">${s==='출석'?'✓ 출석':s==='지각'?'⏰ 지각':'✗ 결석'}</button>`).join('')}
-        ${needReason?`<div class="at-reason">
-          ${reasons.map(r=>`<button class="at-rbtn${reason===r?' sel':''}"
-            data-action="at-reason" data-num="${st.number}" data-reason="${r}">${r}</button>`).join('')}
-        </div>`:''}
-      </div>
-      <div style="flex-shrink:0">
-        ${!status?`<span class="at-chip-none">미체크</span>`
-          :status==='출석'?`<span class="at-chip-ok">출석</span>`
-          :status==='지각'?`<span class="at-chip-late">지각${reason?' ('+reason+')':''}</span>`
-          :`<span class="at-chip-abs">결석${reason?' ('+reason+')':''}</span>`}
-      </div>
-    </div>`;
-  }).join('');
+  const rows=!STUDENTS.length
+    ? emptyBox('👥','등록된 학생이 없습니다. 학생관리 탭에서 먼저 추가하세요.')
+    : STUDENTS.map(st=>{
+        const rec=ATTENDANCE[st.number]||{};
+        const status=rec.status||'출석'; // 기본값 출석
+        const reason=rec.reason||'';
+        const needReason=status==='지각'||status==='결석';
+        const reasons=['질병','인정','미인정'];
+        return buildAtRow2(st,status,reason,needReason,reasons);
+      }).join('');
 
   return `
     <div class="at-date-bar">
@@ -1112,15 +1148,44 @@ function vTcAttend(){
       </div>
       <input type="date" id="at-date-input" value="${AT_DATE}" style="flex:1;min-width:130px"/>
       <button class="btn-p btn-sm" data-action="at-go-today">오늘</button>
-      <button class="btn-ok btn-sm" data-action="at-export">📋 현황 내보내기</button>
+      <button class="btn-ok btn-sm" data-action="at-export">📋 내보내기</button>
     </div>
+    <div class="box-info" style="margin-bottom:12px">기본값은 <b>출석</b>입니다. 지각·결석인 학생만 체크하세요.</div>
     <div class="at-summary">
       <div class="at-stat ok"><div class="at-stat-num">${cntOk}</div><div class="at-stat-label">출석</div></div>
       <div class="at-stat warn"><div class="at-stat-num">${cntLate}</div><div class="at-stat-label">지각</div></div>
       <div class="at-stat bad"><div class="at-stat-num">${cntAbs}</div><div class="at-stat-label">결석</div></div>
     </div>
-    ${cntNone>0?`<div class="box-warn" style="margin-bottom:12px">⚠️ 미체크 ${cntNone}명 — 출결 체크를 완료해주세요.</div>`:''}
     <div id="at-rows">${rows}</div>`;
+}
+
+function buildAtRow2(st, status, reason, needReason, reasons){
+  const isLate=status==='지각', isAbs=status==='결석';
+  return `<div class="at-row" id="atr-${st.number}">
+    <div class="at-row-info">
+      <div class="at-row-num">${esc(st.number)}</div>
+      <div class="at-row-name">${esc(st.name)}</div>
+    </div>
+    <div class="at-btns">
+      <button class="at-btn${isLate?' sel-지각':''}"
+        data-action="at-set" data-num="${st.number}" data-status="${isLate?'출석':'지각'}">
+        ${isLate?'↩ 지각 취소':'⏰ 지각'}
+      </button>
+      <button class="at-btn${isAbs?' sel-결석':''}"
+        data-action="at-set" data-num="${st.number}" data-status="${isAbs?'출석':'결석'}">
+        ${isAbs?'↩ 결석 취소':'✗ 결석'}
+      </button>
+      ${needReason?`<div class="at-reason">
+        ${reasons.map(r=>`<button class="at-rbtn${reason===r?' sel':''}"
+          data-action="at-reason" data-num="${st.number}" data-reason="${r}">${r}</button>`).join('')}
+      </div>`:''}
+    </div>
+    <div style="flex-shrink:0">
+      ${status==='출석'?`<span class="at-chip-ok">출석</span>`
+        :status==='지각'?`<span class="at-chip-late">지각${reason?' ('+reason+')':''}</span>`
+        :`<span class="at-chip-abs">결석${reason?' ('+reason+')':''}</span>`}
+    </div>
+  </div>`;
 }
 
 /* ─── Teacher: Attendance Export (text summary) ─── */
@@ -1192,27 +1257,61 @@ function vTcStudents(){
 function vTcFiles(){
   const form=`<div class="section">
     <div class="sec-title">📁 파일 공유하기</div>
-    <div class="box-info">이 반 학생들이 로그인 없이 다운로드할 수 있습니다. (최대 50MB)</div>
+    <div class="box-info">이 반 학생들이 로그인 없이 다운로드할 수 있습니다. 여러 파일을 한 번에 선택할 수 있습니다. (파일당 최대 50MB)</div>
     <div class="form">
-      <div class="field"><label>파일 선택</label><input id="tf-file" type="file"/></div>
+      <div class="field"><label>묶음 제목 (선택)</label><input id="tf-title" type="text" placeholder="예: 4월 2주차 수업 자료"/></div>
+      <div class="field"><label>설명 (선택)</label><textarea id="tf-desc" placeholder="파일에 대한 설명을 입력하세요" style="min-height:60px"></textarea></div>
+      <div class="field"><label>파일 선택 (여러 개 가능)</label><input id="tf-file" type="file" multiple/></div>
+      <div id="tf-file-list" style="display:none;font-size:12px;color:var(--text2);margin-top:4px"></div>
       <div class="prog-wrap" id="tf-prog">
-        <div class="prog-label">업로드 중... <span id="tf-pct">0%</span></div>
+        <div class="prog-label">업로드 중... <span id="tf-pct">0%</span> <span id="tf-cur"></span></div>
         <div class="prog-bar"><div class="prog-fill" id="tf-pfill" style="width:0%"></div></div>
       </div>
       <div id="tf-err" class="err"></div>
       <button id="tf-upload" class="btn-p btn-sm">공유하기</button>
     </div>
   </div>`;
-  const list=!TC_FILES.length?emptyBox('📁','공유한 파일이 없습니다.'):TC_FILES.map(f=>`
-    <div class="list-row">
-      <div class="row-icon">${fIcon(f.name)}</div>
-      <div class="row-info"><div class="row-title">${esc(f.name)}</div><div class="row-meta">${fmtSz(f.size)} · ${fmtDt(f.uploadedAt)}</div></div>
-      <div class="row-right">
-        ${isImg(f.name)?`<button class="btn-sm" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">미리보기</button>`:''}
-        <button class="btn-xs btn-danger" data-action="del-tc-file" data-id="${f.id}" data-path="${esc(f.storagePath||'')}" data-fname="${esc(f.name)}">삭제</button>
+
+  if(!TC_FILES.length) return form+emptyBox('📁','공유한 파일이 없습니다.');
+
+  // 묶음(groupId) 기준으로 그룹핑
+  const groups={};
+  TC_FILES.forEach(f=>{
+    const gid=f.groupId||f.id;
+    if(!groups[gid]) groups[gid]={title:f.groupTitle||'',desc:f.groupDesc||'',uploadedAt:f.uploadedAt,files:[]};
+    groups[gid].files.push(f);
+  });
+
+  const allFilesForZip=TC_FILES.filter(f=>f.url);
+  const groupHtml=Object.entries(groups).map(([gid,g])=>{
+    const filesHtml=g.files.map(f=>`
+      <div class="file-card" style="margin-bottom:6px">
+        <div class="file-icon">${fIcon(f.name)}</div>
+        <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">${fmtSz(f.size)}</div></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${isImg(f.name)?`<button class="btn-xs" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">👁</button>`:''}
+          <button class="btn-xs btn-p" data-action="dl-tc-file" data-id="${f.id}">↓</button>
+          <button class="btn-xs btn-danger" data-action="del-tc-file" data-id="${f.id}" data-path="${esc(f.storagePath||'')}" data-fname="${esc(f.name)}">✕</button>
+        </div>
+      </div>`).join('');
+    const zipUrls=g.files.map(f=>`${esc(f.id)}`).join(',');
+    return `<div class="section" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+        <div>
+          ${g.title?`<div style="font-size:14px;font-weight:700">${esc(g.title)}</div>`:''}
+          ${g.desc?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(g.desc)}</div>`:''}
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">${fmtDt(g.uploadedAt)} · ${g.files.length}개 파일</div>
+        </div>
+        ${g.files.length>1?`<button class="btn-xs btn-ok" data-action="dl-group-zip" data-gid="${gid}">📦 전체 다운</button>`:''}
       </div>
-    </div>`).join('');
-  return form+`<div class="sec-title" style="margin-bottom:10px">공유 파일 목록</div>`+list;
+      ${filesHtml}
+    </div>`;
+  }).join('');
+
+  const totalZipBtn=allFilesForZip.length>1
+    ?`<button class="btn-ok btn-sm" data-action="dl-all-tc-zip" style="margin-bottom:12px">📦 전체 파일 ZIP 다운로드 (${allFilesForZip.length}개)</button>`:'';
+
+  return form+totalZipBtn+groupHtml;
 }
 
 /* ─── Teacher: Settings ─── */
@@ -1415,10 +1514,11 @@ document.addEventListener('click', async e=>{
   /* Teacher files: download */
   if(act.action==='dl-tc-file'){
     const f=TC_FILES.find(x=>x.id===act.id);if(!f)return;
+    const origText=el.textContent;
     el.textContent='...';el.disabled=true;
     try{dlFile(f.name,f.url||await storage.ref(f.storagePath).getDownloadURL());}
     catch(err){alert('다운로드 실패: '+err.message);}
-    el.textContent='다운로드';el.disabled=false;return;
+    el.textContent=origText;el.disabled=false;return;
   }
 
   /* Image preview */
@@ -1453,7 +1553,6 @@ document.addEventListener('click', async e=>{
     const cid=TC_CLS?.id;if(!cid)return;
     el.textContent='...';el.disabled=true;
     await loadSubmissions(cid,aid);
-    // render inline
     const wrap=el.closest('.list-row');
     if(wrap){
       const existing=document.getElementById('status-table-'+aid);
@@ -1462,12 +1561,64 @@ document.addEventListener('click', async e=>{
       div.id='status-table-'+aid;
       div.innerHTML=vStatusTable(aid);
       wrap.after(div);
-      // bind zip btn
       div.querySelector('#zip-btn')?.addEventListener('click',()=>doZipDownload(aid));
-      div.querySelector('button[onclick]')?.setAttribute('onclick','');
-      div.querySelector('button:last-child')?.addEventListener('click',()=>div.remove());
     }
     el.textContent='현황';el.disabled=false;return;
+  }
+
+  /* Close status table */
+  if(act.action==='close-status'){
+    const div=document.getElementById('status-table-'+act.aid);
+    div?.remove();return;
+  }
+
+  /* Edit notice (teacher) */
+  if(act.action==='edit-notice'){
+    window._ncEditId=act.nid;setTC('notice');return;
+  }
+
+  /* Edit assignment (teacher) */
+  if(act.action==='edit-assign'){
+    window._acEditId=act.aid;setTC('assign');return;
+  }
+
+  /* Download group zip (teacher files) */
+  if(act.action==='dl-group-zip'){
+    const gid=act.gid;
+    const groupFiles=TC_FILES.filter(f=>(f.groupId||f.id)===gid&&f.url);
+    if(!groupFiles.length){alert('다운로드할 파일이 없습니다.');return;}
+    el.textContent='...';el.disabled=true;
+    try{
+      const zip=new JSZip();
+      for(const f of groupFiles){
+        const res=await fetch(f.url);const blob=await res.blob();
+        zip.file(f.name,blob);
+      }
+      const content=await zip.generateAsync({type:'blob'});
+      const url=URL.createObjectURL(content);
+      dlFile(`파일묶음_${gid}.zip`,url);
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+    }catch(err){alert('ZIP 실패: '+err.message);}
+    el.textContent='📦 전체 다운';el.disabled=false;return;
+  }
+
+  /* Download ALL teacher files as zip */
+  if(act.action==='dl-all-tc-zip'){
+    const allFiles=TC_FILES.filter(f=>f.url);
+    if(!allFiles.length){alert('다운로드할 파일이 없습니다.');return;}
+    el.textContent='...';el.disabled=true;
+    try{
+      const zip=new JSZip();
+      for(const f of allFiles){
+        const res=await fetch(f.url);const blob=await res.blob();
+        zip.file(f.name,blob);
+      }
+      const content=await zip.generateAsync({type:'blob'});
+      const url=URL.createObjectURL(content);
+      dlFile(`전체파일_${TC_CLS?.label||''}.zip`,url);
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+    }catch(err){alert('ZIP 실패: '+err.message);}
+    el.textContent='📦 전체 파일 ZIP 다운로드';el.disabled=false;return;
   }
 
   /* Student: view my submission */
@@ -1492,6 +1643,7 @@ document.addEventListener('click', async e=>{
     const n=NOTICES.find(x=>x.id===act.nid);
     if(n?.filePath) await storage.ref(n.filePath).delete().catch(()=>{});
     await db.ref(`notices/${cid}/${act.nid}`).remove();
+    window._ncEditId=null;
     await loadNotices(cid);render();return;
   }
 
@@ -1502,6 +1654,7 @@ document.addEventListener('click', async e=>{
     const a=ASSIGNMENTS.find(x=>x.id===act.aid);
     if(a?.filePath) await storage.ref(a.filePath).delete().catch(()=>{});
     await db.ref(`assignments/${cid}/${act.aid}`).remove();
+    window._acEditId=null;
     await loadAssignments(cid);render();return;
   }
 
@@ -1571,36 +1724,25 @@ document.addEventListener('change', async e=>{
     if(TC_CLS) await loadAttendance(TC_CLS.id,AT_DATE);
     render();
   }
+  // 파일 선택 미리보기
+  if(e.target.id==='tf-file'){
+    const files=Array.from(e.target.files||[]);
+    const listEl=document.getElementById('tf-file-list');
+    if(!listEl)return;
+    if(!files.length){listEl.style.display='none';listEl.innerHTML='';return;}
+    listEl.style.display='block';
+    listEl.innerHTML=files.map(f=>`<div>📎 ${esc(f.name)} (${fmtSz(f.size)})</div>`).join('');
+  }
 });
 
 /* ── 출결 행 단일 빌드 헬퍼 ── */
 function buildAtRow(st){
   const rec=ATTENDANCE[st.number]||{};
-  const status=rec.status||'';
+  const status=rec.status||'출석';
   const reason=rec.reason||'';
   const needReason=status==='지각'||status==='결석';
   const reasons=['질병','인정','미인정'];
-  return `<div class="at-row" id="atr-${st.number}">
-    <div class="at-row-info">
-      <div class="at-row-num">${esc(st.number)}</div>
-      <div class="at-row-name">${esc(st.name)}</div>
-    </div>
-    <div class="at-btns">
-      ${['출석','지각','결석'].map(s=>`
-        <button class="at-btn${status===s?' sel-'+s:''}"
-          data-action="at-set" data-num="${st.number}" data-status="${s}">${s==='출석'?'✓ 출석':s==='지각'?'⏰ 지각':'✗ 결석'}</button>`).join('')}
-      ${needReason?`<div class="at-reason">
-        ${reasons.map(r=>`<button class="at-rbtn${reason===r?' sel':''}"
-          data-action="at-reason" data-num="${st.number}" data-reason="${r}">${r}</button>`).join('')}
-      </div>`:''}
-    </div>
-    <div style="flex-shrink:0">
-      ${!status?`<span class="at-chip-none">미체크</span>`
-        :status==='출석'?`<span class="at-chip-ok">출석</span>`
-        :status==='지각'?`<span class="at-chip-late">지각${reason?' ('+reason+')':''}</span>`
-        :`<span class="at-chip-abs">결석${reason?' ('+reason+')':''}</span>`}
-    </div>
-  </div>`;
+  return buildAtRow2(st,status,reason,needReason,reasons);
 }
 
 /* ── 요약 카드만 갱신 ── */
@@ -1779,7 +1921,7 @@ document.addEventListener('click', async e=>{
     t.disabled=false;return;
   }
 
-  /* ── Notice submit (teacher) ── */
+  /* ── Notice submit / edit (teacher) ── */
   if(t.id==='nc-submit'){
     const title=document.getElementById('nc-title')?.value?.trim();
     const content=document.getElementById('nc-content')?.value?.trim();
@@ -1790,21 +1932,40 @@ document.addEventListener('click', async e=>{
     if(!title){err.textContent='제목을 입력하세요.';return;}
     t.disabled=true;err.textContent='';
     try{
-      const id=genId();let fileData={};
-      if(file){
-        if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
-        document.getElementById('nc-prog').style.display='block';
-        const path=`notices/${cid}/${id}/${file.name}`;
-        const url=await uploadFile(file,path,document.getElementById('nc-pfill'),document.getElementById('nc-pct'));
-        fileData={fileName:file.name,fileUrl:url,filePath:path};
+      const editId=t.dataset.editId;
+      if(editId){
+        // 수정 모드
+        const existing=NOTICES.find(n=>n.id===editId);
+        const updates={title,content:content||'',isPinned};
+        if(file){
+          if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
+          document.getElementById('nc-prog').style.display='block';
+          // 기존 파일 삭제
+          if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(()=>{});
+          const path=`notices/${cid}/${editId}/${file.name}`;
+          const url=await uploadFile(file,path,document.getElementById('nc-pfill'),document.getElementById('nc-pct'));
+          updates.fileName=file.name;updates.fileUrl=url;updates.filePath=path;
+        }
+        await db.ref(`notices/${cid}/${editId}`).update(updates);
+        window._ncEditId=null;
+      } else {
+        // 신규 등록
+        const id=genId();let fileData={};
+        if(file){
+          if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
+          document.getElementById('nc-prog').style.display='block';
+          const path=`notices/${cid}/${id}/${file.name}`;
+          const url=await uploadFile(file,path,document.getElementById('nc-pfill'),document.getElementById('nc-pct'));
+          fileData={fileName:file.name,fileUrl:url,filePath:path};
+        }
+        await db.ref(`notices/${cid}/${id}`).set({title,content:content||'',isPinned,createdAt:new Date().toISOString(),...fileData});
       }
-      await db.ref(`notices/${cid}/${id}`).set({title,content:content||'',isPinned,createdAt:new Date().toISOString(),...fileData});
       await loadNotices(cid);render();
     }catch(err2){err.textContent='오류: '+err2.message;t.disabled=false;}
     return;
   }
 
-  /* ── Assignment submit (teacher) ── */
+  /* ── Assignment submit / edit (teacher) ── */
   if(t.id==='ac-submit'){
     const title=document.getElementById('ac-title')?.value?.trim();
     const desc=document.getElementById('ac-desc')?.value?.trim();
@@ -1815,18 +1976,34 @@ document.addEventListener('click', async e=>{
     if(!title){err.textContent='과제 제목을 입력하세요.';return;}
     t.disabled=true;err.textContent='';
     try{
-      const id=genId();let fileData={};
-      if(file){
-        if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
-        document.getElementById('ac-prog').style.display='block';
-        const path=`assignments/${cid}/${id}/${file.name}`;
-        const url=await uploadFile(file,path,document.getElementById('ac-pfill'),document.getElementById('ac-pct'));
-        fileData={fileName:file.name,fileUrl:url,filePath:path};
+      const editId=t.dataset.editId;
+      if(editId){
+        const existing=ASSIGNMENTS.find(a=>a.id===editId);
+        const updates={title,description:desc||'',dueDate:due||null};
+        if(file){
+          if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
+          document.getElementById('ac-prog').style.display='block';
+          if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(()=>{});
+          const path=`assignments/${cid}/${editId}/${file.name}`;
+          const url=await uploadFile(file,path,document.getElementById('ac-pfill'),document.getElementById('ac-pct'));
+          updates.fileName=file.name;updates.fileUrl=url;updates.filePath=path;
+        }
+        await db.ref(`assignments/${cid}/${editId}`).update(updates);
+        window._acEditId=null;
+      } else {
+        const id=genId();let fileData={};
+        if(file){
+          if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';t.disabled=false;return;}
+          document.getElementById('ac-prog').style.display='block';
+          const path=`assignments/${cid}/${id}/${file.name}`;
+          const url=await uploadFile(file,path,document.getElementById('ac-pfill'),document.getElementById('ac-pct'));
+          fileData={fileName:file.name,fileUrl:url,filePath:path};
+        }
+        await db.ref(`assignments/${cid}/${id}`).set({
+          title,description:desc||'',dueDate:due||null,
+          createdAt:new Date().toISOString(),...fileData
+        });
       }
-      await db.ref(`assignments/${cid}/${id}`).set({
-        title,description:desc||'',dueDate:due||null,
-        createdAt:new Date().toISOString(),...fileData
-      });
       await loadAssignments(cid);render();
     }catch(err2){err.textContent='오류: '+err2.message;t.disabled=false;}
     return;
@@ -1866,7 +2043,7 @@ document.addEventListener('click', async e=>{
     return;
   }
 
-  /* ── Assignment submission (student) ── */
+  /* ── Assignment submission / resubmission (student) ── */
   if(t.id==='sf-submit'){
     const file=document.getElementById('sf-file')?.files[0];
     const memo=document.getElementById('sf-memo')?.value?.trim();
@@ -1876,13 +2053,19 @@ document.addEventListener('click', async e=>{
     if(file.size>50*1024*1024){err.textContent='50MB 이하 파일만 가능합니다.';return;}
     t.disabled=true;document.getElementById('sf-prog').style.display='block';err.textContent='';
     try{
+      // 기존 제출 여부 확인 (재제출 카운트)
+      const existing=SUBMISSIONS[SEL_ASSIGN.id]?.[ST_USER.number];
+      const resubCount=(existing?.resubCount||0)+(existing?1:0);
+      // 기존 스토리지 파일 삭제
+      if(existing?.storagePath) await storage.ref(existing.storagePath).delete().catch(()=>{});
       const id=genId();
       const path=`submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}/${file.name}`;
       const url=await uploadFile(file,path,document.getElementById('sf-pfill'),document.getElementById('sf-pct'));
       await db.ref(`submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}`).set({
         studentName:ST_USER.name,studentNumber:ST_USER.number,
         fileName:file.name,fileSize:file.size,
-        uploadedAt:new Date().toISOString(),storagePath:path,url,memo:memo||''
+        uploadedAt:new Date().toISOString(),storagePath:path,url,
+        memo:memo||'',resubCount
       });
       await loadSubmissions(cid,SEL_ASSIGN.id);
       go('assign-detail',{assign:SEL_ASSIGN});
@@ -1931,19 +2114,39 @@ document.addEventListener('click', async e=>{
     t.disabled=false;return;
   }
 
-  /* ── Teacher: upload shared file ── */
+  /* ── Teacher: upload shared files (multi) ── */
   if(t.id==='tf-upload'){
-    const file=document.getElementById('tf-file')?.files[0];
-    if(!file){alert('파일을 선택하세요.');return;}
-    if(file.size>50*1024*1024){document.getElementById('tf-err').textContent='50MB 이하만 가능합니다.';return;}
+    const files=Array.from(document.getElementById('tf-file')?.files||[]);
+    const title=document.getElementById('tf-title')?.value?.trim()||'';
+    const desc=document.getElementById('tf-desc')?.value?.trim()||'';
+    const errEl=document.getElementById('tf-err');
     const cid=TC_CLS?.id;if(!cid)return;
-    t.disabled=true;document.getElementById('tf-prog').style.display='block';
+    if(!files.length){errEl.textContent='파일을 선택하세요.';return;}
+    const oversized=files.find(f=>f.size>50*1024*1024);
+    if(oversized){errEl.textContent=`"${oversized.name}" 파일이 50MB를 초과합니다.`;return;}
+    t.disabled=true;document.getElementById('tf-prog').style.display='block';errEl.textContent='';
+    const groupId=genId();
+    const now=new Date().toISOString();
     try{
-      const id=genId();const path=`teacherFiles/${cid}/${id}/${file.name}`;
-      const url=await uploadFile(file,path,document.getElementById('tf-pfill'),document.getElementById('tf-pct'));
-      await db.ref(`teacherFiles/${cid}/${id}`).set({name:file.name,size:file.size,uploadedAt:new Date().toISOString(),storagePath:path,url});
+      for(let i=0;i<files.length;i++){
+        const file=files[i];
+        const id=genId();
+        const path=`teacherFiles/${cid}/${id}/${file.name}`;
+        // 진행률: 파일별
+        const pct=Math.round(i/files.length*100);
+        document.getElementById('tf-pfill').style.width=pct+'%';
+        document.getElementById('tf-pct').textContent=pct+'%';
+        document.getElementById('tf-cur').textContent=`(${i+1}/${files.length}) ${file.name}`;
+        const url=await uploadFile(file,path,null,null);
+        document.getElementById('tf-pfill').style.width=Math.round((i+1)/files.length*100)+'%';
+        await db.ref(`teacherFiles/${cid}/${id}`).set({
+          name:file.name,size:file.size,uploadedAt:now,
+          storagePath:path,url,
+          groupId,groupTitle:title,groupDesc:desc
+        });
+      }
       await loadTcFiles(cid);render();
-    }catch(err2){document.getElementById('tf-err').textContent='실패: '+err2.message;document.getElementById('tf-prog').style.display='none';t.disabled=false;}
+    }catch(err2){errEl.textContent='실패: '+err2.message;document.getElementById('tf-prog').style.display='none';t.disabled=false;}
     return;
   }
 
