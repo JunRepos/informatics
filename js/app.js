@@ -79,6 +79,20 @@ async function init(){
     const auth = await getAuth();
     FIRST_SETUP = !auth;
     await loadPostCounts();
+
+    // 세션 복원 (새로고침 시 로그인 유지)
+    if(restoreSession()){
+      const cid = SEL_CLS?.id || TC_CLS?.id;
+      if(cid){
+        await loadAllClassData(cid);
+        for(const a of ASSIGNMENTS) await loadSubmissions(cid, a.id);
+        if(ST_USER){
+          const ym = new Date().toISOString().slice(0, 7);
+          await loadAttendanceMonth(cid, ym);
+        }
+        if(IS_TC && TC_TAB === 'attend') await loadAttendance(cid, AT_DATE);
+      }
+    }
   } catch(e){ console.error(e); }
   render();
 }

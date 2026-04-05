@@ -41,3 +41,32 @@ let POST_UNLOCKED = false;
 let ATTENDANCE    = {};    // { [학번]: {status, reason, updatedAt} }
 let AT_DATE       = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 let AT_MONTH_DATA = {};    // { [날짜]: { [학번]: record } }
+
+// ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
+function saveSession(){
+  const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB };
+  if(SEL_CLS) data.SEL_CLS_ID = SEL_CLS.id;
+  if(TC_CLS)  data.TC_CLS_ID  = TC_CLS.id;
+  sessionStorage.setItem('session', JSON.stringify(data));
+}
+
+function clearSession(){
+  sessionStorage.removeItem('session');
+}
+
+function restoreSession(){
+  const raw = sessionStorage.getItem('session');
+  if(!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    VIEW     = s.VIEW     || 'home';
+    IS_TC    = s.IS_TC    || false;
+    ST_USER  = s.ST_USER  || null;
+    FORCE_PW = s.FORCE_PW || false;
+    ST_TAB   = s.ST_TAB   || 'notice';
+    TC_TAB   = s.TC_TAB   || 'notice';
+    if(s.SEL_CLS_ID) SEL_CLS = classById(s.SEL_CLS_ID);
+    if(s.TC_CLS_ID)  TC_CLS  = classById(s.TC_CLS_ID);
+    return true;
+  } catch(e){ return false; }
+}
