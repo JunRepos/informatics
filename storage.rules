@@ -2,53 +2,39 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // ── 공통: 파일 크기 50MB 제한 + 위험한 실행 파일 차단 ──
     function isValidSize() {
       return request.resource.size <= 50 * 1024 * 1024;
     }
-    function isNotExecutable() {
-      return !request.resource.name.matches('.*\\.(exe|bat|cmd|sh|ps1|msi|dll|com|scr|vbs|js|jar)$');
-    }
+
     function isValidClass(classId) {
       return classId.matches('c2-[1-6]|info-2[AB]');
     }
 
-    // ── 공지사항 첨부파일 ──
     match /notices/{classId}/{noticeId}/{fileName} {
       allow read: if isValidClass(classId);
-      allow write: if isValidClass(classId) && isValidSize() && isNotExecutable();
-      allow delete: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
     }
 
-    // ── 과제 첨부파일 ──
     match /assignments/{classId}/{assignId}/{fileName} {
       allow read: if isValidClass(classId);
-      allow write: if isValidClass(classId) && isValidSize() && isNotExecutable();
-      allow delete: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
     }
 
-    // ── 학생 게시물 파일 ──
     match /posts/{classId}/{postId}/{fileName} {
       allow read: if isValidClass(classId);
-      allow write: if isValidClass(classId) && isValidSize() && isNotExecutable();
-      allow delete: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
     }
 
-    // ── 과제 제출 파일 ──
     match /submissions/{classId}/{assignId}/{studentNum}/{fileName} {
       allow read: if isValidClass(classId);
-      allow write: if isValidClass(classId) && isValidSize() && isNotExecutable();
-      allow delete: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
     }
 
-    // ── 선생님 공유 파일 ──
     match /teacherFiles/{classId}/{fileId}/{fileName} {
       allow read: if isValidClass(classId);
-      allow write: if isValidClass(classId) && isValidSize() && isNotExecutable();
-      allow delete: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
     }
 
-    // ── 그 외 모든 경로 차단 ──
     match /{allPaths=**} {
       allow read, write: if false;
     }
