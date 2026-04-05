@@ -192,8 +192,9 @@ document.addEventListener('click', async e => {
     const cid = TC_CLS?.id; if(!cid) return;
     if(!confirm(`${act.sname}(${act.snum}) 학생의 비밀번호를 학번으로 초기화할까요?`)) return;
     el.disabled = true;
-    const h = await sha256(act.snum);
-    await db.ref(`students/${cid}/${act.snum}`).update({passwordHash: h, isFirstLogin: true});
+    const salt = generateSalt();
+    const h = await hashWithSalt(act.snum, salt);
+    await db.ref(`students/${cid}/${act.snum}`).update({passwordHash: h, salt, isFirstLogin: true});
     await loadStudents(cid); render(); return;
   }
 
@@ -334,8 +335,14 @@ document.addEventListener('click', async e => {
       const s = await db.ref(`students/${SEL_CLS.id}/${num}`).get();
       if(!s.exists()){ err.textContent = '등록되지 않은 학번입니다.'; t.textContent = '로그인'; t.disabled = false; return; }
       const data = s.val();
-      const h = await sha256(pw);
-      if(data.passwordHash !== h){ err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '로그인'; t.disabled = false; return; }
+      const ok = await verifyPassword(pw, data.passwordHash, data.salt);
+      if(!ok){ err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '로그인'; t.disabled = false; return; }
+      // salt 없는 기존 계정이면 자동 업그레이드
+      if(!data.salt){
+        const newSalt = generateSalt();
+        const newHash = await hashWithSalt(pw, newSalt);
+        await db.ref(`students/${SEL_CLS.id}/${num}`).update({passwordHash: newHash, salt: newSalt});
+      }
       ST_USER = {number: num, name: data.name, classId: SEL_CLS.id};
       FORCE_PW = !!data.isFirstLogin;
       await loadAllClassData(SEL_CLS.id);
@@ -355,8 +362,9 @@ document.addEventListener('click', async e => {
     if(!nw || nw.length < 4){ err.textContent = '4자 이상 입력하세요.'; return; }
     if(nw !== con){ err.textContent = '비밀번호가 일치하지 않습니다.'; return; }
     t.textContent = '...'; t.disabled = true;
-    const h = await sha256(nw);
-    await db.ref(`students/${SEL_CLS.id}/${ST_USER.number}`).update({passwordHash: h, isFirstLogin: false});
+    const salt = generateSalt();
+    const h = await hashWithSalt(nw, salt);
+    await db.ref(`students/${SEL_CLS.id}/${ST_USER.number}`).update({passwordHash: h, salt, isFirstLogin: false});
     FORCE_PW = false; ST_TAB = 'notice'; go('student'); return;
   }
 
@@ -370,10 +378,17 @@ document.addEventListener('click', async e => {
         const pw2 = document.getElementById('tl-pw2')?.value;
         if(!pw || pw.length < 4){ err.textContent = '4자 이상 입력하세요.'; t.textContent = '설정 후 로그인'; t.disabled = false; return; }
         if(pw !== pw2){ err.textContent = '비밀번호가 일치하지 않습니다.'; t.textContent = '설정 후 로그인'; t.disabled = false; return; }
-        await db.ref('auth/teacher').set({h: await sha256(pw)}); FIRST_SETUP = false;
+        const salt = generateSalt();
+        await db.ref('auth/teacher').set({h: await hashWithSalt(pw, salt), salt}); FIRST_SETUP = false;
       } else {
-        const h = await sha256(pw); const auth = await getAuth();
-        if(!auth || auth.h !== h){ err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '로그인'; t.disabled = false; return; }
+        const auth = await getAuth();
+        const ok = await verifyPassword(pw, auth?.h, auth?.salt);
+        if(!auth || !ok){ err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '로그인'; t.disabled = false; return; }
+        // salt 없는 기존 계정이면 자동 업그레이드
+        if(!auth.salt){
+          const newSalt = generateSalt();
+          await db.ref('auth/teacher').set({h: await hashWithSalt(pw, newSalt), salt: newSalt});
+        }
       }
       IS_TC = true; TC_TAB = 'notice'; TC_CLS = null; VIEW = 'teacher'; render();
     } catch(err2){ err.textContent = '오류: ' + err2.message; t.textContent = '로그인'; t.disabled = false; }
@@ -386,8 +401,8 @@ document.addEventListener('click', async e => {
     const err = document.getElementById('pd-err');
     if(!pw){ err.textContent = '비밀번호를 입력하세요.'; return; }
     t.textContent = '...'; t.disabled = true;
-    const h = await sha256(pw);
-    if(h === SEL_POST?.passwordHash){ POST_UNLOCKED = true; render(); }
+    const ok = await verifyPassword(pw, SEL_POST?.passwordHash, SEL_POST?.salt);
+    if(ok){ POST_UNLOCKED = true; render(); }
     else { err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '확인'; t.disabled = false; }
     return;
   }
@@ -399,9 +414,10 @@ document.addEventListener('click', async e => {
     const msg = document.getElementById('reset-msg');
     const cid = TC_CLS?.id || SEL_CLS?.id; if(!cid) return;
     t.disabled = true;
-    const h = await sha256(newPw);
-    await db.ref(`posts/${cid}/${SEL_POST.id}/passwordHash`).set(h);
-    SEL_POST.passwordHash = h;
+    const salt = generateSalt();
+    const h = await hashWithSalt(newPw, salt);
+    await db.ref(`posts/${cid}/${SEL_POST.id}`).update({passwordHash: h, salt});
+    SEL_POST.passwordHash = h; SEL_POST.salt = salt;
     const label = input?.value ? `"${input.value}"` : '0000';
     msg.style.color = 'var(--ok)'; msg.textContent = `✓ 비밀번호가 ${label}(으)로 초기화됐습니다.`;
     if(input) input.value = '';
@@ -507,14 +523,15 @@ document.addEventListener('click', async e => {
     if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
     t.disabled = true; document.getElementById('np-prog').style.display = 'block'; err.textContent = '';
     try{
-      const passwordHash = await sha256(pw);
+      const salt = generateSalt();
+      const passwordHash = await hashWithSalt(pw, salt);
       const id = genId();
       const path = `posts/${cid}/${id}/${file.name}`;
       const url = await uploadFile(file, path, document.getElementById('np-pfill'), document.getElementById('np-pct'));
       await db.ref(`posts/${cid}/${id}`).set({
         title, authorName: ST_USER?.name || '익명', authorId: ST_USER?.number || '',
         fileName: file.name, fileSize: file.size, uploadedAt: new Date().toISOString(),
-        passwordHash, storagePath: path, url, memo: memo || ''
+        passwordHash, salt, storagePath: path, url, memo: memo || ''
       });
       await loadPosts(cid);
       document.getElementById('np-form').innerHTML = `<div class="success-pg">
@@ -563,8 +580,9 @@ document.addEventListener('click', async e => {
     const cid = TC_CLS?.id; if(!cid) return;
     if(!num || !name){ err.textContent = '학번과 이름을 입력하세요.'; return; }
     t.disabled = true;
-    const h = await sha256(num);
-    await db.ref(`students/${cid}/${num}`).set({name, passwordHash: h, isFirstLogin: true, createdAt: new Date().toISOString()});
+    const salt = generateSalt();
+    const h = await hashWithSalt(num, salt);
+    await db.ref(`students/${cid}/${num}`).set({name, passwordHash: h, salt, isFirstLogin: true, createdAt: new Date().toISOString()});
     await loadStudents(cid);
     document.getElementById('st-num').value = '';
     document.getElementById('st-name').value = '';
@@ -586,8 +604,9 @@ document.addEventListener('click', async e => {
       if(parts.length < 2){ fail++; continue; }
       const [num, name] = parts;
       if(!num || !name){ fail++; continue; }
-      const h = await sha256(num);
-      await db.ref(`students/${cid}/${num}`).set({name, passwordHash: h, isFirstLogin: true, createdAt: new Date().toISOString()});
+      const salt = generateSalt();
+      const h = await hashWithSalt(num, salt);
+      await db.ref(`students/${cid}/${num}`).set({name, passwordHash: h, salt, isFirstLogin: true, createdAt: new Date().toISOString()});
       ok++;
     }
     await loadStudents(cid);
@@ -641,9 +660,11 @@ document.addEventListener('click', async e => {
     if(!cur || !nw || !con){ setM('모두 입력해주세요.', false); return; }
     if(nw !== con){ setM('새 비밀번호가 일치하지 않습니다.', false); return; }
     if(nw.length < 4){ setM('4자 이상 입력하세요.', false); return; }
-    const curH = await sha256(cur); const auth = await getAuth();
-    if(!auth || auth.h !== curH){ setM('현재 비밀번호가 틀렸습니다.', false); return; }
-    await db.ref('auth/teacher').set({h: await sha256(nw)});
+    const auth = await getAuth();
+    const curOk = await verifyPassword(cur, auth?.h, auth?.salt);
+    if(!auth || !curOk){ setM('현재 비밀번호가 틀렸습니다.', false); return; }
+    const newSalt = generateSalt();
+    await db.ref('auth/teacher').set({h: await hashWithSalt(nw, newSalt), salt: newSalt});
     setM('✓ 비밀번호가 변경됐습니다.', true);
     ['cp-cur','cp-new','cp-con'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     return;
