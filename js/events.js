@@ -440,7 +440,7 @@ document.addEventListener('click', async e => {
         const existing = NOTICES.find(n => n.id === editId);
         const updates = {title, content: content || '', isPinned};
         if(file){
-          if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('nc-prog').style.display = 'block';
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
           const path = `notices/${cid}/${editId}/${file.name}`;
@@ -452,7 +452,7 @@ document.addEventListener('click', async e => {
       } else {
         const id = genId(); let fileData = {};
         if(file){
-          if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('nc-prog').style.display = 'block';
           const path = `notices/${cid}/${id}/${file.name}`;
           const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
@@ -481,7 +481,7 @@ document.addEventListener('click', async e => {
         const existing = ASSIGNMENTS.find(a => a.id === editId);
         const updates = {title, description: desc || '', dueDate: due || null};
         if(file){
-          if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('ac-prog').style.display = 'block';
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
           const path = `assignments/${cid}/${editId}/${file.name}`;
@@ -493,7 +493,7 @@ document.addEventListener('click', async e => {
       } else {
         const id = genId(); let fileData = {};
         if(file){
-          if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('ac-prog').style.display = 'block';
           const path = `assignments/${cid}/${id}/${file.name}`;
           const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
@@ -520,7 +520,7 @@ document.addEventListener('click', async e => {
     if(!title){ err.textContent = '제목을 입력하세요.'; return; }
     if(!pw){ err.textContent = '비밀번호를 설정하세요.'; return; }
     if(!file){ err.textContent = '파일을 선택하세요.'; return; }
-    if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
+    if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
     t.disabled = true; document.getElementById('np-prog').style.display = 'block'; err.textContent = '';
     try{
       const salt = generateSalt();
@@ -551,7 +551,7 @@ document.addEventListener('click', async e => {
     const err = document.getElementById('sf-err');
     const cid = SEL_CLS?.id; if(!cid || !SEL_ASSIGN || !ST_USER) return;
     if(!file){ err.textContent = '파일을 선택하세요.'; return; }
-    if(file.size > 50*1024*1024){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
+    if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
     t.disabled = true; document.getElementById('sf-prog').style.display = 'block'; err.textContent = '';
     try{
       const existing = SUBMISSIONS[SEL_ASSIGN.id]?.[ST_USER.number];
@@ -623,7 +623,7 @@ document.addEventListener('click', async e => {
     const errEl = document.getElementById('tf-err');
     const cid = TC_CLS?.id; if(!cid) return;
     if(!files.length){ errEl.textContent = '파일을 선택하세요.'; return; }
-    const oversized = files.find(f => f.size > 50*1024*1024);
+    const oversized = files.find(f => f.size > MAX_FILE_SIZE);
     if(oversized){ errEl.textContent = `"${oversized.name}" 파일이 50MB를 초과합니다.`; return; }
     t.disabled = true; document.getElementById('tf-prog').style.display = 'block'; errEl.textContent = '';
     const groupId = genId();

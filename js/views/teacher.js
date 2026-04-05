@@ -383,26 +383,10 @@ function vTcFiles(){
 
   if(!TC_FILES.length) return form + emptyBox('📁','공유한 파일이 없습니다.');
 
-  const groups = {};
-  TC_FILES.forEach(f => {
-    const gid = f.groupId || f.id;
-    if(!groups[gid]) groups[gid] = {title: f.groupTitle || '', desc: f.groupDesc || '', uploadedAt: f.uploadedAt, files: []};
-    groups[gid].files.push(f);
-  });
-
+  const groups = groupFiles(TC_FILES);
   const allFilesForZip = TC_FILES.filter(f => f.url);
-  const groupHtml = Object.entries(groups).map(([gid, g]) => {
-    const filesHtml = g.files.map(f => `
-      <div class="file-card" style="margin-bottom:6px">
-        <div class="file-icon">${fIcon(f.name)}</div>
-        <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">${fmtSz(f.size)}</div></div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          ${isImg(f.name) ? `<button class="btn-xs" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">👁</button>` : ''}
-          <button class="btn-xs btn-p" data-action="dl-tc-file" data-id="${f.id}">↓</button>
-          <button class="btn-xs btn-danger" data-action="del-tc-file" data-id="${f.id}" data-path="${esc(f.storagePath || '')}" data-fname="${esc(f.name)}">✕</button>
-        </div>
-      </div>`).join('');
-    return `<div class="section" style="margin-bottom:10px">
+  const groupHtml = Object.entries(groups).map(([gid, g]) => `
+    <div class="section" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
         <div>
           ${g.title ? `<div style="font-size:14px;font-weight:700">${esc(g.title)}</div>` : ''}
@@ -411,9 +395,8 @@ function vTcFiles(){
         </div>
         ${g.files.length > 1 ? `<button class="btn-xs btn-ok" data-action="dl-group-zip" data-gid="${gid}">📦 전체 다운</button>` : ''}
       </div>
-      ${filesHtml}
-    </div>`;
-  }).join('');
+      ${g.files.map(f => fileCardHtml(f, {canDelete: true})).join('')}
+    </div>`).join('');
 
   const totalZipBtn = allFilesForZip.length > 1
     ? `<button class="btn-ok btn-sm" data-action="dl-all-tc-zip" style="margin-bottom:12px">📦 전체 파일 ZIP 다운로드 (${allFilesForZip.length}개)</button>` : '';

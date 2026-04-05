@@ -15,6 +15,30 @@ function emptyBox(icon, msg){
   return `<div class="empty"><div class="empty-icon">${icon}</div>${msg}</div>`;
 }
 
+// 파일 그룹을 묶어서 렌더링 (학생/선생님 공용)
+function groupFiles(files){
+  const groups = {};
+  files.forEach(f => {
+    const gid = f.groupId || f.id;
+    if(!groups[gid]) groups[gid] = {title: f.groupTitle || '', desc: f.groupDesc || '', uploadedAt: f.uploadedAt, files: []};
+    groups[gid].files.push(f);
+  });
+  return groups;
+}
+
+// 파일 카드 렌더링 (개별 파일)
+function fileCardHtml(f, opts = {}){
+  const buttons = [];
+  if(isImg(f.name)) buttons.push(`<button class="btn-xs" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">👁</button>`);
+  buttons.push(`<button class="btn-xs btn-p" data-action="dl-tc-file" data-id="${f.id}">↓${opts.dlLabel ? ' ' + opts.dlLabel : ''}</button>`);
+  if(opts.canDelete) buttons.push(`<button class="btn-xs btn-danger" data-action="del-tc-file" data-id="${f.id}" data-path="${esc(f.storagePath || '')}" data-fname="${esc(f.name)}">✕</button>`);
+  return `<div class="file-card" style="margin-bottom:6px">
+    <div class="file-icon">${fIcon(f.name)}</div>
+    <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">${fmtSz(f.size)}</div></div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">${buttons.join('')}</div>
+  </div>`;
+}
+
 // 공지사항 카드 (학생/선생님 공용)
 function noticeCard(n, isTeacher = false){
   const imgHtml = n.fileName && isImg(n.fileName)
