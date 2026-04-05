@@ -1,0 +1,163 @@
+{
+  "rules": {
+
+    // ── 선생님 인증 ──
+    "auth": {
+      "teacher": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChild('h') && newData.child('h').isString() && newData.child('h').val().length === 64"
+      },
+      "$other": { ".validate": false }
+    },
+
+    // ── 공지사항 ──
+    "notices": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$noticeId": {
+          ".validate": "newData.hasChildren(['title', 'createdAt']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 200 && newData.child('createdAt').isString()",
+          "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "content":   { ".validate": "newData.isString() && newData.val().length <= 5000" },
+          "isPinned":  { ".validate": "newData.isBoolean()" },
+          "createdAt": { ".validate": "newData.isString()" },
+          "fileName":  { ".validate": "newData.isString() && newData.val().length <= 300" },
+          "fileUrl":   { ".validate": "newData.isString()" },
+          "filePath":  { ".validate": "newData.isString()" },
+          "$other":    { ".validate": false }
+        }
+      }
+    },
+
+    // ── 과제 ──
+    "assignments": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$assignId": {
+          ".validate": "newData.hasChildren(['title', 'createdAt']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 200",
+          "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "description": { ".validate": "newData.isString() && newData.val().length <= 5000" },
+          "dueDate":     { ".validate": "newData.isString() || newData.val() === null" },
+          "createdAt":   { ".validate": "newData.isString()" },
+          "fileName":    { ".validate": "newData.isString() && newData.val().length <= 300" },
+          "fileUrl":     { ".validate": "newData.isString()" },
+          "filePath":    { ".validate": "newData.isString()" },
+          "$other":      { ".validate": false }
+        }
+      }
+    },
+
+    // ── 게시판 (학생 게시물) ──
+    "posts": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$postId": {
+          ".validate": "newData.hasChildren(['title', 'authorName', 'fileName', 'uploadedAt', 'passwordHash'])",
+          "title":        { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "authorName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
+          "authorId":     { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "fileName":     { ".validate": "newData.isString() && newData.val().length <= 300" },
+          "fileSize":     { ".validate": "newData.isNumber() && newData.val() <= 52428800" },
+          "uploadedAt":   { ".validate": "newData.isString()" },
+          "passwordHash": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "storagePath":  { ".validate": "newData.isString()" },
+          "url":          { ".validate": "newData.isString()" },
+          "memo":         { ".validate": "newData.isString() && newData.val().length <= 1000" },
+          "$other":       { ".validate": false }
+        }
+      },
+      // 레거시 게시물 (최상위 posts/{postId}) — 마이그레이션용 읽기/삭제 허용
+      "$legacyPostId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "!$legacyPostId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+      }
+    },
+
+    // ── 과제 제출 ──
+    "submissions": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$assignId": {
+          "$studentNum": {
+            ".validate": "newData.hasChildren(['studentName', 'fileName', 'uploadedAt', 'url'])",
+            "studentName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
+            "studentNumber": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "fileName":      { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "fileSize":      { ".validate": "newData.isNumber() && newData.val() <= 52428800" },
+            "uploadedAt":    { ".validate": "newData.isString()" },
+            "storagePath":   { ".validate": "newData.isString()" },
+            "url":           { ".validate": "newData.isString()" },
+            "memo":          { ".validate": "newData.isString() && newData.val().length <= 1000" },
+            "resubCount":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+            "$other":        { ".validate": false }
+          }
+        }
+      }
+    },
+
+    // ── 학생 목록 ──
+    "students": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$studentNum": {
+          ".validate": "newData.hasChildren(['name', 'passwordHash'])",
+          "name":         { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" },
+          "passwordHash": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "isFirstLogin": { ".validate": "newData.isBoolean()" },
+          "createdAt":    { ".validate": "newData.isString()" },
+          "$other":       { ".validate": false }
+        }
+      }
+    },
+
+    // ── 선생님 공유 파일 ──
+    "teacherFiles": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$fileId": {
+          ".validate": "newData.hasChildren(['name', 'uploadedAt', 'url'])",
+          "name":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
+          "size":       { ".validate": "newData.isNumber() && newData.val() <= 52428800" },
+          "uploadedAt": { ".validate": "newData.isString()" },
+          "storagePath":{ ".validate": "newData.isString()" },
+          "url":        { ".validate": "newData.isString()" },
+          "groupId":    { ".validate": "newData.isString()" },
+          "groupTitle": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "groupDesc":  { ".validate": "newData.isString() && newData.val().length <= 1000" },
+          "$other":     { ".validate": false }
+        }
+      }
+    },
+
+    // ── 출결 ──
+    "attendance": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$date": {
+          ".validate": "$date.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+          "$studentNum": {
+            ".validate": "newData.hasChild('status')",
+            "status":    { ".validate": "newData.isString() && (newData.val() === '출석' || newData.val() === '지각' || newData.val() === '결석')" },
+            "reason":    { ".validate": "newData.isString() && newData.val().length <= 100 || newData.val() === null" },
+            "updatedAt": { ".validate": "newData.isString()" },
+            "$other":    { ".validate": false }
+          }
+        }
+      }
+    },
+
+    // ── 그 외 모든 경로 차단 ──
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
