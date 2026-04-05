@@ -47,7 +47,7 @@ document.addEventListener('click', async e => {
     const origText = el.textContent;
     el.textContent = '...'; el.disabled = true;
     try{ dlFile(f.name, f.url || await storage.ref(f.storagePath).getDownloadURL()); }
-    catch(err){ alert('다운로드 실패: ' + err.message); }
+    catch(err){ toast('다운로드 실패: ' + err.message, 'err'); }
     el.textContent = origText; el.disabled = false; return;
   }
 
@@ -58,7 +58,7 @@ document.addEventListener('click', async e => {
   if(act.action === 'dl-post-file'){
     el.textContent = '...'; el.disabled = true;
     try{ dlFile(SEL_POST.fileName, SEL_POST.url || await storage.ref(SEL_POST.storagePath).getDownloadURL()); }
-    catch(err){ alert('다운로드 실패: ' + err.message); }
+    catch(err){ toast('다운로드 실패: ' + err.message, 'err'); }
     el.textContent = '📥 파일 다운로드'; el.disabled = false; return;
   }
 
@@ -66,14 +66,14 @@ document.addEventListener('click', async e => {
   if(act.action === 'dl-assign-file'){
     el.textContent = '...'; el.disabled = true;
     try{ dlFile(SEL_ASSIGN.fileName, SEL_ASSIGN.fileUrl); }
-    catch(err){ alert('다운로드 실패: ' + err.message); }
+    catch(err){ toast('다운로드 실패: ' + err.message, 'err'); }
     el.textContent = '다운로드'; el.disabled = false; return;
   }
 
   // 제출 파일 다운로드
   if(act.action === 'dl-sub-file' || act.action === 'dl-my-sub'){
     el.textContent = '...'; el.disabled = true;
-    try{ dlFile(act.name, act.url); } catch(err){ alert('실패: ' + err.message); }
+    try{ dlFile(act.name, act.url); } catch(err){ toast('실패: ' + err.message, 'err'); }
     el.textContent = '다운'; el.disabled = false; return;
   }
 
@@ -115,7 +115,7 @@ document.addEventListener('click', async e => {
   if(act.action === 'dl-group-zip'){
     const gid = act.gid;
     const groupFiles = TC_FILES.filter(f => (f.groupId || f.id) === gid && f.url);
-    if(!groupFiles.length){ alert('다운로드할 파일이 없습니다.'); return; }
+    if(!groupFiles.length){ toast('다운로드할 파일이 없습니다.', 'err'); return; }
     el.textContent = '...'; el.disabled = true;
     try{
       const zip = new JSZip();
@@ -127,14 +127,14 @@ document.addEventListener('click', async e => {
       const url = URL.createObjectURL(content);
       dlFile(`파일묶음_${gid}.zip`, url);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } catch(err){ alert('ZIP 실패: ' + err.message); }
+    } catch(err){ toast('ZIP 실패: ' + err.message, 'err'); }
     el.textContent = '📦 전체 다운'; el.disabled = false; return;
   }
 
   // 전체 선생님 파일 ZIP
   if(act.action === 'dl-all-tc-zip'){
     const allFiles = TC_FILES.filter(f => f.url);
-    if(!allFiles.length){ alert('다운로드할 파일이 없습니다.'); return; }
+    if(!allFiles.length){ toast('다운로드할 파일이 없습니다.', 'err'); return; }
     el.textContent = '...'; el.disabled = true;
     try{
       const zip = new JSZip();
@@ -146,7 +146,7 @@ document.addEventListener('click', async e => {
       const url = URL.createObjectURL(content);
       dlFile(`전체파일_${TC_CLS?.label || ''}.zip`, url);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } catch(err){ alert('ZIP 실패: ' + err.message); }
+    } catch(err){ toast('ZIP 실패: ' + err.message, 'err'); }
     el.textContent = '📦 전체 파일 ZIP 다운로드'; el.disabled = false; return;
   }
 
