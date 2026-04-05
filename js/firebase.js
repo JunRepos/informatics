@@ -1,0 +1,140 @@
+/* ═══════════════════════════════════════
+   firebase.js — Firebase 초기화 & DB 헬퍼
+
+   Firebase 연결과 데이터 CRUD 함수들입니다.
+   새로운 데이터 종류를 추가할 때 여기에 load/save 함수를 만드세요.
+═══════════════════════════════════════ */
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+const storage = firebase.storage();
+
+// 현재 활성 반 ID
+const CID = () => (IS_TC ? TC_CLS : SEL_CLS)?.id;
+
+// 선생님 인증 정보 가져오기
+async function getAuth(){
+  const s = await db.ref('auth/teacher').get();
+  return s.exists() ? s.val() : null;
+}
+
+// ── 게시물 개수 (홈 화면용) ──
+async function loadPostCounts(){
+  const s = await db.ref('posts').get();
+  CLASSES.forEach(c => { POST_COUNTS[c.id] = 0; });
+  if(!s.exists()) return;
+  Object.entries(s.val()).forEach(([k, v]) => {
+    if(KNOWN_CLS.has(k) && typeof v === 'object')
+      POST_COUNTS[k] = Object.keys(v).length;
+  });
+}
+
+// ── 공지사항 ──
+async function loadNotices(cid){
+  const s = await db.ref(`notices/${cid}`).get();
+  if(!s.exists()){ NOTICES = []; return; }
+  NOTICES = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => {
+      if(a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+}
+
+// ── 과제 ──
+async function loadAssignments(cid){
+  const s = await db.ref(`assignments/${cid}`).get();
+  if(!s.exists()){ ASSIGNMENTS = []; return; }
+  ASSIGNMENTS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => a.dueDate && b.dueDate
+      ? a.dueDate.localeCompare(b.dueDate)
+      : b.createdAt.localeCompare(a.createdAt));
+}
+
+// ── 게시판 글 ──
+async function loadPosts(cid){
+  const s = await db.ref(`posts/${cid}`).get();
+  if(!s.exists()){ POSTS = []; return; }
+  POSTS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+// ── 선생님 공유 파일 ──
+async function loadTcFiles(cid){
+  const s = await db.ref(`teacherFiles/${cid}`).get();
+  if(!s.exists()){ TC_FILES = []; return; }
+  TC_FILES = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+// ── 학생 목록 ──
+async function loadStudents(cid){
+  const s = await db.ref(`students/${cid}`).get();
+  if(!s.exists()){ STUDENTS = []; return; }
+  STUDENTS = Object.entries(s.val()).map(([num, v]) => ({number: num, ...v}))
+    .sort((a, b) => a.number.localeCompare(b.number));
+}
+
+// ── 출결 (특정 날짜) ──
+async function loadAttendance(cid, date){
+  const s = await db.ref(`attendance/${cid}/${date}`).get();
+  ATTENDANCE = s.exists() ? s.val() : {};
+}
+
+// ── 출결 (월 단위, 학생 이력용) ──
+async function loadAttendanceMonth(cid, ym){
+  const s = await db.ref(`attendance/${cid}`).get();
+  AT_MONTH_DATA = {};
+  if(!s.exists()) return;
+  Object.entries(s.val()).forEach(([date, recs]) => {
+    if(date.startsWith(ym)) AT_MONTH_DATA[date] = recs;
+  });
+}
+
+// ── 출결 저장 ──
+async function saveAttendance(cid, date, num, status, reason){
+  const rec = {status, updatedAt: new Date().toISOString()};
+  if(reason) rec.reason = reason; else rec.reason = null;
+  await db.ref(`attendance/${cid}/${date}/${num}`).set(rec);
+  if(!ATTENDANCE[num]) ATTENDANCE[num] = {};
+  ATTENDANCE[num] = rec;
+}
+
+// ── 과제 제출 현황 ──
+async function loadSubmissions(cid, aid){
+  const s = await db.ref(`submissions/${cid}/${aid}`).get();
+  SUBMISSIONS[aid] = s.exists() ? s.val() : {};
+}
+
+// ── 반 전체 데이터 로드 ──
+async function loadAllClassData(cid){
+  await Promise.all([
+    loadNotices(cid),
+    loadAssignments(cid),
+    loadPosts(cid),
+    loadTcFiles(cid),
+    loadStudents(cid)
+  ]);
+}
+
+// ── 레거시 게시물 (이전 버전 호환) ──
+async function loadLegacyPosts(){
+  const s = await db.ref('posts').get();
+  if(!s.exists()) return [];
+  const val = s.val(), out = [];
+  Object.entries(val).forEach(([k, v]) => {
+    if(!KNOWN_CLS.has(k) && v && 'title' in v) out.push({id: k, ...v});
+  });
+  return out.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+// ── 파일 업로드 (진행률 표시 지원) ──
+async function uploadFile(file, path, progFill, progPct){
+  const ref = storage.ref(path);
+  const task = ref.put(file);
+  await new Promise((res, rej) => task.on('state_changed', snap => {
+    const p = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+    if(progFill) progFill.style.width = p + '%';
+    if(progPct) progPct.textContent = p + '%';
+  }, rej, res));
+  return await ref.getDownloadURL();
+}
