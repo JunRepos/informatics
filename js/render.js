@@ -95,6 +95,7 @@ function go(v, extra = {}){
   if(extra.post){ SEL_POST = extra.post; POST_UNLOCKED = false; }
   if(extra.assign){ SEL_ASSIGN = extra.assign; }
   saveSession();
+  history.pushState({view: v}, '', '#' + v);
   render();
 }
 
@@ -102,9 +103,22 @@ function go(v, extra = {}){
 async function goHome(){
   VIEW = 'home'; SEL_CLS = null; TC_CLS = null; ST_USER = null; SEL_POST = null; SEL_ASSIGN = null;
   clearSession();
+  history.pushState({view: 'home'}, '', '#home');
   await loadPostCounts();
   render();
 }
+
+// ── 브라우저 뒤로가기/앞으로가기 ──
+window.addEventListener('popstate', async () => {
+  if(restoreSession()){
+    const cid = SEL_CLS?.id || TC_CLS?.id;
+    if(cid) await loadAllClassData(cid);
+  } else {
+    VIEW = 'home'; SEL_CLS = null; TC_CLS = null; ST_USER = null;
+    await loadPostCounts();
+  }
+  render();
+});
 
 // ── 로그아웃 ──
 function logoutTeacher(){ IS_TC = false; TC_CLS = null; TC_TAB = 'notice'; clearSession(); goHome(); }
