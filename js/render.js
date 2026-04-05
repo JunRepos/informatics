@@ -94,19 +94,21 @@ function go(v, extra = {}){
   VIEW = v;
   if(extra.post){ SEL_POST = extra.post; POST_UNLOCKED = false; }
   if(extra.assign){ SEL_ASSIGN = extra.assign; }
+  saveSession();
   render();
 }
 
 // ── 홈으로 ──
 async function goHome(){
   VIEW = 'home'; SEL_CLS = null; TC_CLS = null; ST_USER = null; SEL_POST = null; SEL_ASSIGN = null;
+  clearSession();
   await loadPostCounts();
   render();
 }
 
 // ── 로그아웃 ──
-function logoutTeacher(){ IS_TC = false; TC_CLS = null; TC_TAB = 'notice'; goHome(); }
-function logoutStudent(){ ST_USER = null; FORCE_PW = false; ST_TAB = 'notice'; go('student-login'); }
+function logoutTeacher(){ IS_TC = false; TC_CLS = null; TC_TAB = 'notice'; clearSession(); goHome(); }
+function logoutStudent(){ ST_USER = null; FORCE_PW = false; ST_TAB = 'notice'; clearSession(); go('student-login'); }
 
 // ── 이미지 미리보기 모달 ──
 function showImgModal(url, name){
