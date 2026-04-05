@@ -9,6 +9,25 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 const storage = firebase.storage();
 
+// ── 네트워크 상태 감지 ──
+let IS_ONLINE = navigator.onLine;
+
+window.addEventListener('online', () => {
+  IS_ONLINE = true;
+  toast('네트워크가 복구됐습니다.', 'ok');
+});
+window.addEventListener('offline', () => {
+  IS_ONLINE = false;
+  toast('네트워크 연결이 끊겼습니다. 일부 기능이 제한됩니다.', 'err');
+});
+
+// Firebase 연결 상태 감지
+db.ref('.info/connected').on('value', snap => {
+  if(snap.val() === false && IS_ONLINE){
+    toast('서버 연결이 불안정합니다.', 'err');
+  }
+});
+
 // 현재 활성 반 ID
 const CID = () => (IS_TC ? TC_CLS : SEL_CLS)?.id;
 

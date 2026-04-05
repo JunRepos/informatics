@@ -206,6 +206,15 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .at-hist-date{font-size:13px;font-weight:600;min-width:56px;color:var(--text2)}
 .at-hist-detail{font-size:12px;color:var(--text3);margin-top:1px}
 
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.toast{padding:10px 18px;border-radius:var(--r-md);font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.15);pointer-events:auto;animation:toastIn .25s ease,toastOut .3s ease forwards;animation-delay:0s,2.7s;max-width:90vw;text-align:center}
+.toast-ok{background:var(--ok);color:#fff}
+.toast-err{background:var(--danger);color:#fff}
+.toast-info{background:var(--accent);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
 /* ── Responsive ── */
 @media(max-width:600px){
   .header{flex-direction:column;align-items:flex-start}

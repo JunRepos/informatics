@@ -9,7 +9,7 @@ async function doZipDownload(aid){
   const a = ASSIGNMENTS.find(x => x.id === aid);
   const subs = SUBMISSIONS[aid] || {};
   const entries = Object.entries(subs).filter(([, v]) => v && v.url);
-  if(!entries.length){ alert('제출된 파일이 없습니다.'); return; }
+  if(!entries.length){ toast('제출된 파일이 없습니다.', 'err'); return; }
 
   const btn = document.getElementById('zip-btn');
   if(btn){ btn.textContent = '📦 압축 중...'; btn.disabled = true; }
@@ -28,7 +28,7 @@ async function doZipDownload(aid){
     const url = URL.createObjectURL(content);
     dlFile(`${a?.title || 'submissions'}_제출물.zip`, url);
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-  } catch(err){ alert('ZIP 다운로드 실패: ' + err.message); }
+  } catch(err){ toast('ZIP 다운로드 실패: ' + err.message, 'err'); }
 
   if(btn){ btn.textContent = `📦 ZIP 다운로드 (${entries.length}개)`; btn.disabled = false; }
 }

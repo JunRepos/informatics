@@ -316,8 +316,8 @@ function atExport(){
   if(groups['미체크'].length) lines.push(`? 미체크(${groups['미체크'].length}명): ` + groups['미체크'].join(', '));
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
-    alert('📋 클립보드에 복사됐습니다!\n\n' + text);
-  }).catch(() => alert(text));
+    toast('📋 클립보드에 복사됐습니다!', 'ok');
+  }).catch(() => toast('클립보드 복사 실패', 'err'));
 }
 
 // ── 학생 관리 ──

@@ -102,3 +102,19 @@ function dday(dueDate){
 function isPastDue(dueDate){
   return dueDate && new Date(dueDate) < new Date();
 }
+
+// 토스트 알림 (alert 대체)
+function toast(msg, type = 'info'){
+  let wrap = document.getElementById('toast-wrap');
+  if(!wrap){
+    wrap = document.createElement('div');
+    wrap.id = 'toast-wrap';
+    wrap.className = 'toast-wrap';
+    document.body.appendChild(wrap);
+  }
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
