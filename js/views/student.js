@@ -88,25 +88,13 @@ function vStBoard(){
 // ── 파일 탭 (선생님 공유 파일) ──
 function vStFiles(){
   if(!TC_FILES.length) return emptyBox('📥','선생님이 올린 파일이 없습니다.');
-  const groups = {};
-  TC_FILES.forEach(f => {
-    const gid = f.groupId || f.id;
-    if(!groups[gid]) groups[gid] = {title: f.groupTitle || '', desc: f.groupDesc || '', uploadedAt: f.uploadedAt, files: []};
-    groups[gid].files.push(f);
-  });
+  const groups = groupFiles(TC_FILES);
   return Object.entries(groups).map(([gid, g]) => `
     <div class="section" style="margin-bottom:10px">
       ${g.title ? `<div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(g.title)}</div>` : ''}
       ${g.desc ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${esc(g.desc)}</div>` : ''}
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${fmtDt(g.uploadedAt)} · ${g.files.length}개 파일</div>
-      ${g.files.map(f => `<div class="file-card" style="margin-bottom:6px">
-        <div class="file-icon">${fIcon(f.name)}</div>
-        <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">${fmtSz(f.size)}</div></div>
-        <div style="display:flex;gap:4px">
-          ${isImg(f.name) ? `<button class="btn-xs" data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}">👁</button>` : ''}
-          <button class="btn-p btn-sm" data-action="dl-tc-file" data-id="${f.id}">↓ 다운</button>
-        </div>
-      </div>`).join('')}
+      ${g.files.map(f => fileCardHtml(f, {dlLabel: '다운'})).join('')}
       ${g.files.length > 1 ? `<button class="btn-xs btn-ok" data-action="dl-group-zip" data-gid="${gid}" style="margin-top:4px">📦 전체 다운로드</button>` : ''}
     </div>`).join('');
 }
