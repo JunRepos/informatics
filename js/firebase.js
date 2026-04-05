@@ -21,9 +21,11 @@ window.addEventListener('offline', () => {
   toast('네트워크 연결이 끊겼습니다. 일부 기능이 제한됩니다.', 'err');
 });
 
-// Firebase 연결 상태 감지
+// Firebase 연결 상태 감지 (초기 로드 시 false가 잠깐 나오므로 3초 후부터 감지)
+let _fbConnReady = false;
+setTimeout(() => { _fbConnReady = true; }, 3000);
 db.ref('.info/connected').on('value', snap => {
-  if(snap.val() === false && IS_ONLINE){
+  if(_fbConnReady && snap.val() === false && IS_ONLINE){
     toast('서버 연결이 불안정합니다.', 'err');
   }
 });
