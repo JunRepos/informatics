@@ -6,7 +6,9 @@
       "teacher": {
         ".read": true,
         ".write": true,
-        ".validate": "newData.hasChild('h') && newData.child('h').isString() && newData.child('h').val().length === 64"
+        ".validate": "newData.hasChild('h') && newData.child('h').isString() && newData.child('h').val().length === 64",
+        "h":    { ".validate": "newData.isString() && newData.val().length === 64" },
+        "salt": { ".validate": "newData.isString() && newData.val().length === 32" }
       },
       "$other": { ".validate": false }
     },
@@ -63,6 +65,7 @@
           "fileSize":     { ".validate": "newData.isNumber() && newData.val() <= 52428800" },
           "uploadedAt":   { ".validate": "newData.isString()" },
           "passwordHash": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "salt":         { ".validate": "newData.isString() && newData.val().length === 32" },
           "storagePath":  { ".validate": "newData.isString()" },
           "url":          { ".validate": "newData.isString()" },
           "memo":         { ".validate": "newData.isString() && newData.val().length <= 1000" },
@@ -109,6 +112,7 @@
           ".validate": "newData.hasChildren(['name', 'passwordHash'])",
           "name":         { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" },
           "passwordHash": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "salt":         { ".validate": "newData.isString() && newData.val().length === 32" },
           "isFirstLogin": { ".validate": "newData.isBoolean()" },
           "createdAt":    { ".validate": "newData.isString()" },
           "$other":       { ".validate": false }

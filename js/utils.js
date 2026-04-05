@@ -5,10 +5,30 @@
    여러 곳에서 재사용하는 헬퍼 함수들입니다.
 ═══════════════════════════════════════ */
 
-// SHA-256 해시 (비밀번호 암호화용)
+// SHA-256 해시 (기존 호환용)
 async function sha256(s){
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+// 랜덤 salt 생성 (16바이트 hex)
+function generateSalt(){
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+// salt + 비밀번호 해시
+async function hashWithSalt(password, salt){
+  return await sha256(salt + password);
+}
+
+// 비밀번호 검증 (salt 있으면 salt 방식, 없으면 기존 방식)
+async function verifyPassword(password, storedHash, salt){
+  if(salt){
+    return (await hashWithSalt(password, salt)) === storedHash;
+  }
+  return (await sha256(password)) === storedHash;
 }
 
 // HTML 이스케이프 (XSS 방지)
