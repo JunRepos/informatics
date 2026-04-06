@@ -70,6 +70,7 @@ function vTcNotice(){
           </label>
         </div>
       </div>
+      ${!editData ? multiClassPicker('nc', TC_CLS?.id) : ''}
       <div class="prog-wrap" id="nc-prog">
         <div class="prog-label">업로드 중... <span id="nc-pct">0%</span></div>
         <div class="prog-bar"><div class="prog-fill" id="nc-pfill" style="width:0%"></div></div>
@@ -101,6 +102,7 @@ function vTcAssign(){
         <div class="field"><label>마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate || ''}"/></div>
         <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택)'}</label><input id="ac-file" type="file"/></div>
       </div>
+      ${!editData ? multiClassPicker('ac', TC_CLS?.id) : ''}
       <div class="prog-wrap" id="ac-prog">
         <div class="prog-label">업로드 중... <span id="ac-pct">0%</span></div>
         <div class="prog-bar"><div class="prog-fill" id="ac-pfill" style="width:0%"></div></div>

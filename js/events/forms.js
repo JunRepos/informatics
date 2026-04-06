@@ -224,15 +224,28 @@ document.addEventListener('click', async e => {
         await db.ref(`notices/${cid}/${editId}`).update(updates);
         window._ncEditId = null;
       } else {
-        const id = genId(); let fileData = {};
+        // 다중 반 선택
+        const targetClasses = getSelectedClasses('nc');
+        if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; t.disabled = false; return; }
+
+        // 파일 업로드 (한 번만)
+        let fileData = {};
         if(file){
           if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('nc-prog').style.display = 'block';
-          const path = `notices/${cid}/${id}/${file.name}`;
+          const uploadId = genId();
+          const path = `notices/${targetClasses[0]}/${uploadId}/${file.name}`;
           const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
           fileData = {fileName: file.name, fileUrl: url, filePath: path};
         }
-        await db.ref(`notices/${cid}/${id}`).set({title, content: content || '', isPinned, createdAt: new Date().toISOString(), ...fileData});
+
+        // 선택된 모든 반에 등록
+        const now = new Date().toISOString();
+        for(const targetCid of targetClasses){
+          const id = genId();
+          await db.ref(`notices/${targetCid}/${id}`).set({title, content: content || '', isPinned, createdAt: now, ...fileData});
+        }
+        if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 공지가 등록됐습니다.`, 'ok');
       }
       await loadNotices(cid); render();
     } catch(err2){ err.textContent = '오류: ' + err2.message; t.disabled = false; }
@@ -265,18 +278,31 @@ document.addEventListener('click', async e => {
         await db.ref(`assignments/${cid}/${editId}`).update(updates);
         window._acEditId = null;
       } else {
-        const id = genId(); let fileData = {};
+        // 다중 반 선택
+        const targetClasses = getSelectedClasses('ac');
+        if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; t.disabled = false; return; }
+
+        // 파일 업로드 (한 번만)
+        let fileData = {};
         if(file){
           if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
           document.getElementById('ac-prog').style.display = 'block';
-          const path = `assignments/${cid}/${id}/${file.name}`;
+          const uploadId = genId();
+          const path = `assignments/${targetClasses[0]}/${uploadId}/${file.name}`;
           const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
           fileData = {fileName: file.name, fileUrl: url, filePath: path};
         }
-        await db.ref(`assignments/${cid}/${id}`).set({
-          title, description: desc || '', dueDate: due || null,
-          createdAt: new Date().toISOString(), ...fileData
-        });
+
+        // 선택된 모든 반에 등록
+        const now = new Date().toISOString();
+        for(const targetCid of targetClasses){
+          const id = genId();
+          await db.ref(`assignments/${targetCid}/${id}`).set({
+            title, description: desc || '', dueDate: due || null,
+            createdAt: now, ...fileData
+          });
+        }
+        if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 과제가 등록됐습니다.`, 'ok');
       }
       await loadAssignments(cid); render();
     } catch(err2){ err.textContent = '오류: ' + err2.message; t.disabled = false; }

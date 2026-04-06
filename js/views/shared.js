@@ -5,6 +5,29 @@
    탭 버튼, 빈 화면, 공지카드 등
 ═══════════════════════════════════════ */
 
+// 다중 반 선택 체크박스 (신규 등록 시에만 표시)
+function multiClassPicker(idPrefix, currentClassId){
+  const checks = CLASSES.map(c => {
+    const checked = c.id === currentClassId ? 'checked' : '';
+    return `<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0">
+      <input type="checkbox" class="${idPrefix}-cls-chk" value="${c.id}" style="width:auto" ${checked}/> ${c.emoji} ${c.label}
+    </label>`;
+  }).join('');
+  return `<div class="field">
+    <label>등록할 반 선택</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 0">
+      ${checks}
+      <button type="button" class="btn-xs" onclick="document.querySelectorAll('.${idPrefix}-cls-chk').forEach(c=>c.checked=true)" style="margin-left:4px">전체 선택</button>
+      <button type="button" class="btn-xs" onclick="document.querySelectorAll('.${idPrefix}-cls-chk').forEach(c=>c.checked=false)">전체 해제</button>
+    </div>
+  </div>`;
+}
+
+// 선택된 반 ID 배열 가져오기
+function getSelectedClasses(idPrefix){
+  return Array.from(document.querySelectorAll(`.${idPrefix}-cls-chk:checked`)).map(c => c.value);
+}
+
 // 탭 버튼 생성
 function tab(label, key, active, fn){
   return `<button class="tab${active === key ? ' active' : ''}" onclick="${fn}">${label}</button>`;
