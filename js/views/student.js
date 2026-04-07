@@ -14,15 +14,17 @@ function vStudent(){
     ${tab('📥 파일','files',ST_TAB,"setST('files')")}
     ${tab('🗓️ 내 출결','attend',ST_TAB,"setST('attend')")}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
+    ${tab('▶️ 코드','coderun',ST_TAB,"setST('coderun')")}
   </div>`;
 
   let body = '';
-  if     (ST_TAB === 'notice') body = vStNotice();
-  else if(ST_TAB === 'assign') body = vStAssign();
-  else if(ST_TAB === 'board')  body = vStBoard();
-  else if(ST_TAB === 'files')  body = vStFiles();
-  else if(ST_TAB === 'attend') body = vStAttend();
-  else if(ST_TAB === 'mine')   body = vStMine();
+  if     (ST_TAB === 'notice')  body = vStNotice();
+  else if(ST_TAB === 'assign')  body = vStAssign();
+  else if(ST_TAB === 'board')   body = vStBoard();
+  else if(ST_TAB === 'files')   body = vStFiles();
+  else if(ST_TAB === 'attend')  body = vStAttend();
+  else if(ST_TAB === 'mine')    body = vStMine();
+  else if(ST_TAB === 'coderun') body = vCodeRun();
   return tabs + body;
 }
 

@@ -146,4 +146,10 @@ function afterRender(){
 
   const theme = document.documentElement.getAttribute('data-theme');
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = theme === 'dark' ? '☀️' : '🌙');
+
+  // 코드 실행 탭이면 Monaco 에디터 초기화
+  if((TC_TAB === 'coderun' || ST_TAB === 'coderun') && document.getElementById('cr-editor')){
+    _monacoEditor = null; // 이전 인스턴스 정리
+    initMonaco();
+  }
 }
