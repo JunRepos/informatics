@@ -28,3 +28,8 @@ const CLASSES = [
 ];
 
 const KNOWN_CLS = new Set(CLASSES.map(c=>c.id));
+
+// JDoodle 컴파일러 API — https://www.jdoodle.com/compiler-api 에서 무료 발급
+// ★ 발급 후 아래 값을 교체하세요 ★
+const JDOODLE_CLIENT_ID     = '48aborc796e5e3d0e65b6b0e3ad8d91';
+const JDOODLE_CLIENT_SECRET = 'c2bb9cd26b94e2a427e23fa585c33c2a3b1a2b9553afae20a54fa02c99ddc505';

@@ -25,9 +25,10 @@ function vTeacher(){
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
     ${tab('📁 파일','files',TC_TAB,"setTC('files')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
+    ${tab('▶️ 코드','coderun',TC_TAB,"setTC('coderun')")}
   </div>`;
 
-  if(!TC_CLS && TC_TAB !== 'settings')
+  if(!TC_CLS && TC_TAB !== 'settings' && TC_TAB !== 'coderun')
     return clsBar + tabs + emptyBox('👆','관리할 반을 선택하세요.');
 
   let body = '';
@@ -38,6 +39,7 @@ function vTeacher(){
   else if(TC_TAB === 'students') body = vTcStudents();
   else if(TC_TAB === 'files')    body = vTcFiles();
   else if(TC_TAB === 'settings') body = vTcSettings();
+  else if(TC_TAB === 'coderun')  body = vCodeRun();
 
   return clsBar + tabs + body;
 }

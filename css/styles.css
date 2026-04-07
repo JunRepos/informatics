@@ -215,6 +215,25 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{from{opacity:1}to{opacity:0}}
 
+/* ── Code Runner (구름/프로그래머스 스타일) ── */
+.cr-wrap{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh)}
+.cr-toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.cr-toolbar select{width:auto;min-width:120px;font-size:12px;padding:5px 28px 5px 10px}
+.cr-toolbar .cr-spacer{flex:1}
+.cr-toolbar .cr-status{font-size:11px;color:var(--text3)}
+.cr-editor-wrap{height:320px;min-height:200px;position:relative;background:#1e1e1e}
+.cr-output-wrap{border-top:1px solid var(--border);background:var(--surface)}
+.cr-output-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.cr-output-header span{font-size:12px;font-weight:600;color:var(--text2)}
+.cr-output{padding:12px 16px;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-all;color:var(--text);min-height:80px;max-height:240px;overflow-y:auto;background:var(--surface)}
+.cr-output.cr-running{color:var(--text3);font-style:italic}
+.cr-output.cr-error{color:var(--danger-txt)}
+.cr-btn-run{background:#16A34A;color:#fff;border-color:#16A34A;font-weight:600;gap:4px}
+.cr-btn-run:hover{background:#14532d}
+.cr-btn-run:disabled{background:var(--border);border-color:var(--border);color:var(--text3)}
+.cr-resize-handle{height:6px;background:var(--border);cursor:row-resize;display:flex;align-items:center;justify-content:center}
+.cr-resize-handle::after{content:'';width:30px;height:2px;background:var(--text3);border-radius:1px}
+
 /* ── Responsive ── */
 @media(max-width:600px){
   .header{flex-direction:column;align-items:flex-start}
@@ -225,4 +244,5 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
   .tab{font-size:12px;padding:5px 9px}
   .tbl{font-size:11px}
   .tbl td,.tbl th{padding:7px 9px}
+  .cr-editor-wrap{height:240px}
 }
