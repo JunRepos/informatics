@@ -53,10 +53,10 @@ function vPostDetail(){
       </div>
       <div id="reset-msg" style="font-size:12px;min-height:16px"></div>
       <div class="divider"></div>
-      <button id="del-post-btn" class="btn-danger btn-sm">이 게시물 삭제</button>` : ''}
+      <button id="del-post-btn" class="btn-danger btn-sm" data-action="del-post">이 게시물 삭제</button>` : ''}
     ${isMine && !IS_TC ? `
       <div class="divider"></div>
-      <button id="del-my-post-btn" class="btn-danger btn-sm">내 게시물 삭제</button>` : ''}
+      <button id="del-my-post-btn" class="btn-danger btn-sm" data-action="del-post">내 게시물 삭제</button>` : ''}
   </div>`;
 }
 

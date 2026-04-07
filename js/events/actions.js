@@ -217,7 +217,7 @@ document.addEventListener('click', async e => {
   }
 
   // 게시물 삭제
-  if(act.action === 'del-post-btn' || el.id === 'del-post-btn' || el.id === 'del-my-post-btn'){
+  if(act.action === 'del-post'){
     if(!confirm(`"${SEL_POST?.title}" 게시물을 삭제할까요?`)) return;
     const cid = CID(); if(!cid) return;
     if(SEL_POST?.storagePath) await storage.ref(SEL_POST.storagePath).delete().catch(() => {});
