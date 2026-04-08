@@ -126,6 +126,23 @@ async function loadSubmissions(cid, aid){
   SUBMISSIONS[aid] = s.exists() ? s.val() : {};
 }
 
+// ── OJ 문제 목록 ──
+async function loadOJProblems(cid){
+  const s = await db.ref(`problems/${cid}`).get();
+  if(!s.exists()){ OJ_PROBLEMS = []; return; }
+  OJ_PROBLEMS = Object.entries(s.val()).map(([id, v]) => {
+    const tcs = v.testCases ? Object.entries(v.testCases).map(([tid, tc]) => ({id: tid, ...tc}))
+      .sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+    return {id, ...v, testCases: tcs};
+  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// ── OJ 제출 현황 ──
+async function loadOJSubmissions(cid, pid){
+  const s = await db.ref(`ojSubmissions/${cid}/${pid}`).get();
+  OJ_SUBMISSIONS[pid] = s.exists() ? s.val() : {};
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -133,7 +150,8 @@ async function loadAllClassData(cid){
     loadAssignments(cid),
     loadPosts(cid),
     loadTcFiles(cid),
-    loadStudents(cid)
+    loadStudents(cid),
+    loadOJProblems(cid)
   ]);
 }
 
