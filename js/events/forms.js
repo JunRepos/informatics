@@ -124,7 +124,7 @@ document.addEventListener('click', async e => {
       for(const a of ASSIGNMENTS) await loadSubmissions(SEL_CLS.id, a.id);
       const ym = new Date().toISOString().slice(0, 7);
       await loadAttendanceMonth(SEL_CLS.id, ym);
-      if(FORCE_PW) go('change-pw'); else { ST_TAB = 'notice'; go('student'); }
+      if(FORCE_PW) go('change-pw'); else { ST_TAB = 'dashboard'; go('student'); }
     } catch(err2){ err.textContent = '오류: ' + err2.message; t.textContent = '로그인'; t.disabled = false; }
     return;
   }
@@ -203,43 +203,58 @@ document.addEventListener('click', async e => {
     const title = document.getElementById('nc-title')?.value?.trim();
     const content = document.getElementById('nc-content')?.value?.trim();
     const isPinned = document.getElementById('nc-pin')?.checked || false;
-    const file = document.getElementById('nc-file')?.files[0];
+    const files = Array.from(document.getElementById('nc-file')?.files || []);
     const err = document.getElementById('nc-err');
     const cid = TC_CLS?.id; if(!cid) return;
     if(!title){ err.textContent = '제목을 입력하세요.'; return; }
+    const oversized = files.find(f => f.size > MAX_FILE_SIZE);
+    if(oversized){ err.textContent = `"${oversized.name}" 파일이 50MB를 초과합니다.`; return; }
     t.disabled = true; err.textContent = '';
     try{
       const editId = t.dataset.editId;
       if(editId){
         const existing = NOTICES.find(n => n.id === editId);
         const updates = {title, content: content || '', isPinned};
-        if(file){
-          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+        if(files.length){
           document.getElementById('nc-prog').style.display = 'block';
+          // 기존 파일 삭제
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
-          const path = `notices/${cid}/${editId}/${file.name}`;
-          const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
-          updates.fileName = file.name; updates.fileUrl = url; updates.filePath = path;
+          if(existing?.files) for(const ef of existing.files) await storage.ref(ef.path).delete().catch(() => {});
+          const uploaded = [];
+          for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            document.getElementById('nc-pct').textContent = `${i+1}/${files.length}`;
+            const path = `notices/${cid}/${editId}/${file.name}`;
+            const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
+            uploaded.push({name: file.name, url, path});
+          }
+          // 하위호환: 첫 파일은 기존 필드에도 저장
+          updates.fileName = uploaded[0].name; updates.fileUrl = uploaded[0].url; updates.filePath = uploaded[0].path;
+          if(uploaded.length > 1) updates.files = uploaded;
+          else updates.files = null;
         }
         await db.ref(`notices/${cid}/${editId}`).update(updates);
         window._ncEditId = null;
       } else {
-        // 다중 반 선택
         const targetClasses = getSelectedClasses('nc');
         if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; t.disabled = false; return; }
 
-        // 파일 업로드 (한 번만)
         let fileData = {};
-        if(file){
-          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+        if(files.length){
           document.getElementById('nc-prog').style.display = 'block';
           const uploadId = genId();
-          const path = `notices/${targetClasses[0]}/${uploadId}/${file.name}`;
-          const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
-          fileData = {fileName: file.name, fileUrl: url, filePath: path};
+          const uploaded = [];
+          for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            document.getElementById('nc-pct').textContent = `${i+1}/${files.length}`;
+            const path = `notices/${targetClasses[0]}/${uploadId}/${file.name}`;
+            const url = await uploadFile(file, path, document.getElementById('nc-pfill'), document.getElementById('nc-pct'));
+            uploaded.push({name: file.name, url, path});
+          }
+          fileData.fileName = uploaded[0].name; fileData.fileUrl = uploaded[0].url; fileData.filePath = uploaded[0].path;
+          if(uploaded.length > 1) fileData.files = uploaded;
         }
 
-        // 선택된 모든 반에 등록
         const now = new Date().toISOString();
         for(const targetCid of targetClasses){
           const id = genId();
@@ -257,43 +272,56 @@ document.addEventListener('click', async e => {
     const title = document.getElementById('ac-title')?.value?.trim();
     const desc = document.getElementById('ac-desc')?.value?.trim();
     const due = document.getElementById('ac-due')?.value;
-    const file = document.getElementById('ac-file')?.files[0];
+    const files = Array.from(document.getElementById('ac-file')?.files || []);
     const err = document.getElementById('ac-err');
     const cid = TC_CLS?.id; if(!cid) return;
     if(!title){ err.textContent = '과제 제목을 입력하세요.'; return; }
+    const oversized = files.find(f => f.size > MAX_FILE_SIZE);
+    if(oversized){ err.textContent = `"${oversized.name}" 파일이 50MB를 초과합니다.`; return; }
     t.disabled = true; err.textContent = '';
     try{
       const editId = t.dataset.editId;
       if(editId){
         const existing = ASSIGNMENTS.find(a => a.id === editId);
         const updates = {title, description: desc || '', dueDate: due || null};
-        if(file){
-          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+        if(files.length){
           document.getElementById('ac-prog').style.display = 'block';
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
-          const path = `assignments/${cid}/${editId}/${file.name}`;
-          const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
-          updates.fileName = file.name; updates.fileUrl = url; updates.filePath = path;
+          if(existing?.files) for(const ef of existing.files) await storage.ref(ef.path).delete().catch(() => {});
+          const uploaded = [];
+          for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            document.getElementById('ac-pct').textContent = `${i+1}/${files.length}`;
+            const path = `assignments/${cid}/${editId}/${file.name}`;
+            const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
+            uploaded.push({name: file.name, url, path});
+          }
+          updates.fileName = uploaded[0].name; updates.fileUrl = uploaded[0].url; updates.filePath = uploaded[0].path;
+          if(uploaded.length > 1) updates.files = uploaded;
+          else updates.files = null;
         }
         await db.ref(`assignments/${cid}/${editId}`).update(updates);
         window._acEditId = null;
       } else {
-        // 다중 반 선택
         const targetClasses = getSelectedClasses('ac');
         if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; t.disabled = false; return; }
 
-        // 파일 업로드 (한 번만)
         let fileData = {};
-        if(file){
-          if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; t.disabled = false; return; }
+        if(files.length){
           document.getElementById('ac-prog').style.display = 'block';
           const uploadId = genId();
-          const path = `assignments/${targetClasses[0]}/${uploadId}/${file.name}`;
-          const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
-          fileData = {fileName: file.name, fileUrl: url, filePath: path};
+          const uploaded = [];
+          for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            document.getElementById('ac-pct').textContent = `${i+1}/${files.length}`;
+            const path = `assignments/${targetClasses[0]}/${uploadId}/${file.name}`;
+            const url = await uploadFile(file, path, document.getElementById('ac-pfill'), document.getElementById('ac-pct'));
+            uploaded.push({name: file.name, url, path});
+          }
+          fileData.fileName = uploaded[0].name; fileData.fileUrl = uploaded[0].url; fileData.filePath = uploaded[0].path;
+          if(uploaded.length > 1) fileData.files = uploaded;
         }
 
-        // 선택된 모든 반에 등록
         const now = new Date().toISOString();
         for(const targetCid of targetClasses){
           const id = genId();
@@ -346,26 +374,38 @@ document.addEventListener('click', async e => {
 
   // ── 과제 제출/재제출 (학생) ──
   if(t.id === 'sf-submit'){
-    const file = document.getElementById('sf-file')?.files[0];
+    const files = Array.from(document.getElementById('sf-file')?.files || []);
     const memo = document.getElementById('sf-memo')?.value?.trim();
     const err = document.getElementById('sf-err');
     const cid = SEL_CLS?.id; if(!cid || !SEL_ASSIGN || !ST_USER) return;
-    if(!file){ err.textContent = '파일을 선택하세요.'; return; }
-    if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
+    if(!files.length){ err.textContent = '파일을 선택하세요.'; return; }
+    const oversized = files.find(f => f.size > MAX_FILE_SIZE);
+    if(oversized){ err.textContent = `"${oversized.name}" 파일이 50MB를 초과합니다.`; return; }
     t.disabled = true; document.getElementById('sf-prog').style.display = 'block'; err.textContent = '';
     try{
       const existing = SUBMISSIONS[SEL_ASSIGN.id]?.[ST_USER.number];
       const resubCount = (existing?.resubCount || 0) + (existing ? 1 : 0);
+      // 기존 파일 삭제
       if(existing?.storagePath) await storage.ref(existing.storagePath).delete().catch(() => {});
-      const id = genId();
-      const path = `submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}/${file.name}`;
-      const url = await uploadFile(file, path, document.getElementById('sf-pfill'), document.getElementById('sf-pct'));
-      await db.ref(`submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}`).set({
+      if(existing?.files) for(const ef of existing.files) await storage.ref(ef.path).delete().catch(() => {});
+
+      const uploaded = [];
+      for(let i = 0; i < files.length; i++){
+        const file = files[i];
+        document.getElementById('sf-pct').textContent = `${i+1}/${files.length}`;
+        const path = `submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}/${file.name}`;
+        const url = await uploadFile(file, path, document.getElementById('sf-pfill'), document.getElementById('sf-pct'));
+        uploaded.push({name: file.name, size: file.size, url, path});
+      }
+
+      const subData = {
         studentName: ST_USER.name, studentNumber: ST_USER.number,
-        fileName: file.name, fileSize: file.size,
-        uploadedAt: new Date().toISOString(), storagePath: path, url,
+        fileName: uploaded[0].name, fileSize: uploaded[0].size,
+        uploadedAt: new Date().toISOString(), storagePath: uploaded[0].path, url: uploaded[0].url,
         memo: memo || '', resubCount
-      });
+      };
+      if(uploaded.length > 1) subData.files = uploaded;
+      await db.ref(`submissions/${cid}/${SEL_ASSIGN.id}/${ST_USER.number}`).set(subData);
       await loadSubmissions(cid, SEL_ASSIGN.id);
       go('assign-detail', {assign: SEL_ASSIGN});
     } catch(err2){ err.textContent = '업로드 실패: ' + err2.message; document.getElementById('sf-prog').style.display = 'none'; t.disabled = false; }

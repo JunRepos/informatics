@@ -64,17 +64,23 @@ function fileCardHtml(f, opts = {}){
 
 // 공지사항 카드 (학생/선생님 공용)
 function noticeCard(n, isTeacher = false){
-  const imgHtml = n.fileName && isImg(n.fileName)
-    ? `<img src="${esc(n.fileUrl)}" alt="${esc(n.fileName)}"
-        style="max-width:100%;border-radius:var(--r-md);margin-top:10px;display:block;cursor:pointer"
-        data-action="preview-img" data-url="${esc(n.fileUrl)}" data-name="${esc(n.fileName)}"/>`
-    : n.fileName
-      ? `<div class="file-card" style="margin-top:10px;margin-bottom:0">
-          <div class="file-icon">${fIcon(n.fileName)}</div>
-          <div class="file-info"><div class="file-name">${esc(n.fileName)}</div></div>
-          <button class="btn-p btn-sm" data-action="dl-notice-file" data-url="${esc(n.fileUrl)}" data-name="${esc(n.fileName)}">다운로드</button>
-        </div>`
-      : '';
+  // 다중 파일 지원 (files 배열이 있으면 사용, 없으면 기존 단일 파일 호환)
+  const allFiles = n.files && n.files.length > 1
+    ? n.files
+    : n.fileName ? [{name: n.fileName, url: n.fileUrl, path: n.filePath}] : [];
+
+  const imgHtml = allFiles.length
+    ? allFiles.map(f => isImg(f.name)
+        ? `<img src="${esc(f.url)}" alt="${esc(f.name)}"
+            style="max-width:100%;border-radius:var(--r-md);margin-top:10px;display:block;cursor:pointer"
+            data-action="preview-img" data-url="${esc(f.url)}" data-name="${esc(f.name)}"/>`
+        : `<div class="file-card" style="margin-top:10px;margin-bottom:0">
+            <div class="file-icon">${fIcon(f.name)}</div>
+            <div class="file-info"><div class="file-name">${esc(f.name)}</div></div>
+            <button class="btn-p btn-sm" data-action="dl-notice-file" data-url="${esc(f.url)}" data-name="${esc(f.name)}">다운로드</button>
+          </div>`
+      ).join('')
+    : '';
 
   const tcBtns = isTeacher ? `
     <div style="display:flex;gap:5px;margin-top:10px;flex-wrap:wrap">

@@ -139,7 +139,7 @@ window.addEventListener('popstate', async () => {
 
 // ── 로그아웃 ──
 function logoutTeacher(){ IS_TC = false; TC_CLS = null; TC_TAB = 'notice'; clearSession(); goHome(); }
-function logoutStudent(){ ST_USER = null; FORCE_PW = false; ST_TAB = 'notice'; clearSession(); go('student-login'); }
+function logoutStudent(){ ST_USER = null; FORCE_PW = false; ST_TAB = 'dashboard'; clearSession(); go('student-login'); }
 
 // ── 이미지 미리보기 모달 ──
 function showImgModal(url, name){
@@ -164,11 +164,6 @@ function afterRender(){
   const theme = document.documentElement.getAttribute('data-theme');
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = theme === 'dark' ? '☀️' : '🌙');
 
-  // 코드 실행 탭이면 Monaco 에디터 초기화
-  if((TC_TAB === 'coderun' || ST_TAB === 'coderun') && document.getElementById('cr-editor')){
-    _monacoEditor = null;
-    initMonaco();
-  }
 
   // CodeMirror 초기화 (OJ 풀이 화면)
   const cmEl = document.getElementById('oj-code-editor');

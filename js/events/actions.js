@@ -61,12 +61,33 @@ document.addEventListener('click', async e => {
     el.textContent = '📥 파일 다운로드'; el.disabled = false; return;
   }
 
-  // 과제 첨부파일 다운로드
+  // 과제 첨부파일 다운로드 (학생 상세)
   if(act.action === 'dl-assign-file'){
     el.textContent = '...'; el.disabled = true;
     try{ dlFile(SEL_ASSIGN.fileName, SEL_ASSIGN.fileUrl); }
     catch(err){ toast('다운로드 실패: ' + err.message, 'err'); }
     el.textContent = '다운로드'; el.disabled = false; return;
+  }
+
+  // 선생님: 과제 첨부파일 다운로드 (목록에서)
+  if(act.action === 'dl-assign-files'){
+    const a = ASSIGNMENTS.find(x => x.id === act.aid); if(!a) return;
+    const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl}] : [];
+    if(!aFiles.length){ toast('첨부파일이 없습니다.', 'err'); return; }
+    el.textContent = '...'; el.disabled = true;
+    try{
+      if(aFiles.length === 1){
+        dlFile(aFiles[0].name, aFiles[0].url);
+      } else {
+        const zip = new JSZip();
+        for(const f of aFiles){ const res = await fetch(f.url); zip.file(f.name, await res.blob()); }
+        const content = await zip.generateAsync({type: 'blob'});
+        const url = URL.createObjectURL(content);
+        dlFile(`${a.title}_첨부파일.zip`, url);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+    } catch(err){ toast('다운로드 실패: ' + err.message, 'err'); }
+    el.textContent = '📥 파일'; el.disabled = false; return;
   }
 
   // 제출 파일 다운로드

@@ -7,26 +7,29 @@
 
 // 학생 대시보드 메인
 function vStudent(){
+  const clsType = SEL_CLS?.type || 'normal';
+  const isInfo = clsType === 'info';
+
   const tabs = `<div class="tabs">
+    ${tab('🏠 홈','dashboard',ST_TAB,"setST('dashboard')")}
     ${tab('📢 공지','notice',ST_TAB,"setST('notice')")}
     ${tab('📚 과제','assign',ST_TAB,"setST('assign')")}
     ${tab('📋 게시판','board',ST_TAB,"setST('board')")}
-    ${tab('📥 파일','files',ST_TAB,"setST('files')")}
+    ${tab('📂 수업 자료','files',ST_TAB,"setST('files')")}
     ${tab('🗓️ 내 출결','attend',ST_TAB,"setST('attend')")}
-    ${tab('💻 OJ','oj',ST_TAB,"setST('oj')")}
+    ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
-    ${tab('▶️ 코드','coderun',ST_TAB,"setST('coderun')")}
   </div>`;
 
   let body = '';
-  if     (ST_TAB === 'notice')  body = vStNotice();
+  if     (ST_TAB === 'dashboard') body = vStDashboard();
+  else if(ST_TAB === 'notice')  body = vStNotice();
   else if(ST_TAB === 'assign')  body = vStAssign();
   else if(ST_TAB === 'board')   body = vStBoard();
   else if(ST_TAB === 'files')   body = vStFiles();
   else if(ST_TAB === 'attend')  body = vStAttend();
   else if(ST_TAB === 'oj')      body = vStOJ();
   else if(ST_TAB === 'mine')    body = vStMine();
-  else if(ST_TAB === 'coderun') body = vCodeRun();
   return tabs + body;
 }
 
@@ -38,6 +41,128 @@ function setST(t){
   } else {
     render();
   }
+}
+
+// ── 대시보드 홈 탭 ──
+function vStDashboard(){
+  const clsType = SEL_CLS?.type || 'normal';
+  const isInfo = clsType === 'info';
+
+  // 과제 통계
+  const totalAssign = ASSIGNMENTS.length;
+  const doneAssign = ASSIGNMENTS.filter(a => SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number]).length;
+  const pendingAssign = totalAssign - doneAssign;
+  const urgentAssigns = ASSIGNMENTS.filter(a => {
+    const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number];
+    return !done && a.dueDate && !isPastDue(a.dueDate);
+  }).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 3);
+
+  // 최근 공지 (최대 3개)
+  const recentNotices = NOTICES.slice(0, 3);
+
+  // 출결 통계
+  const myAttend = Object.entries(AT_MONTH_DATA)
+    .map(([, recs]) => recs[ST_USER?.number])
+    .filter(Boolean);
+  const atOk = myAttend.filter(r => r.status === '출석').length;
+  const atLate = myAttend.filter(r => r.status === '지각').length;
+  const atAbs = myAttend.filter(r => r.status === '결석').length;
+
+  // 게시물 수
+  const myPosts = POSTS.filter(p => p.authorId === ST_USER?.number).length;
+
+  return `
+    <div class="dash-greeting">
+      <div class="dash-hello">안녕하세요, <strong>${esc(ST_USER?.name)}</strong>님! 👋</div>
+      <div class="dash-class">${esc(SEL_CLS?.emoji)} ${esc(SEL_CLS?.label)}</div>
+    </div>
+
+    <div class="dash-stats">
+      <div class="dash-stat-card" onclick="setST('assign')">
+        <div class="dash-stat-icon">📚</div>
+        <div class="dash-stat-body">
+          <div class="dash-stat-num">${pendingAssign}</div>
+          <div class="dash-stat-label">미제출 과제</div>
+        </div>
+      </div>
+      <div class="dash-stat-card" onclick="setST('assign')">
+        <div class="dash-stat-icon">✅</div>
+        <div class="dash-stat-body">
+          <div class="dash-stat-num" style="color:var(--ok)">${doneAssign}</div>
+          <div class="dash-stat-label">제출 완료</div>
+        </div>
+      </div>
+      <div class="dash-stat-card" onclick="setST('attend')">
+        <div class="dash-stat-icon">🗓️</div>
+        <div class="dash-stat-body">
+          <div class="dash-stat-num">${atOk}<span style="font-size:12px;color:var(--text3)">/${atOk+atLate+atAbs}</span></div>
+          <div class="dash-stat-label">출석</div>
+        </div>
+      </div>
+      <div class="dash-stat-card" onclick="setST('board')">
+        <div class="dash-stat-icon">📋</div>
+        <div class="dash-stat-body">
+          <div class="dash-stat-num">${myPosts}</div>
+          <div class="dash-stat-label">내 게시물</div>
+        </div>
+      </div>
+    </div>
+
+    ${urgentAssigns.length ? `
+    <div class="dash-section">
+      <div class="dash-sec-header">
+        <div class="dash-sec-title">⏰ 다가오는 과제</div>
+        <button class="btn-xs" onclick="setST('assign')">전체 보기 →</button>
+      </div>
+      ${urgentAssigns.map(a => `
+        <div class="dash-item click" data-action="pick-assign" data-aid="${a.id}">
+          <div class="dash-item-icon">📚</div>
+          <div class="dash-item-body">
+            <div class="dash-item-title">${esc(a.title)}</div>
+            <div class="dash-item-meta">마감: ${fmtDay(a.dueDate)}</div>
+          </div>
+          <div class="dash-item-right">${dday(a.dueDate)}</div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${recentNotices.length ? `
+    <div class="dash-section">
+      <div class="dash-sec-header">
+        <div class="dash-sec-title">📢 최근 공지</div>
+        <button class="btn-xs" onclick="setST('notice')">전체 보기 →</button>
+      </div>
+      ${recentNotices.map(n => `
+        <div class="dash-item">
+          <div class="dash-item-icon">${n.isPinned ? '📌' : '📢'}</div>
+          <div class="dash-item-body">
+            <div class="dash-item-title">${esc(n.title)}</div>
+            <div class="dash-item-meta">${fmtDt(n.createdAt)}${n.content ? ' · ' + esc(n.content).slice(0, 40) + (n.content.length > 40 ? '…' : '') : ''}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${atLate + atAbs > 0 ? `
+    <div class="dash-section">
+      <div class="dash-sec-header">
+        <div class="dash-sec-title">🗓️ 이번 달 출결</div>
+        <button class="btn-xs" onclick="setST('attend')">상세 보기 →</button>
+      </div>
+      <div class="at-summary" style="margin:0">
+        <div class="at-stat ok"><div class="at-stat-num">${atOk}</div><div class="at-stat-label">출석</div></div>
+        <div class="at-stat warn"><div class="at-stat-num">${atLate}</div><div class="at-stat-label">지각</div></div>
+        <div class="at-stat bad"><div class="at-stat-num">${atAbs}</div><div class="at-stat-label">결석</div></div>
+      </div>
+    </div>` : ''}
+
+    ${isInfo && OJ_PROBLEMS.length ? `
+    <div class="dash-section">
+      <div class="dash-sec-header">
+        <div class="dash-sec-title">💻 OJ 문제</div>
+        <button class="btn-xs" onclick="setST('oj')">전체 보기 →</button>
+      </div>
+      <div class="dash-item-meta" style="padding:0 2px">${OJ_PROBLEMS.length}개 문제 등록됨</div>
+    </div>` : ''}
+  `;
 }
 
 // ── 공지 탭 ──

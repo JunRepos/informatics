@@ -20,7 +20,7 @@ let ST_USER     = null;  // { number, name, classId } — 로그인한 학생
 let FORCE_PW    = false; // 최초 로그인 비밀번호 변경 필요
 
 // 탭 상태
-let ST_TAB = 'notice'; // 학생 대시보드 현재 탭
+let ST_TAB = 'dashboard'; // 학생 대시보드 현재 탭
 let TC_TAB = 'notice'; // 선생님 대시보드 현재 탭
 
 // 데이터 캐시 (Firebase에서 로드한 데이터)
@@ -75,7 +75,7 @@ function restoreSession(){
     IS_TC    = s.IS_TC    || false;
     ST_USER  = s.ST_USER  || null;
     FORCE_PW = s.FORCE_PW || false;
-    ST_TAB   = s.ST_TAB   || 'notice';
+    ST_TAB   = s.ST_TAB   || 'dashboard';
     TC_TAB   = s.TC_TAB   || 'notice';
     OJ_CODE  = s.OJ_CODE || '';
     OJ_CUSTOM_STDIN = s.OJ_CUSTOM_STDIN || '';

@@ -318,3 +318,37 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
   .oj-editor-section{min-height:250px}
   .oj-copy-btn{opacity:1}
 }
+
+/* ═══════════════════════════════════════
+   Dashboard (학생 홈 탭)
+═══════════════════════════════════════ */
+.dash-greeting{padding:20px 0 10px;text-align:center}
+.dash-hello{font-size:18px;font-weight:600;color:var(--text)}
+.dash-class{font-size:13px;color:var(--text3);margin-top:4px}
+
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.dash-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.dash-stat-card:hover{border-color:var(--accent);box-shadow:var(--sh)}
+.dash-stat-icon{font-size:24px;flex-shrink:0}
+.dash-stat-body{min-width:0}
+.dash-stat-num{font-size:22px;font-weight:700;line-height:1.1}
+.dash-stat-label{font-size:11px;color:var(--text3);font-weight:500;margin-top:2px}
+
+.dash-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
+.dash-sec-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.dash-sec-title{font-size:14px;font-weight:700;color:var(--text)}
+
+.dash-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--r-sm);transition:background .12s}
+.dash-item:not(:last-child){border-bottom:1px solid var(--border)}
+.dash-item.click{cursor:pointer}
+.dash-item.click:hover{background:var(--surface2)}
+.dash-item-icon{font-size:18px;flex-shrink:0}
+.dash-item-body{flex:1;min-width:0}
+.dash-item-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-item-meta{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-item-right{flex-shrink:0;font-size:12px}
+
+@media(max-width:640px){
+  .dash-stats{grid-template-columns:repeat(2,1fr)}
+  .dash-stat-num{font-size:18px}
+}

@@ -17,19 +17,21 @@ function vTeacher(){
     <button class="btn-p btn-sm" id="tc-cls-go">이동</button>
   </div>`;
 
+  const tcClsType = TC_CLS?.type || 'normal';
+  const tcIsInfo = tcClsType === 'info';
+
   const tabs = `<div class="tabs">
     ${tab('📢 공지','notice',TC_TAB,"setTC('notice')")}
     ${tab('📚 과제','assign',TC_TAB,"setTC('assign')")}
     ${tab('📋 게시판','board',TC_TAB,"setTC('board')")}
     ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
-    ${tab('📁 파일','files',TC_TAB,"setTC('files')")}
-    ${tab('💻 OJ','oj',TC_TAB,"setTC('oj')")}
+    ${tab('📂 수업 자료','files',TC_TAB,"setTC('files')")}
+    ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
-    ${tab('▶️ 코드','coderun',TC_TAB,"setTC('coderun')")}
   </div>`;
 
-  if(!TC_CLS && TC_TAB !== 'settings' && TC_TAB !== 'coderun')
+  if(!TC_CLS && TC_TAB !== 'settings')
     return clsBar + tabs + emptyBox('👆','관리할 반을 선택하세요.');
 
   let body = '';
@@ -41,7 +43,6 @@ function vTeacher(){
   else if(TC_TAB === 'files')    body = vTcFiles();
   else if(TC_TAB === 'oj')       body = vTcOJ();
   else if(TC_TAB === 'settings') body = vTcSettings();
-  else if(TC_TAB === 'coderun')  body = vCodeRun();
 
   return clsBar + tabs + body;
 }
@@ -67,7 +68,7 @@ function vTcNotice(){
       <div class="field"><label>제목</label><input id="nc-title" type="text" placeholder="공지 제목" value="${editData ? esc(editData.title) : ''}"/></div>
       <div class="field"><label>내용</label><textarea id="nc-content" placeholder="공지 내용을 입력하세요">${editData ? esc(editData.content) : ''}</textarea></div>
       <div class="form-row">
-        <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택)'}</label><input id="nc-file" type="file" accept="image/*,*/*"/></div>
+        <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택, 여러 개 가능)'}</label><input id="nc-file" type="file" multiple accept="image/*,*/*"/></div>
         <div class="field" style="flex:0 0 auto;display:flex;align-items:flex-end">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0">
             <input type="checkbox" id="nc-pin" style="width:auto" ${editData?.isPinned ? 'checked' : ''}/> 📌 상단 고정
@@ -104,7 +105,7 @@ function vTcAssign(){
       <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="과제 설명 (선택)">${editData ? esc(editData.description || '') : ''}</textarea></div>
       <div class="form-row">
         <div class="field"><label>마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate || ''}"/></div>
-        <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택)'}</label><input id="ac-file" type="file"/></div>
+        <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택, 여러 개 가능)'}</label><input id="ac-file" type="file" multiple/></div>
       </div>
       ${!editData ? multiClassPicker('ac', TC_CLS?.id) : ''}
       <div class="prog-wrap" id="ac-prog">
@@ -123,15 +124,18 @@ function vTcAssign(){
     const subCount = SUBMISSIONS[a.id] ? Object.keys(SUBMISSIONS[a.id]).length : 0;
     const total = STUDENTS.length;
     const pct = total ? Math.round(subCount / total * 100) : 0;
+    const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl}] : [];
+    const fileChip = aFiles.length ? `<span style="font-size:11px;color:var(--text3)">📎 ${aFiles.length}개 파일</span>` : '';
     return `<div class="list-row">
       <div class="row-icon">📚</div>
       <div class="row-info">
         <div class="row-title">${esc(a.title)}</div>
-        <div class="row-meta">${a.dueDate ? `마감: ${fmtDay(a.dueDate)}` : '마감 없음'} · ${subCount}/${total}명 제출</div>
+        <div class="row-meta">${a.dueDate ? `마감: ${fmtDay(a.dueDate)}` : '마감 없음'} · ${subCount}/${total}명 제출 ${fileChip}</div>
         <div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="row-right">
         ${a.dueDate ? dday(a.dueDate) : ''}
+        ${aFiles.length ? `<button class="btn-xs btn-ok" data-action="dl-assign-files" data-aid="${a.id}">📥 파일</button>` : ''}
         <button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>
         <button class="btn-xs" data-action="edit-assign" data-aid="${a.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="del-assign" data-aid="${a.id}" data-atitle="${esc(a.title)}">삭제</button>
@@ -156,8 +160,10 @@ function vStatusTable(aid){
       <td>${esc(st.name)}</td>
       <td>${sub ? `<span class="cell-ok">✓ 제출</span>` : `<span class="cell-no">-</span>`}</td>
       <td style="font-size:11px">${sub ? fmtDt(sub.uploadedAt) : '-'}</td>
-      <td>${sub ? `<button class="btn-xs btn-p" data-action="dl-sub-file" data-url="${esc(sub.url)}" data-name="${esc(sub.fileName)}">${esc(sub.fileName || '').slice(0,10)}…</button>`
-               : `<span class="cell-no">-</span>`}</td>
+      <td>${sub ? (()=>{
+        const sf = sub.files && sub.files.length ? sub.files : [{name: sub.fileName, url: sub.url}];
+        return sf.map(f => `<button class="btn-xs btn-p" style="margin:1px" data-action="dl-sub-file" data-url="${esc(f.url)}" data-name="${esc(f.name)}">${esc(f.name || '').slice(0,12)}${f.name?.length > 12 ? '…' : ''}</button>`).join('');
+      })() : `<span class="cell-no">-</span>`}</td>
       <td style="font-size:12px;color:var(--text2);max-width:160px;word-break:break-word">${sub && sub.memo ? esc(sub.memo) : '-'}</td>
       ${sub?.resubCount ? `<td style="font-size:11px;color:var(--text3)">재제출 ${sub.resubCount}회</td>` : '<td>-</td>'}
     </tr>`;
