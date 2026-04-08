@@ -227,12 +227,16 @@ function initResizeHandle(){
   }
 }
 
-// ── 테마 변경 시 에디터 테마 동기화 ──
-const _origToggleTheme = toggleTheme;
-toggleTheme = function(){
-  _origToggleTheme();
-  if(_monacoEditor && typeof monaco !== 'undefined'){
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+// ── 테마 변경 시 에디터 테마 동기화 (render.js 로드 후 바인딩) ──
+document.addEventListener('DOMContentLoaded', () => {
+  if(typeof toggleTheme === 'function'){
+    const _origToggleTheme = toggleTheme;
+    toggleTheme = function(){
+      _origToggleTheme();
+      if(_monacoEditor && typeof monaco !== 'undefined'){
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+      }
+    };
   }
-};
+});

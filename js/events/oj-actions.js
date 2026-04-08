@@ -40,6 +40,48 @@ function normalizeOutput(s){
   return (s || '').replace(/\r\n/g, '\n').split('\n').map(l => l.trimEnd()).join('\n').trim();
 }
 
+// ── 선생님: 문제 저장/수정 ──
+async function _ojSaveProblem(btn){
+  const title = document.getElementById('oj-title')?.value?.trim();
+  const desc = document.getElementById('oj-desc')?.value?.trim();
+  const err = document.getElementById('oj-form-err');
+  const cid = TC_CLS?.id; if(!cid) return;
+  if(!title){ err.textContent = '제목을 입력하세요.'; return; }
+
+  const tcRows = document.querySelectorAll('.oj-tc-form-row');
+  const testCases = {};
+  let tcOrder = 0;
+  tcRows.forEach(row => {
+    const input = row.querySelector('.oj-tc-input')?.value || '';
+    const output = row.querySelector('.oj-tc-output')?.value || '';
+    const hidden = row.querySelector('.oj-tc-hidden')?.checked || false;
+    if(!input && !output) return;
+    const tid = genId();
+    testCases[tid] = {input, expectedOutput: output, isHidden: hidden, order: tcOrder++};
+  });
+
+  if(!Object.keys(testCases).length){ err.textContent = '테스트 케이스를 최소 1개 입력하세요.'; return; }
+
+  btn.disabled = true; err.textContent = '';
+  try {
+    const editId = btn.dataset.editId;
+    if(editId){
+      await db.ref(`problems/${cid}/${editId}`).update({title, description: desc || '', testCases});
+      window._ojEditId = null;
+    } else {
+      const targetClasses = getSelectedClasses('oj');
+      if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; btn.disabled = false; return; }
+      const now = new Date().toISOString();
+      for(const targetCid of targetClasses){
+        const id = genId();
+        await db.ref(`problems/${targetCid}/${id}`).set({title, description: desc || '', createdAt: now, testCases});
+      }
+      if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 문제가 등록됐습니다.`, 'ok');
+    }
+    await loadOJProblems(cid); render();
+  } catch(e2){ err.textContent = '오류: ' + e2.message; btn.disabled = false; }
+}
+
 // ── 테스트케이스 동적 추가/삭제 ──
 document.addEventListener('click', e => {
   if(e.target.closest('[data-action=oj-add-tc]')){
@@ -77,6 +119,12 @@ document.addEventListener('click', e => {
 
 // ── 메인 OJ 이벤트 핸들러 ──
 document.addEventListener('click', async e => {
+  // 선생님: 문제 저장 (id 기반 — data-action 체크 전에 처리)
+  if(e.target.id === 'oj-save-btn'){
+    _ojSaveProblem(e.target);
+    return;
+  }
+
   const el = e.target.closest('[data-action]');
   if(!el) return;
   const act = el.dataset;
@@ -204,51 +252,6 @@ document.addEventListener('click', async e => {
     el.textContent = '📤 제출 후 채점하기'; el.disabled = false;
     if(runBtn) runBtn.disabled = false;
     document.getElementById('oj-results').innerHTML = vOJResults();
-    return;
-  }
-
-  // 선생님: 문제 저장
-  if(e.target.id === 'oj-save-btn'){
-    const title = document.getElementById('oj-title')?.value?.trim();
-    const desc = document.getElementById('oj-desc')?.value?.trim();
-    const err = document.getElementById('oj-form-err');
-    const cid = TC_CLS?.id; if(!cid) return;
-    if(!title){ err.textContent = '제목을 입력하세요.'; return; }
-
-    // 테스트케이스 수집
-    const tcRows = document.querySelectorAll('.oj-tc-form-row');
-    const testCases = {};
-    let tcOrder = 0;
-    tcRows.forEach(row => {
-      const input = row.querySelector('.oj-tc-input')?.value || '';
-      const output = row.querySelector('.oj-tc-output')?.value || '';
-      const hidden = row.querySelector('.oj-tc-hidden')?.checked || false;
-      if(!input && !output) return; // 빈 행 건너뛰기
-      const tid = genId();
-      testCases[tid] = {input, expectedOutput: output, isHidden: hidden, order: tcOrder++};
-    });
-
-    if(!Object.keys(testCases).length){ err.textContent = '테스트 케이스를 최소 1개 입력하세요.'; return; }
-
-    e.target.disabled = true; err.textContent = '';
-
-    try {
-      const editId = e.target.dataset.editId;
-      if(editId){
-        await db.ref(`problems/${cid}/${editId}`).update({title, description: desc || '', testCases});
-        window._ojEditId = null;
-      } else {
-        const targetClasses = getSelectedClasses('oj');
-        if(!targetClasses.length){ err.textContent = '등록할 반을 선택하세요.'; e.target.disabled = false; return; }
-        const now = new Date().toISOString();
-        for(const targetCid of targetClasses){
-          const id = genId();
-          await db.ref(`problems/${targetCid}/${id}`).set({title, description: desc || '', createdAt: now, testCases});
-        }
-        if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 문제가 등록됐습니다.`, 'ok');
-      }
-      await loadOJProblems(cid); render();
-    } catch(e2){ err.textContent = '오류: ' + e2.message; e.target.disabled = false; }
     return;
   }
 
