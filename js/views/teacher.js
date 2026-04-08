@@ -24,6 +24,7 @@ function vTeacher(){
     ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
     ${tab('📁 파일','files',TC_TAB,"setTC('files')")}
+    ${tab('💻 OJ','oj',TC_TAB,"setTC('oj')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
     ${tab('▶️ 코드','coderun',TC_TAB,"setTC('coderun')")}
   </div>`;
@@ -38,6 +39,7 @@ function vTeacher(){
   else if(TC_TAB === 'attend')   body = vTcAttend();
   else if(TC_TAB === 'students') body = vTcStudents();
   else if(TC_TAB === 'files')    body = vTcFiles();
+  else if(TC_TAB === 'oj')       body = vTcOJ();
   else if(TC_TAB === 'settings') body = vTcSettings();
   else if(TC_TAB === 'coderun')  body = vCodeRun();
 

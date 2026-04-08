@@ -158,6 +158,51 @@
       }
     },
 
+    // ── OJ 문제 ──
+    "problems": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$problemId": {
+          ".validate": "newData.hasChildren(['title', 'createdAt'])",
+          "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "description": { ".validate": "newData.isString() && newData.val().length <= 10000" },
+          "createdAt":   { ".validate": "newData.isString()" },
+          "testCases": {
+            "$tcId": {
+              ".validate": "newData.hasChildren(['input', 'expectedOutput'])",
+              "input":          { ".validate": "newData.isString() && newData.val().length <= 5000" },
+              "expectedOutput": { ".validate": "newData.isString() && newData.val().length <= 5000" },
+              "isHidden":       { ".validate": "newData.isBoolean()" },
+              "order":          { ".validate": "newData.isNumber()" },
+              "$other":         { ".validate": false }
+            }
+          },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    // ── OJ 제출 ──
+    "ojSubmissions": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$problemId": {
+          "$studentNum": {
+            ".validate": "newData.hasChildren(['code', 'submittedAt', 'status'])",
+            "code":         { ".validate": "newData.isString() && newData.val().length <= 50000" },
+            "submittedAt":  { ".validate": "newData.isString()" },
+            "totalCases":   { ".validate": "newData.isNumber()" },
+            "passedCases":  { ".validate": "newData.isNumber()" },
+            "status":       { ".validate": "newData.isString() && (newData.val() === 'pass' || newData.val() === 'partial' || newData.val() === 'fail')" },
+            "results":      { ".validate": true },
+            "$other":       { ".validate": false }
+          }
+        }
+      }
+    },
+
     // ── 그 외 모든 경로 차단 ──
     "$other": {
       ".read": false,

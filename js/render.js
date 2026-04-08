@@ -25,6 +25,23 @@ function render(){
   const theme = document.documentElement.getAttribute('data-theme');
   const themeIcon = theme === 'dark' ? '☀️' : '🌙';
 
+  // OJ 풀이 화면 (특수 처리 — 분할 패널)
+  if(VIEW === 'oj-solve'){
+    document.getElementById('root').innerHTML = `
+      <div class="header">
+        <div class="hbrand"><div class="hicon">📂</div>
+          <div><span style="font-size:13px;font-weight:600">${esc(ST_USER?.number)} ${esc(ST_USER?.name)}</span><span class="chip chip-blue" style="margin-left:6px">${esc(SEL_CLS?.label)}</span></div>
+        </div>
+        <div class="hright">
+          <button class="btn-sm" onclick="goHome()">🏠 홈</button>
+          <button class="btn-sm btn-danger" onclick="logoutStudent()">로그아웃</button>
+          <button class="theme-btn" onclick="toggleTheme()">${themeIcon}</button>
+        </div>
+      </div>${vStOJSolve()}`;
+    afterRender();
+    return;
+  }
+
   // 새 게시물 작성 화면 (특수 처리)
   if(VIEW === 'new-post'){
     document.getElementById('root').innerHTML = `
@@ -149,7 +166,44 @@ function afterRender(){
 
   // 코드 실행 탭이면 Monaco 에디터 초기화
   if((TC_TAB === 'coderun' || ST_TAB === 'coderun') && document.getElementById('cr-editor')){
-    _monacoEditor = null; // 이전 인스턴스 정리
+    _monacoEditor = null;
     initMonaco();
+  }
+
+  // CodeMirror 초기화 (OJ 풀이 화면)
+  const cmEl = document.getElementById('oj-code-editor');
+  if(cmEl && !cmEl._cm && typeof CodeMirror !== 'undefined'){
+    cmEl.style.display = '';
+    const cm = CodeMirror.fromTextArea(cmEl, {
+      mode: 'python',
+      theme: theme === 'dark' ? 'dracula' : 'default',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      matchBrackets: true,
+      extraKeys: {'Tab': (ed) => ed.replaceSelection('    ', 'end')}
+    });
+    cm.setSize(null, '320px');
+    cm.setValue(OJ_CODE || '');
+    cm.on('change', (ed) => { OJ_CODE = ed.getValue(); });
+    cmEl._cm = cm;
+  } else if(cmEl && !cmEl._cm){
+    cmEl.style.display = '';
+    cmEl.style.fontFamily = 'monospace';
+    cmEl.style.fontSize = '14px';
+    cmEl.style.minHeight = '320px';
+    cmEl.style.width = '100%';
+    cmEl.style.padding = '12px';
+    cmEl.style.tabSize = '4';
+    cmEl.addEventListener('input', () => { OJ_CODE = cmEl.value; });
+    cmEl.addEventListener('keydown', (e) => {
+      if(e.key === 'Tab'){
+        e.preventDefault();
+        const s = cmEl.selectionStart;
+        cmEl.value = cmEl.value.substring(0, s) + '    ' + cmEl.value.substring(cmEl.selectionEnd);
+        cmEl.selectionStart = cmEl.selectionEnd = s + 4;
+      }
+    });
   }
 }

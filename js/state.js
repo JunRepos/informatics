@@ -42,9 +42,18 @@ let ATTENDANCE    = {};    // { [학번]: {status, reason, updatedAt} }
 let AT_DATE       = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 let AT_MONTH_DATA = {};    // { [날짜]: { [학번]: record } }
 
+// OJ (Online Judge) 관련
+let OJ_PROBLEMS       = [];    // 현재 반의 문제 목록
+let OJ_SEL_PROB       = null;  // 선택된 문제 객체
+let OJ_CODE           = '';    // 에디터에 작성 중인 코드
+let OJ_RUN_RESULTS    = null;  // "코드 실행" 결과 (공개 TC만)
+let OJ_SUBMIT_RESULTS = null;  // "제출 후 채점" 결과 (전체 TC)
+let OJ_RUNNING        = false; // Pyodide 실행 중 여부
+let OJ_SUBMISSIONS    = {};    // { [problemId]: { [studentNum]: submission } }
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
-  const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB };
+  const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE };
   if(SEL_CLS) data.SEL_CLS_ID = SEL_CLS.id;
   if(TC_CLS)  data.TC_CLS_ID  = TC_CLS.id;
   sessionStorage.setItem('session', JSON.stringify(data));
@@ -65,6 +74,7 @@ function restoreSession(){
     FORCE_PW = s.FORCE_PW || false;
     ST_TAB   = s.ST_TAB   || 'notice';
     TC_TAB   = s.TC_TAB   || 'notice';
+    OJ_CODE  = s.OJ_CODE || '';
     if(s.SEL_CLS_ID) SEL_CLS = classById(s.SEL_CLS_ID);
     if(s.TC_CLS_ID)  TC_CLS  = classById(s.TC_CLS_ID);
     return true;

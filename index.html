@@ -13,8 +13,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <!-- JSZip (ZIP 파일 생성) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<!-- Monaco Editor (코드 에디터) -->
+<!-- Monaco Editor (코드 실행기) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<!-- CodeMirror (OJ 코드 에디터) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -42,6 +48,7 @@
 <script src="js/views/post.js"></script>
 <script src="js/views/assignment.js"></script>
 <script src="js/views/coderun.js"></script>
+<script src="js/views/oj.js"></script>
 
 <!-- 4) 렌더링 코어 (render, go, goHome 등) -->
 <script src="js/render.js"></script>
@@ -49,6 +56,7 @@
 <!-- 5) 이벤트 핸들러 (기능별 분리) -->
 <script src="js/events/actions.js"></script>
 <script src="js/events/forms.js"></script>
+<script src="js/events/oj-actions.js"></script>
 
 <!-- 6) 앱 초기화 -->
 <script src="js/app.js"></script>
