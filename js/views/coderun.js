@@ -1,32 +1,35 @@
 /* ═══════════════════════════════════════
    views/coderun.js — 코드 실행 (구름/프로그래머스 스타일)
 
-   Monaco Editor + JDoodle API로 브라우저에서
-   코드를 작성하고 실행하는 IDE 탭.
+   Monaco Editor로 코드 작성,
+   JDoodle iframe embed로 실행.
 ═══════════════════════════════════════ */
 
 let _monacoEditor = null;
 let _monacoReady = false;
-let _codeRunning = false;
 
 const CODE_LANGUAGES = [
-  {id: 'python3', label: 'Python 3', versionIndex: '5', defaultCode: '# 코드를 입력하세요\nprint("Hello, World!")'},
+  {id: 'python3', label: 'Python 3', monaco: 'python', defaultCode: '# 코드를 입력하세요\nprint("Hello, World!")'},
+  {id: 'c', label: 'C', monaco: 'c', defaultCode: '#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}'},
+  {id: 'cpp17', label: 'C++', monaco: 'cpp', defaultCode: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}'},
+  {id: 'java', label: 'Java', monaco: 'java', defaultCode: 'public class MyClass {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}'},
 ];
 
 // ── 뷰 (선생님/학생 공용) ──
 function vCodeRun(){
-  const langOpts = CODE_LANGUAGES.map(l =>
-    `<option value="${l.id}">${l.label}</option>`
+  const langOpts = CODE_LANGUAGES.map((l, i) =>
+    `<option value="${i}">${l.label}</option>`
   ).join('');
+
+  const savedLang = sessionStorage.getItem('cr-lang-idx') || '0';
 
   return `
     <div class="cr-wrap">
       <div class="cr-toolbar">
-        <select id="cr-lang">${langOpts}</select>
+        <select id="cr-lang" onchange="onLangChange()">${langOpts}</select>
         <div class="cr-spacer"></div>
-        <span class="cr-status" id="cr-status"></span>
-        <button class="btn-xs" id="cr-reset" onclick="resetCode()">↺ 초기화</button>
-        <button class="cr-btn-run btn-sm" id="cr-run" onclick="runCode()">▶ 실행</button>
+        <button class="btn-xs" onclick="resetCode()">↺ 초기화</button>
+        <button class="cr-btn-run btn-sm" id="cr-run" onclick="sendToJdoodle()">▶ 실행</button>
       </div>
       <div class="cr-editor-wrap" id="cr-editor"></div>
       <div class="cr-resize-handle" id="cr-resize"></div>
@@ -35,11 +38,14 @@ function vCodeRun(){
           <span>📋 실행 결과</span>
           <button class="btn-xs" onclick="clearOutput()">지우기</button>
         </div>
-        <div class="cr-output" id="cr-output">실행 버튼을 눌러 코드를 실행하세요.</div>
+        <div id="cr-jdoodle-area" style="display:none">
+          <div id="cr-jdoodle-container"></div>
+        </div>
+        <div class="cr-output" id="cr-output">▶ 실행 버튼을 눌러 코드를 실행하세요. (Ctrl+Enter)</div>
       </div>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:right">
-      Powered by Monaco Editor & JDoodle · 일일 실행 횟수 제한이 있습니다
+      Powered by Monaco Editor & JDoodle
     </div>`;
 }
 
@@ -49,7 +55,6 @@ function initMonaco(){
   if(!container || _monacoEditor) return;
 
   if(typeof require === 'undefined' || !require.config){
-    // Monaco loader 아직 안 됨 — 재시도
     setTimeout(initMonaco, 200);
     return;
   }
@@ -57,14 +62,13 @@ function initMonaco(){
   require.config({paths: {'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs'}});
   require(['vs/editor/editor.main'], function(){
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const lang = CODE_LANGUAGES[0];
-
-    // 저장된 코드 복원 또는 기본 코드
+    const langIdx = parseInt(sessionStorage.getItem('cr-lang-idx') || '0');
+    const lang = CODE_LANGUAGES[langIdx] || CODE_LANGUAGES[0];
     const savedCode = sessionStorage.getItem('cr-code');
 
     _monacoEditor = monaco.editor.create(container, {
       value: savedCode || lang.defaultCode,
-      language: 'python',
+      language: lang.monaco,
       theme: isDark ? 'vs-dark' : 'vs',
       fontSize: 14,
       fontFamily: "'Consolas', 'Courier New', monospace",
@@ -80,6 +84,10 @@ function initMonaco(){
 
     _monacoReady = true;
 
+    // 언어 선택 복원
+    const sel = document.getElementById('cr-lang');
+    if(sel) sel.value = langIdx;
+
     // 코드 변경 시 자동 저장
     _monacoEditor.onDidChangeModelContent(() => {
       sessionStorage.setItem('cr-code', _monacoEditor.getValue());
@@ -90,17 +98,16 @@ function initMonaco(){
       id: 'run-code',
       label: 'Run Code',
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: () => runCode()
+      run: () => sendToJdoodle()
     });
 
-    // 리사이즈 핸들
     initResizeHandle();
   });
 }
 
-// ── 코드 실행 (JDoodle API) ──
-async function runCode(){
-  if(!_monacoReady || _codeRunning) return;
+// ── JDoodle iframe으로 코드 전송 & 실행 ──
+function sendToJdoodle(){
+  if(!_monacoReady) return;
 
   const code = _monacoEditor.getValue();
   if(!code.trim()){
@@ -108,63 +115,71 @@ async function runCode(){
     return;
   }
 
-  const outputEl = document.getElementById('cr-output');
-  const runBtn = document.getElementById('cr-run');
-  const statusEl = document.getElementById('cr-status');
+  const langIdx = parseInt(document.getElementById('cr-lang')?.value || '0');
+  const lang = CODE_LANGUAGES[langIdx] || CODE_LANGUAGES[0];
 
-  _codeRunning = true;
-  runBtn.disabled = true;
-  runBtn.textContent = '⏳ 실행 중...';
+  const outputEl = document.getElementById('cr-output');
+  const jdArea = document.getElementById('cr-jdoodle-area');
+  const jdContainer = document.getElementById('cr-jdoodle-container');
+  const runBtn = document.getElementById('cr-run');
+
+  // 출력창에 실행 중 표시
   outputEl.className = 'cr-output cr-running';
   outputEl.textContent = '코드를 실행하고 있습니다...';
-  statusEl.textContent = '';
+  runBtn.disabled = true;
+  runBtn.textContent = '⏳ 실행 중...';
 
-  try{
-    const lang = CODE_LANGUAGES.find(l => l.id === document.getElementById('cr-lang').value) || CODE_LANGUAGES[0];
+  // JDoodle iframe 생성
+  jdArea.style.display = 'block';
+  jdContainer.innerHTML = '';
 
-    const res = await fetch('https://api.jdoodle.com/v1/execute', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        clientId: JDOODLE_CLIENT_ID,
-        clientSecret: JDOODLE_CLIENT_SECRET,
-        script: code,
-        language: lang.id,
-        versionIndex: lang.versionIndex
-      })
-    });
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;height:300px;border:none;border-top:1px solid var(--border)';
 
-    const data = await res.json();
+  // JDoodle의 embed URL에 코드를 전달
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `https://api.jdoodle.com/v1/execute`;
+  form.target = 'jdoodle-frame';
+  form.style.display = 'none';
 
-    if(data.error){
-      outputEl.className = 'cr-output cr-error';
-      outputEl.textContent = data.error;
-      statusEl.textContent = '❌ 오류';
-    } else {
-      const output = data.output || '(출력 없음)';
-      const hasError = data.statusCode !== 200 || (data.output && data.output.includes('Traceback'));
-      outputEl.className = hasError ? 'cr-output cr-error' : 'cr-output';
-      outputEl.textContent = output;
+  // JDoodle execute via hidden form won't work due to CORS
+  // Instead, use JDoodle's compiler page directly
+  iframe.name = 'jdoodle-result';
 
-      const cpuTime = data.cpuTime ? `${data.cpuTime}초` : '';
-      const memory = data.memory ? `${(data.memory / 1024).toFixed(0)}KB` : '';
-      statusEl.textContent = `✓ 완료${cpuTime ? ' · ' + cpuTime : ''}${memory ? ' · ' + memory : ''}`;
-    }
-  } catch(err){
-    outputEl.className = 'cr-output cr-error';
-    outputEl.textContent = '실행 실패: ' + err.message;
-    statusEl.textContent = '❌ 실패';
+  // 가장 신뢰할 수 있는 방법: onecompiler embed 사용
+  const encodedCode = encodeURIComponent(code);
+  iframe.src = `https://onecompiler.com/embed/${lang.id === 'python3' ? 'python' : lang.id === 'cpp17' ? 'cpp' : lang.id}?code=${encodedCode}&theme=dark&hideTitle=true&hideLanguageSelection=true&hideNew=true&hideStdin=false`;
+
+  iframe.onload = () => {
+    outputEl.style.display = 'none';
+    runBtn.disabled = false;
+    runBtn.textContent = '▶ 실행';
+  };
+
+  jdContainer.appendChild(iframe);
+}
+
+// ── 언어 변경 ──
+function onLangChange(){
+  const idx = parseInt(document.getElementById('cr-lang')?.value || '0');
+  const lang = CODE_LANGUAGES[idx] || CODE_LANGUAGES[0];
+  sessionStorage.setItem('cr-lang-idx', idx);
+
+  if(_monacoReady && _monacoEditor){
+    const model = _monacoEditor.getModel();
+    if(model) monaco.editor.setModelLanguage(model, lang.monaco);
+    _monacoEditor.setValue(lang.defaultCode);
+    sessionStorage.removeItem('cr-code');
   }
-
-  _codeRunning = false;
-  runBtn.disabled = false;
-  runBtn.textContent = '▶ 실행';
+  clearOutput();
 }
 
 // ── 초기화 ──
 function resetCode(){
   if(!_monacoReady) return;
-  const lang = CODE_LANGUAGES.find(l => l.id === document.getElementById('cr-lang')?.value) || CODE_LANGUAGES[0];
+  const idx = parseInt(document.getElementById('cr-lang')?.value || '0');
+  const lang = CODE_LANGUAGES[idx] || CODE_LANGUAGES[0];
   _monacoEditor.setValue(lang.defaultCode);
   sessionStorage.removeItem('cr-code');
   clearOutput();
@@ -174,10 +189,13 @@ function clearOutput(){
   const el = document.getElementById('cr-output');
   if(el){
     el.className = 'cr-output';
-    el.textContent = '실행 버튼을 눌러 코드를 실행하세요.';
+    el.style.display = 'block';
+    el.textContent = '▶ 실행 버튼을 눌러 코드를 실행하세요. (Ctrl+Enter)';
   }
-  const st = document.getElementById('cr-status');
-  if(st) st.textContent = '';
+  const jdArea = document.getElementById('cr-jdoodle-area');
+  if(jdArea){ jdArea.style.display = 'none'; }
+  const jdContainer = document.getElementById('cr-jdoodle-container');
+  if(jdContainer) jdContainer.innerHTML = '';
 }
 
 // ── 에디터 높이 리사이즈 ──
@@ -188,28 +206,19 @@ function initResizeHandle(){
 
   let startY, startH;
   handle.addEventListener('mousedown', e => {
-    startY = e.clientY;
-    startH = editorWrap.offsetHeight;
+    startY = e.clientY; startH = editorWrap.offsetHeight;
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', onDragEnd);
     e.preventDefault();
   });
   handle.addEventListener('touchstart', e => {
-    startY = e.touches[0].clientY;
-    startH = editorWrap.offsetHeight;
+    startY = e.touches[0].clientY; startH = editorWrap.offsetHeight;
     document.addEventListener('touchmove', onDragTouch);
     document.addEventListener('touchend', onDragEnd);
     e.preventDefault();
   });
-
-  function onDrag(e){
-    const newH = Math.max(150, Math.min(600, startH + e.clientY - startY));
-    editorWrap.style.height = newH + 'px';
-  }
-  function onDragTouch(e){
-    const newH = Math.max(150, Math.min(600, startH + e.touches[0].clientY - startY));
-    editorWrap.style.height = newH + 'px';
-  }
+  function onDrag(e){ editorWrap.style.height = Math.max(150, Math.min(600, startH + e.clientY - startY)) + 'px'; }
+  function onDragTouch(e){ editorWrap.style.height = Math.max(150, Math.min(600, startH + e.touches[0].clientY - startY)) + 'px'; }
   function onDragEnd(){
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', onDragEnd);
