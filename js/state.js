@@ -50,10 +50,13 @@ let OJ_RUN_RESULTS    = null;  // "코드 실행" 결과 (공개 TC만)
 let OJ_SUBMIT_RESULTS = null;  // "제출 후 채점" 결과 (전체 TC)
 let OJ_RUNNING        = false; // Pyodide 실행 중 여부
 let OJ_SUBMISSIONS    = {};    // { [problemId]: { [studentNum]: submission } }
+let OJ_CUSTOM_STDIN   = '';    // 커스텀 입력 텍스트
+let OJ_CUSTOM_OUTPUT  = null;  // 커스텀 실행 결과 {output, error, success}
+let OJ_RESULT_TAB     = 'exec'; // 결과 탭: 'exec' | 'test'
 
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
-  const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE };
+  const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };
   if(SEL_CLS) data.SEL_CLS_ID = SEL_CLS.id;
   if(TC_CLS)  data.TC_CLS_ID  = TC_CLS.id;
   sessionStorage.setItem('session', JSON.stringify(data));
@@ -75,6 +78,7 @@ function restoreSession(){
     ST_TAB   = s.ST_TAB   || 'notice';
     TC_TAB   = s.TC_TAB   || 'notice';
     OJ_CODE  = s.OJ_CODE || '';
+    OJ_CUSTOM_STDIN = s.OJ_CUSTOM_STDIN || '';
     if(s.SEL_CLS_ID) SEL_CLS = classById(s.SEL_CLS_ID);
     if(s.TC_CLS_ID)  TC_CLS  = classById(s.TC_CLS_ID);
     return true;

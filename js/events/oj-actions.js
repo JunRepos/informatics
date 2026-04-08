@@ -134,11 +134,10 @@ document.addEventListener('click', async e => {
     const p = OJ_PROBLEMS.find(x => x.id === act.pid); if(!p) return;
     OJ_SEL_PROB = p;
     OJ_CODE = '';
-    OJ_RUN_RESULTS = null;
-    OJ_SUBMIT_RESULTS = null;
+    OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
+    OJ_CUSTOM_STDIN = ''; OJ_CUSTOM_OUTPUT = null; OJ_RESULT_TAB = 'exec';
     const cid = CID();
     if(cid) await loadOJSubmissions(cid, p.id);
-    // 이전 제출 코드가 있으면 불러오기
     const prev = OJ_SUBMISSIONS[p.id]?.[ST_USER?.number];
     if(prev?.code) OJ_CODE = prev.code;
     go('oj-solve');
@@ -148,7 +147,30 @@ document.addEventListener('click', async e => {
   // 학생: 뒤로가기
   if(act.action === 'oj-back'){
     OJ_SEL_PROB = null; OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
+    OJ_CUSTOM_STDIN = ''; OJ_CUSTOM_OUTPUT = null; OJ_RESULT_TAB = 'exec';
     go('student');
+    return;
+  }
+
+  // 탭 전환
+  if(act.action === 'oj-switch-tab'){
+    OJ_RESULT_TAB = act.tab;
+    // stdin 값 보존
+    const stdinEl = document.getElementById('oj-custom-stdin');
+    if(stdinEl) OJ_CUSTOM_STDIN = stdinEl.value;
+    // 탭 버튼 업데이트
+    document.querySelectorAll('.oj-rtab').forEach(b => b.classList.toggle('active', b.dataset.tab === act.tab));
+    // 내용만 갱신
+    const body = document.getElementById('oj-results-body');
+    if(body) body.innerHTML = OJ_RESULT_TAB === 'exec' ? vOJRunTab() : vOJTestTab();
+    return;
+  }
+
+  // 예제 복사
+  if(act.action === 'oj-copy-example'){
+    navigator.clipboard.writeText(act.text).then(() => {
+      el.textContent = '✓'; setTimeout(() => { el.textContent = '복사'; }, 1000);
+    }).catch(() => toast('복사 실패', 'err'));
     return;
   }
 
@@ -171,38 +193,35 @@ document.addEventListener('click', async e => {
     const cm = document.getElementById('oj-code-editor')?._cm;
     if(cm) cm.setValue('');
     OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
-    document.getElementById('oj-results').innerHTML = vOJResults();
+    OJ_CUSTOM_STDIN = ''; OJ_CUSTOM_OUTPUT = null; OJ_RESULT_TAB = 'exec';
+    const body = document.getElementById('oj-results-body');
+    if(body) body.innerHTML = vOJRunTab();
+    document.querySelectorAll('.oj-rtab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'exec'));
     return;
   }
 
-  // 학생: 코드 실행 (공개 TC만)
+  // 학생: 코드 실행 (커스텀 stdin)
   if(act.action === 'oj-run-code'){
     const cm = document.getElementById('oj-code-editor')?._cm;
     if(cm) OJ_CODE = cm.getValue();
     if(!OJ_CODE.trim()){ toast('코드를 입력하세요.', 'err'); return; }
 
-    const visibleTcs = (OJ_SEL_PROB.testCases || []).filter(t => !t.isHidden);
-    if(!visibleTcs.length){ toast('테스트 케이스가 없습니다.', 'err'); return; }
+    // stdin 값 읽기
+    const stdinEl = document.getElementById('oj-custom-stdin');
+    if(stdinEl) OJ_CUSTOM_STDIN = stdinEl.value;
 
-    OJ_RUNNING = true;
+    OJ_RUNNING = true; OJ_RESULT_TAB = 'exec';
     el.textContent = '⏳ 실행 중...'; el.disabled = true;
-    document.getElementById('oj-results').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px">⏳ Python 실행 중...</div>';
+    // 탭 활성화
+    document.querySelectorAll('.oj-rtab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'exec'));
+    const body = document.getElementById('oj-results-body');
+    if(body) body.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:12px">⏳ Python 실행 중...</div>`;
 
-    const results = [];
-    for(const tc of visibleTcs){
-      const resp = await runPython(OJ_CODE, tc.input);
-      const actual = normalizeOutput(resp.output);
-      const expected = normalizeOutput(tc.expectedOutput);
-      results.push({
-        tcId: tc.id, passed: actual === expected && resp.success,
-        input: tc.input, expected: tc.expectedOutput, actual: resp.output || '',
-        isHidden: false, error: resp.success ? null : resp.error
-      });
-    }
-
-    OJ_RUN_RESULTS = results; OJ_SUBMIT_RESULTS = null; OJ_RUNNING = false;
+    const resp = await runPython(OJ_CODE, OJ_CUSTOM_STDIN);
+    OJ_CUSTOM_OUTPUT = resp;
+    OJ_RUNNING = false;
     el.textContent = '▶ 코드 실행'; el.disabled = false;
-    document.getElementById('oj-results').innerHTML = vOJResults();
+    if(body) body.innerHTML = vOJRunTab();
     return;
   }
 
@@ -215,11 +234,18 @@ document.addEventListener('click', async e => {
     const allTcs = OJ_SEL_PROB.testCases || [];
     if(!allTcs.length){ toast('테스트 케이스가 없습니다.', 'err'); return; }
 
-    OJ_RUNNING = true;
+    // stdin 값 보존
+    const stdinEl2 = document.getElementById('oj-custom-stdin');
+    if(stdinEl2) OJ_CUSTOM_STDIN = stdinEl2.value;
+
+    OJ_RUNNING = true; OJ_RESULT_TAB = 'test';
     el.textContent = '⏳ 채점 중...'; el.disabled = true;
     const runBtn = document.querySelector('[data-action=oj-run-code]');
     if(runBtn) runBtn.disabled = true;
-    document.getElementById('oj-results').innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px">⏳ 채점 중... (테스트 케이스 실행 중)</div>';
+    // 탭 활성화
+    document.querySelectorAll('.oj-rtab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'test'));
+    const body2 = document.getElementById('oj-results-body');
+    if(body2) body2.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px">⏳ 채점 중... (테스트 케이스 실행 중)</div>';
 
     const results = [];
     for(const tc of allTcs){
@@ -249,9 +275,9 @@ document.addEventListener('click', async e => {
     }
 
     OJ_SUBMIT_RESULTS = results; OJ_RUN_RESULTS = null; OJ_RUNNING = false;
-    el.textContent = '📤 제출 후 채점하기'; el.disabled = false;
+    el.textContent = '제출 후 채점하기'; el.disabled = false;
     if(runBtn) runBtn.disabled = false;
-    document.getElementById('oj-results').innerHTML = vOJResults();
+    if(body2) body2.innerHTML = vOJTestTab();
     return;
   }
 

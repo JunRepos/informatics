@@ -164,73 +164,102 @@ function vStOJSolve(){
   if(!p) return emptyBox('❌','문제를 찾을 수 없습니다.');
 
   const visibleTcs = (p.testCases || []).filter(t => !t.isHidden);
-
-  // 왼쪽: 문제 설명 + 예제
-  const tcExamples = visibleTcs.map((tc, i) => `
-    <div style="margin-bottom:12px">
-      <div class="oj-tc-label">예제 입력 ${i + 1}</div>
-      <div class="oj-tc-box">${esc(tc.input)}</div>
-      <div class="oj-tc-label" style="margin-top:6px">예제 출력 ${i + 1}</div>
-      <div class="oj-tc-box">${esc(tc.expectedOutput)}</div>
-    </div>`).join('');
-
-  const left = `<div class="oj-left">
-    <div style="font-size:16px;font-weight:700;margin-bottom:14px">${esc(p.title)}</div>
-    <div class="oj-desc">${esc(p.description || '')}</div>
-    ${visibleTcs.length ? `<div class="divider"></div>
-      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px">예제</div>
-      ${tcExamples}` : ''}
-  </div>`;
-
-  // 오른쪽: 코드 에디터 + 실행 결과
   const sub = OJ_SUBMISSIONS[p.id]?.[ST_USER?.number];
   const prevCode = sub?.code || '';
 
-  const resultsHtml = vOJResults();
+  // 왼쪽: 문제 설명 + 예제
+  const tcExamples = visibleTcs.map((tc, i) => `
+    <div class="oj-example">
+      <div class="oj-tc-label">예제 입력 ${i + 1}</div>
+      <div class="oj-example-block"><button class="oj-copy-btn" data-action="oj-copy-example" data-text="${esc(tc.input)}">복사</button>${esc(tc.input)}</div>
+      <div class="oj-tc-label" style="margin-top:8px">예제 출력 ${i + 1}</div>
+      <div class="oj-example-block"><button class="oj-copy-btn" data-action="oj-copy-example" data-text="${esc(tc.expectedOutput)}">복사</button>${esc(tc.expectedOutput)}</div>
+    </div>`).join('');
 
+  const left = `<div class="oj-left">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px">${esc(p.title)}</div>
+    <div class="oj-desc">${esc(p.description || '')}</div>
+    ${visibleTcs.length ? `<div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px">입출력 예</div>
+      ${tcExamples}` : ''}
+  </div>`;
+
+  // 오른쪽: 에디터 + 결과 패널 + 액션 바
   const right = `<div class="oj-right">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:13px;font-weight:600;color:var(--text2)">solution.py</div>
-      ${prevCode ? `<button class="btn-xs" data-action="oj-load-prev">이전 코드 불러오기</button>` : ''}
+    <div class="oj-editor-header">
+      <span>solution.py</span>
+      <div style="display:flex;gap:6px">
+        ${prevCode ? `<button class="btn-xs" data-action="oj-load-prev">이전 코드</button>` : ''}
+      </div>
     </div>
-    <textarea id="oj-code-editor" style="display:none">${esc(OJ_CODE)}</textarea>
-    <div class="oj-actions">
-      <button class="btn-sm" data-action="oj-run-code" ${OJ_RUNNING ? 'disabled' : ''}>
+    <div class="oj-editor-section">
+      <textarea id="oj-code-editor" style="display:none">${esc(OJ_CODE)}</textarea>
+    </div>
+    <div class="oj-resize-h" id="oj-resize-h"></div>
+    ${vOJResultsPanel()}
+    <div class="oj-actions-bar">
+      <button class="btn-sm" data-action="oj-reset-code">초기화</button>
+      <div class="oj-spacer"></div>
+      <button class="btn-sm oj-btn-run" data-action="oj-run-code" ${OJ_RUNNING ? 'disabled' : ''}>
         ${OJ_RUNNING ? '⏳ 실행 중...' : '▶ 코드 실행'}
       </button>
-      <button class="btn-sm btn-p" data-action="oj-submit-code" ${OJ_RUNNING ? 'disabled' : ''}>
-        ${OJ_RUNNING ? '⏳ 채점 중...' : '📤 제출 후 채점하기'}
+      <button class="btn-sm oj-btn-submit" data-action="oj-submit-code" ${OJ_RUNNING ? 'disabled' : ''}>
+        ${OJ_RUNNING ? '⏳ 채점 중...' : '제출 후 채점하기'}
       </button>
-      <button class="btn-xs" data-action="oj-reset-code" style="margin-left:auto">초기화</button>
     </div>
-    <div id="oj-results">${resultsHtml}</div>
   </div>`;
 
   return `<div class="back-btn" data-action="oj-back">← 문제 목록으로</div>
-    <div class="oj-split">${left}<div class="oj-divider"></div>${right}</div>`;
+    <div class="oj-split">${left}${right}</div>`;
 }
 
-// 실행/채점 결과 표시
-function vOJResults(){
-  const results = OJ_SUBMIT_RESULTS || OJ_RUN_RESULTS;
-  if(!results) return `<div style="color:var(--text3);font-size:13px;padding:12px">실행 결과가 여기에 표시됩니다.</div>`;
+// 결과 패널 (탭 + 내용)
+function vOJResultsPanel(){
+  return `<div class="oj-results-panel" id="oj-results-panel">
+    <div class="oj-results-tabs">
+      <button class="oj-rtab${OJ_RESULT_TAB === 'exec' ? ' active' : ''}" data-action="oj-switch-tab" data-tab="exec">실행 결과</button>
+      <button class="oj-rtab${OJ_RESULT_TAB === 'test' ? ' active' : ''}" data-action="oj-switch-tab" data-tab="test">테스트 결과</button>
+    </div>
+    <div class="oj-results-body" id="oj-results-body">
+      ${OJ_RESULT_TAB === 'exec' ? vOJRunTab() : vOJTestTab()}
+    </div>
+  </div>`;
+}
 
-  const isSubmit = !!OJ_SUBMIT_RESULTS;
-  const passed = results.filter(r => r.passed).length;
-  const total = results.length;
-
-  let header = '';
-  if(isSubmit){
-    const allPass = passed === total;
-    header = `<div class="box-${allPass ? 'ok' : 'warn'}" style="margin-bottom:10px">
-      ${allPass ? '🎉 모든 테스트를 통과했습니다!' : `⚠️ ${passed}/${total}개 테스트 통과`}
-    </div>`;
+// 실행 결과 탭 (커스텀 stdin + 출력)
+function vOJRunTab(){
+  let outputHtml = '';
+  if(OJ_CUSTOM_OUTPUT === null){
+    outputHtml = `<div class="oj-output-box oj-placeholder">실행 결과가 여기에 표시됩니다.</div>`;
+  } else if(!OJ_CUSTOM_OUTPUT.success){
+    outputHtml = `<div class="oj-output-box oj-error">${esc(OJ_CUSTOM_OUTPUT.error || '실행 오류')}</div>`;
   } else {
-    header = `<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">실행 결과</div>`;
+    outputHtml = `<div class="oj-output-box">${esc(OJ_CUSTOM_OUTPUT.output || '(출력 없음)')}</div>`;
   }
 
+  return `<div class="oj-stdin-label">입력값</div>
+    <div class="oj-stdin-area">
+      <textarea id="oj-custom-stdin" placeholder="실행 시 사용할 입력값을 입력하세요">${esc(OJ_CUSTOM_STDIN)}</textarea>
+    </div>
+    <div class="oj-output-label">실행 결과</div>
+    ${outputHtml}`;
+}
+
+// 테스트 결과 탭 (TC 채점 결과)
+function vOJTestTab(){
+  const results = OJ_SUBMIT_RESULTS;
+  if(!results) return `<div class="oj-output-box oj-placeholder">제출 후 채점하기 버튼을 눌러 채점하세요.</div>`;
+
+  const passed = results.filter(r => r.passed).length;
+  const total = results.length;
+  const allPass = passed === total;
+
+  const header = `<div class="box-${allPass ? 'ok' : 'warn'}" style="margin-bottom:10px">
+    ${allPass ? '🎉 모든 테스트를 통과했습니다!' : `⚠️ ${passed}/${total}개 테스트 통과`}
+  </div>`;
+
   const rows = results.map((r, i) => {
-    const label = r.isHidden ? `TC ${i + 1} (숨김)` : `TC ${i + 1}`;
+    const label = r.isHidden ? `테스트 ${i + 1} (숨김)` : `테스트 ${i + 1}`;
     if(r.error){
       return `<div class="oj-result-row">
         <span>${label}</span>
@@ -239,10 +268,10 @@ function vOJResults(){
       </div>`;
     }
     const detail = r.isHidden ? '' : `
-      <div style="display:flex;gap:12px;padding:4px 0 4px 24px;font-size:11px;color:var(--text3)">
-        <div>입력: <code>${esc(r.input).slice(0, 80)}</code></div>
-        <div>기대: <code>${esc(r.expected).slice(0, 80)}</code></div>
-        <div>출력: <code>${esc(r.actual).slice(0, 80)}</code></div>
+      <div style="display:flex;gap:12px;padding:6px 0 6px 28px;font-size:12px;color:var(--text3);flex-wrap:wrap">
+        <div>입력: <code style="color:var(--text2)">${esc(r.input).slice(0, 100)}</code></div>
+        <div>기대: <code style="color:var(--text2)">${esc(r.expected).slice(0, 100)}</code></div>
+        <div>출력: <code style="color:var(--text2)">${esc(r.actual).slice(0, 100)}</code></div>
       </div>`;
     return `<div class="oj-result-row">
       <span>${label}</span>

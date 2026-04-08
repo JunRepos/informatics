@@ -184,15 +184,46 @@ function afterRender(){
       matchBrackets: true,
       extraKeys: {'Tab': (ed) => ed.replaceSelection('    ', 'end')}
     });
-    cm.setSize(null, '320px');
+    cm.setSize('100%', '100%');
     cm.setValue(OJ_CODE || '');
     cm.on('change', (ed) => { OJ_CODE = ed.getValue(); });
     cmEl._cm = cm;
+  // OJ 에디터/결과 리사이즈 핸들
+  const ojResizeH = document.getElementById('oj-resize-h');
+  const ojEditorSec = document.querySelector('.oj-editor-section');
+  const ojResultsPanel = document.getElementById('oj-results-panel');
+  if(ojResizeH && ojEditorSec && ojResultsPanel){
+    let rStartY, rStartEdH, rStartResH;
+    const onRDrag = (e) => {
+      const dy = (e.clientY || e.touches?.[0]?.clientY || 0) - rStartY;
+      ojEditorSec.style.flex = 'none';
+      ojEditorSec.style.height = Math.max(120, rStartEdH + dy) + 'px';
+      ojResultsPanel.style.flex = 'none';
+      ojResultsPanel.style.height = Math.max(100, rStartResH - dy) + 'px';
+    };
+    const onREnd = () => {
+      document.removeEventListener('mousemove', onRDrag);
+      document.removeEventListener('mouseup', onREnd);
+      document.removeEventListener('touchmove', onRDrag);
+      document.removeEventListener('touchend', onREnd);
+    };
+    ojResizeH.addEventListener('mousedown', e => {
+      rStartY = e.clientY; rStartEdH = ojEditorSec.offsetHeight; rStartResH = ojResultsPanel.offsetHeight;
+      document.addEventListener('mousemove', onRDrag); document.addEventListener('mouseup', onREnd);
+      e.preventDefault();
+    });
+    ojResizeH.addEventListener('touchstart', e => {
+      rStartY = e.touches[0].clientY; rStartEdH = ojEditorSec.offsetHeight; rStartResH = ojResultsPanel.offsetHeight;
+      document.addEventListener('touchmove', onRDrag); document.addEventListener('touchend', onREnd);
+      e.preventDefault();
+    });
+  }
+
   } else if(cmEl && !cmEl._cm){
     cmEl.style.display = '';
     cmEl.style.fontFamily = 'monospace';
     cmEl.style.fontSize = '14px';
-    cmEl.style.minHeight = '320px';
+    cmEl.style.minHeight = '100%';
     cmEl.style.width = '100%';
     cmEl.style.padding = '12px';
     cmEl.style.tabSize = '4';
