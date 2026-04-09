@@ -137,7 +137,7 @@ function vTcAssign(){
       <div class="row-right">
         ${a.dueDate ? dday(a.dueDate) : ''}
         ${aFiles.length ? `<button class="btn-xs btn-ok" data-action="dl-assign-files" data-aid="${a.id}">📥 파일</button>` : ''}
-        ${a.dueDate ? `<button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>` : ''}
+        <button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>
         <button class="btn-xs" data-action="edit-assign" data-aid="${a.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="del-assign" data-aid="${a.id}" data-atitle="${esc(a.title)}">삭제</button>
       </div>
