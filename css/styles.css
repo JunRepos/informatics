@@ -352,3 +352,16 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
   .dash-stats{grid-template-columns:repeat(2,1fr)}
   .dash-stat-num{font-size:18px}
 }
+
+/* ═══════════════════════════════════════
+   Month Group (수업 탭 월별 접기/펼치기)
+═══════════════════════════════════════ */
+.month-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.month-header{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .12s}
+.month-header:hover{background:var(--surface2)}
+.month-arrow{font-size:11px;color:var(--text3);transition:transform .2s;width:14px;text-align:center}
+.month-label{font-size:14px;font-weight:700;flex:1}
+.month-count{font-size:12px;color:var(--text3);font-weight:500}
+.month-body{border-top:1px solid var(--border)}
+.month-group.collapsed .month-body{display:none}
+.month-group.collapsed .month-arrow{transform:rotate(0deg)}

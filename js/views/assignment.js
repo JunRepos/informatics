@@ -12,7 +12,7 @@ function vAssignDetail(){
   const locked = isPastDue(a.dueDate);
 
   return `
-    <div class="back-btn" onclick="go('student')">← 과제 목록으로</div>
+    <div class="back-btn" onclick="go('student')">← 수업 목록으로</div>
     <div class="section">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
         <div style="font-size:16px;font-weight:700">${esc(a.title)}</div>
@@ -22,7 +22,8 @@ function vAssignDetail(){
           ${locked && !sub ? `<span class="chip chip-red">마감</span>` : ''}
         </div>
       </div>
-      ${a.dueDate ? `<div style="font-size:13px;color:var(--text3);margin-bottom:10px">📅 마감일: ${fmtDay(a.dueDate)}</div>` : ''}
+      ${a.classDate ? `<div style="font-size:13px;color:var(--text3);margin-bottom:4px">📅 수업 날짜: ${fmtDay(a.classDate)}</div>` : ''}
+      ${a.dueDate ? `<div style="font-size:13px;color:var(--text3);margin-bottom:10px">⏰ 마감일: ${fmtDay(a.dueDate)}</div>` : ''}
       ${a.description ? `<div style="font-size:14px;color:var(--text2);white-space:pre-line;margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:var(--r-sm)">${esc(a.description)}</div>` : ''}
       ${(()=>{
         const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl, path: a.filePath}] : [];

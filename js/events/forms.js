@@ -267,15 +267,16 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // ── 과제 등록/수정 (선생님) ──
+  // ── 수업 등록/수정 (선생님) ──
   if(t.id === 'ac-submit'){
     const title = document.getElementById('ac-title')?.value?.trim();
     const desc = document.getElementById('ac-desc')?.value?.trim();
+    const classDate = document.getElementById('ac-class-date')?.value || null;
     const due = document.getElementById('ac-due')?.value;
     const files = Array.from(document.getElementById('ac-file')?.files || []);
     const err = document.getElementById('ac-err');
     const cid = TC_CLS?.id; if(!cid) return;
-    if(!title){ err.textContent = '과제 제목을 입력하세요.'; return; }
+    if(!title){ err.textContent = '제목을 입력하세요.'; return; }
     const oversized = files.find(f => f.size > MAX_FILE_SIZE);
     if(oversized){ err.textContent = `"${oversized.name}" 파일이 50MB를 초과합니다.`; return; }
     t.disabled = true; err.textContent = '';
@@ -283,7 +284,7 @@ document.addEventListener('click', async e => {
       const editId = t.dataset.editId;
       if(editId){
         const existing = ASSIGNMENTS.find(a => a.id === editId);
-        const updates = {title, description: desc || '', dueDate: due || null};
+        const updates = {title, description: desc || '', dueDate: due || null, classDate: classDate || null};
         if(files.length){
           document.getElementById('ac-prog').style.display = 'block';
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
@@ -327,7 +328,7 @@ document.addEventListener('click', async e => {
           const id = genId();
           await db.ref(`assignments/${targetCid}/${id}`).set({
             title, description: desc || '', dueDate: due || null,
-            createdAt: now, ...fileData
+            classDate: classDate || null, createdAt: now, ...fileData
           });
         }
         if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 과제가 등록됐습니다.`, 'ok');

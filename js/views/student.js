@@ -13,9 +13,8 @@ function vStudent(){
   const tabs = `<div class="tabs">
     ${tab('🏠 홈','dashboard',ST_TAB,"setST('dashboard')")}
     ${tab('📢 공지','notice',ST_TAB,"setST('notice')")}
-    ${tab('📚 과제','assign',ST_TAB,"setST('assign')")}
+    ${tab('📖 수업','assign',ST_TAB,"setST('assign')")}
     ${tab('📋 게시판','board',ST_TAB,"setST('board')")}
-    ${tab('📂 수업 자료','files',ST_TAB,"setST('files')")}
     ${tab('🗓️ 내 출결','attend',ST_TAB,"setST('attend')")}
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
@@ -26,7 +25,6 @@ function vStudent(){
   else if(ST_TAB === 'notice')  body = vStNotice();
   else if(ST_TAB === 'assign')  body = vStAssign();
   else if(ST_TAB === 'board')   body = vStBoard();
-  else if(ST_TAB === 'files')   body = vStFiles();
   else if(ST_TAB === 'attend')  body = vStAttend();
   else if(ST_TAB === 'oj')      body = vStOJ();
   else if(ST_TAB === 'mine')    body = vStMine();
@@ -79,10 +77,10 @@ function vStDashboard(){
 
     <div class="dash-stats">
       <div class="dash-stat-card" onclick="setST('assign')">
-        <div class="dash-stat-icon">📚</div>
+        <div class="dash-stat-icon">📖</div>
         <div class="dash-stat-body">
           <div class="dash-stat-num">${pendingAssign}</div>
-          <div class="dash-stat-label">미제출 과제</div>
+          <div class="dash-stat-label">미제출 수업</div>
         </div>
       </div>
       <div class="dash-stat-card" onclick="setST('assign')">
@@ -111,12 +109,12 @@ function vStDashboard(){
     ${urgentAssigns.length ? `
     <div class="dash-section">
       <div class="dash-sec-header">
-        <div class="dash-sec-title">⏰ 다가오는 과제</div>
+        <div class="dash-sec-title">⏰ 다가오는 마감</div>
         <button class="btn-xs" onclick="setST('assign')">전체 보기 →</button>
       </div>
       ${urgentAssigns.map(a => `
         <div class="dash-item click" data-action="pick-assign" data-aid="${a.id}">
-          <div class="dash-item-icon">📚</div>
+          <div class="dash-item-icon">📖</div>
           <div class="dash-item-body">
             <div class="dash-item-title">${esc(a.title)}</div>
             <div class="dash-item-meta">마감: ${fmtDay(a.dueDate)}</div>
@@ -171,23 +169,57 @@ function vStNotice(){
   return NOTICES.map(n => noticeCard(n, false)).join('');
 }
 
-// ── 과제 탭 ──
+// ── 수업 탭 (날짜별 오름차순, 월별 접기/펼치기) ──
 function vStAssign(){
-  if(!ASSIGNMENTS.length) return emptyBox('📚','등록된 과제가 없습니다.');
-  return ASSIGNMENTS.map(a => {
-    const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER.number];
-    return `<div class="list-row click" data-action="pick-assign" data-aid="${a.id}">
-      <div class="row-icon">📚</div>
-      <div class="row-info">
-        <div class="row-title">${esc(a.title)}</div>
-        <div class="row-meta">${a.dueDate ? `마감: ${fmtDay(a.dueDate)}` : '마감 없음'}</div>
-        <div class="sbar"><div class="sbar-fill" style="width:${done ? 100 : 0}%"></div></div>
+  if(!ASSIGNMENTS.length) return emptyBox('📖','등록된 수업이 없습니다.');
+
+  // 수업 날짜(classDate) 기준 오름차순 정렬, 없으면 createdAt 사용
+  const sorted = [...ASSIGNMENTS].sort((a, b) => {
+    const da = a.classDate || a.createdAt?.slice(0, 10) || '';
+    const db = b.classDate || b.createdAt?.slice(0, 10) || '';
+    return da.localeCompare(db);
+  });
+
+  // 월별 그룹핑
+  const months = {};
+  sorted.forEach(a => {
+    const dateStr = a.classDate || a.createdAt?.slice(0, 10) || '';
+    const ym = dateStr.slice(0, 7) || '미정';
+    if(!months[ym]) months[ym] = [];
+    months[ym].push(a);
+  });
+
+  // 현재 월 계산
+  const curYM = new Date().toISOString().slice(0, 7);
+
+  return Object.entries(months).map(([ym, items]) => {
+    const label = ym === '미정' ? '날짜 미정' : ym.replace('-', '년 ') + '월';
+    const isOpen = ym === curYM || ym === '미정';
+    return `<div class="month-group${isOpen ? '' : ' collapsed'}">
+      <div class="month-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="month-arrow">▼</span>
+        <span class="month-label">${label}</span>
+        <span class="month-count">${items.length}개</span>
       </div>
-      <div class="row-right">
-        ${a.dueDate ? dday(a.dueDate) : ''}
-        ${done ? `<span class="chip chip-green">✓ 제출완료</span>`
-              : isPastDue(a.dueDate) ? `<span class="chip chip-red">미제출</span>`
-              : `<span class="chip chip-gray">미제출</span>`}
+      <div class="month-body">
+        ${items.map(a => {
+          const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER.number];
+          const dateDisp = a.classDate ? fmtDay(a.classDate) : '';
+          return `<div class="list-row click" data-action="pick-assign" data-aid="${a.id}">
+            <div class="row-icon">📖</div>
+            <div class="row-info">
+              <div class="row-title">${esc(a.title)}</div>
+              <div class="row-meta">${dateDisp ? `📅 ${dateDisp}` : ''}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}</div>
+              ${a.dueDate ? `<div class="sbar"><div class="sbar-fill" style="width:${done ? 100 : 0}%"></div></div>` : ''}
+            </div>
+            <div class="row-right">
+              ${a.dueDate ? dday(a.dueDate) : ''}
+              ${done ? `<span class="chip chip-green">✓ 제출완료</span>`
+                    : a.dueDate && isPastDue(a.dueDate) ? `<span class="chip chip-red">미제출</span>`
+                    : a.dueDate ? `<span class="chip chip-gray">미제출</span>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('');
@@ -212,20 +244,6 @@ function vStBoard(){
       </div>
     </div>`;
   }).join('');
-}
-
-// ── 파일 탭 (선생님 공유 파일) ──
-function vStFiles(){
-  if(!TC_FILES.length) return emptyBox('📥','선생님이 올린 파일이 없습니다.');
-  const groups = groupFiles(TC_FILES);
-  return Object.entries(groups).map(([gid, g]) => `
-    <div class="section" style="margin-bottom:10px">
-      ${g.title ? `<div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(g.title)}</div>` : ''}
-      ${g.desc ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${esc(g.desc)}</div>` : ''}
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${fmtDt(g.uploadedAt)} · ${g.files.length}개 파일</div>
-      ${g.files.map(f => fileCardHtml(f, {dlLabel: '다운'})).join('')}
-      ${g.files.length > 1 ? `<button class="btn-xs btn-ok" data-action="dl-group-zip" data-gid="${gid}" style="margin-top:4px">📦 전체 다운로드</button>` : ''}
-    </div>`).join('');
 }
 
 // ── 출결 탭 ──
@@ -271,7 +289,7 @@ function vStMine(){
   const myAssigns = ASSIGNMENTS.map(a => {
     const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER.number];
     return `<div class="list-row${done ? ' click' : ''}${done ? '" data-action="view-my-sub" data-aid="' + a.id + '"' : ''}">
-      <div class="row-icon">📚</div>
+      <div class="row-icon">📖</div>
       <div class="row-info">
         <div class="row-title">${esc(a.title)}</div>
         <div class="row-meta">${a.dueDate ? `마감: ${fmtDay(a.dueDate)}` : '마감 없음'}</div>
@@ -297,14 +315,14 @@ function vStMine(){
 
   return `
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">전체 과제</div></div>
+      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">전체 수업</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${submitted}</div><div class="stat-label">제출 완료</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--danger)">${total - submitted}</div><div class="stat-label">미제출</div></div>
       <div class="stat-card"><div class="stat-num">${myPosts.length}</div><div class="stat-label">내 게시물</div></div>
     </div>
     <div class="section">
-      <div class="sec-title">📚 과제 현황</div>
-      ${myAssigns || emptyBox('📚','과제가 없습니다.')}
+      <div class="sec-title">📖 수업 현황</div>
+      ${myAssigns || emptyBox('📖','수업이 없습니다.')}
     </div>
     <div class="section">
       <div class="sec-title">📋 내 게시물</div>

@@ -22,11 +22,10 @@ function vTeacher(){
 
   const tabs = `<div class="tabs">
     ${tab('📢 공지','notice',TC_TAB,"setTC('notice')")}
-    ${tab('📚 과제','assign',TC_TAB,"setTC('assign')")}
+    ${tab('📖 수업','assign',TC_TAB,"setTC('assign')")}
     ${tab('📋 게시판','board',TC_TAB,"setTC('board')")}
     ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
-    ${tab('📂 수업 자료','files',TC_TAB,"setTC('files')")}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -40,7 +39,6 @@ function vTeacher(){
   else if(TC_TAB === 'board')    body = vTcBoard();
   else if(TC_TAB === 'attend')   body = vTcAttend();
   else if(TC_TAB === 'students') body = vTcStudents();
-  else if(TC_TAB === 'files')    body = vTcFiles();
   else if(TC_TAB === 'oj')       body = vTcOJ();
   else if(TC_TAB === 'settings') body = vTcSettings();
 
@@ -92,21 +90,23 @@ function vTcNotice(){
   return form + `<div class="sec-title" style="margin-top:4px">등록된 공지</div>` + list;
 }
 
-// ── 과제 관리 ──
+// ── 수업 관리 ──
 function vTcAssign(){
   const editId = window._acEditId || null;
   const editData = editId ? ASSIGNMENTS.find(a => a.id === editId) : null;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
   const form = `<div class="section">
-    <div class="sec-title">${editData ? '📚 과제 수정' : '📚 과제 등록'}</div>
+    <div class="sec-title">${editData ? '📖 수업 수정' : '📖 수업 등록'}</div>
     ${editData ? `<div class="box-warn" style="margin-bottom:10px">수정 중: <b>${esc(editData.title)}</b></div>` : ''}
     <div class="form">
-      <div class="field"><label>과제 제목</label><input id="ac-title" type="text" placeholder="과제 제목" value="${editData ? esc(editData.title) : ''}"/></div>
-      <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="과제 설명 (선택)">${editData ? esc(editData.description || '') : ''}</textarea></div>
+      <div class="field"><label>제목</label><input id="ac-title" type="text" placeholder="예: 3단원 - 반복문" value="${editData ? esc(editData.title) : ''}"/></div>
+      <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="수업 내용 또는 과제 설명 (선택)">${editData ? esc(editData.description || '') : ''}</textarea></div>
       <div class="form-row">
-        <div class="field"><label>마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate || ''}"/></div>
-        <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택, 여러 개 가능)'}</label><input id="ac-file" type="file" multiple/></div>
+        <div class="field"><label>📅 수업 날짜</label><input id="ac-class-date" type="date" value="${editData?.classDate || todayStr}"/></div>
+        <div class="field"><label>과제 마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate || ''}"/></div>
       </div>
+      <div class="field"><label>첨부파일 ${editData ? '(교체 시에만 선택)' : '(선택, 여러 개 가능)'}</label><input id="ac-file" type="file" multiple/></div>
       ${!editData ? multiClassPicker('ac', TC_CLS?.id) : ''}
       <div class="prog-wrap" id="ac-prog">
         <div class="prog-label">업로드 중... <span id="ac-pct">0%</span></div>
@@ -114,36 +114,37 @@ function vTcAssign(){
       </div>
       <div id="ac-err" class="err"></div>
       <div style="display:flex;gap:7px">
-        <button id="ac-submit" class="btn-p" data-edit-id="${editData?.id || ''}">${editData ? '수정 완료' : '과제 등록'}</button>
+        <button id="ac-submit" class="btn-p" data-edit-id="${editData?.id || ''}">${editData ? '수정 완료' : '수업 등록'}</button>
         ${editData ? `<button onclick="window._acEditId=null;setTC('assign')" class="btn-sm">취소</button>` : ''}
       </div>
     </div>
   </div>`;
 
-  const list = !ASSIGNMENTS.length ? emptyBox('📚','등록된 과제가 없습니다.') : ASSIGNMENTS.map(a => {
+  const list = !ASSIGNMENTS.length ? emptyBox('📖','등록된 수업이 없습니다.') : ASSIGNMENTS.map(a => {
     const subCount = SUBMISSIONS[a.id] ? Object.keys(SUBMISSIONS[a.id]).length : 0;
     const total = STUDENTS.length;
     const pct = total ? Math.round(subCount / total * 100) : 0;
     const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl}] : [];
     const fileChip = aFiles.length ? `<span style="font-size:11px;color:var(--text3)">📎 ${aFiles.length}개 파일</span>` : '';
+    const classDateStr = a.classDate ? `📅 ${fmtDay(a.classDate)}` : '';
     return `<div class="list-row">
-      <div class="row-icon">📚</div>
+      <div class="row-icon">📖</div>
       <div class="row-info">
         <div class="row-title">${esc(a.title)}</div>
-        <div class="row-meta">${a.dueDate ? `마감: ${fmtDay(a.dueDate)}` : '마감 없음'} · ${subCount}/${total}명 제출 ${fileChip}</div>
-        <div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>
+        <div class="row-meta">${classDateStr}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}${subCount ? ` · ${subCount}/${total}명 제출` : ''} ${fileChip}</div>
+        ${a.dueDate ? `<div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>` : ''}
       </div>
       <div class="row-right">
         ${a.dueDate ? dday(a.dueDate) : ''}
         ${aFiles.length ? `<button class="btn-xs btn-ok" data-action="dl-assign-files" data-aid="${a.id}">📥 파일</button>` : ''}
-        <button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>
+        ${a.dueDate ? `<button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>` : ''}
         <button class="btn-xs" data-action="edit-assign" data-aid="${a.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="del-assign" data-aid="${a.id}" data-atitle="${esc(a.title)}">삭제</button>
       </div>
     </div>`;
   }).join('');
 
-  return form + `<div class="sec-title" style="margin-top:4px">등록된 과제</div>` + list;
+  return form + `<div class="sec-title" style="margin-top:4px">등록된 수업</div>` + list;
 }
 
 // ── 제출 현황 테이블 (과제별) ──
