@@ -132,7 +132,7 @@ function vTcAssign(){
       <div class="row-info">
         <div class="row-title">${esc(a.title)}</div>
         <div class="row-meta">${classDateStr}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}${subCount ? ` · ${subCount}/${total}명 제출` : ''} ${fileChip}</div>
-        ${a.dueDate ? `<div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>` : ''}
+        <div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="row-right">
         ${a.dueDate ? dday(a.dueDate) : ''}
@@ -209,35 +209,54 @@ function vTcBoard(){
 
 // ── 출결 관리 ──
 function vTcAttend(){
+  const isInfo = TC_CLS?.type === 'info';
+  const classDays = TC_CLS?.classDays || [];
+  const dayNames = ['일','월','화','수','목','금','토'];
+
+  // 정보반: 선택된 날짜가 수업 요일인지 확인
+  const selDay = new Date(AT_DATE + 'T00:00:00').getDay();
+  const isClassDay = !isInfo || classDays.includes(selDay);
+
   const cntAbs  = STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '결석').length;
-  const cntLate = STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '지각').length;
+  const cntLate = isInfo ? 0 : STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '지각').length;
   const cntOk   = STUDENTS.length - cntAbs - cntLate;
 
   const rows = !STUDENTS.length
     ? emptyBox('👥','등록된 학생이 없습니다. 학생관리 탭에서 먼저 추가하세요.')
+    : !isClassDay
+    ? emptyBox('📅',`${dayNames[selDay]}요일은 수업이 없는 날입니다. (수업 요일: ${classDays.map(d => dayNames[d]).join(', ')})`)
     : STUDENTS.map(st => {
         const rec = ATTENDANCE[st.number] || {};
         const status = rec.status || '출석';
         const reason = rec.reason || '';
-        const needReason = status === '지각' || status === '결석';
-        const reasons = ['질병','인정','미인정'];
-        return buildAtRow2(st, status, reason, needReason, reasons);
+        if(isInfo){
+          return buildAtRowInfo(st, status, reason);
+        } else {
+          const needReason = status === '지각' || status === '결석';
+          const reasons = ['질병','인정','미인정'];
+          return buildAtRow2(st, status, reason, needReason, reasons);
+        }
       }).join('');
+
+  const classDayInfo = isInfo
+    ? `<div class="box-info" style="margin-bottom:12px">수업 요일: <b>${classDays.map(d => dayNames[d]).join(', ')}</b> · 기본값은 <b>출석</b>입니다. 결석인 학생만 체크하세요.</div>`
+    : `<div class="box-info" style="margin-bottom:12px">기본값은 <b>출석</b>입니다. 지각·결석인 학생만 체크하세요.</div>`;
 
   return `
     <div class="at-date-bar">
       <div class="at-day-nav">
-        <button class="btn-sm" data-action="at-prev-day">◀</button>
-        <button class="btn-sm" data-action="at-next-day">▶</button>
+        ${isInfo ? `<button class="btn-sm" data-action="at-prev-class-day">◀</button>` : `<button class="btn-sm" data-action="at-prev-day">◀</button>`}
+        ${isInfo ? `<button class="btn-sm" data-action="at-next-class-day">▶</button>` : `<button class="btn-sm" data-action="at-next-day">▶</button>`}
       </div>
       <input type="date" id="at-date-input" value="${AT_DATE}" style="flex:1;min-width:130px"/>
+      <span style="font-size:13px;color:var(--text2);font-weight:600">${dayNames[selDay]}요일</span>
       <button class="btn-p btn-sm" data-action="at-go-today">오늘</button>
       <button class="btn-ok btn-sm" data-action="at-export">📋 내보내기</button>
     </div>
-    <div class="box-info" style="margin-bottom:12px">기본값은 <b>출석</b>입니다. 지각·결석인 학생만 체크하세요.</div>
+    ${classDayInfo}
     <div class="at-summary">
       <div class="at-stat ok"><div class="at-stat-num">${cntOk}</div><div class="at-stat-label">출석</div></div>
-      <div class="at-stat warn"><div class="at-stat-num">${cntLate}</div><div class="at-stat-label">지각</div></div>
+      ${!isInfo ? `<div class="at-stat warn"><div class="at-stat-num">${cntLate}</div><div class="at-stat-label">지각</div></div>` : ''}
       <div class="at-stat bad"><div class="at-stat-num">${cntAbs}</div><div class="at-stat-label">결석</div></div>
     </div>
     <div id="at-rows">${rows}</div>`;
@@ -273,11 +292,37 @@ function buildAtRow2(st, status, reason, needReason, reasons){
   </div>`;
 }
 
+// 정보반 출결 행 (출석/결석 토글 + 사유 입력)
+function buildAtRowInfo(st, status, reason){
+  const isAbs = status === '결석';
+  return `<div class="at-row" id="atr-${st.number}">
+    <div class="at-row-info">
+      <div class="at-row-num">${esc(st.number)}</div>
+      <div class="at-row-name">${esc(st.name)}</div>
+    </div>
+    <div class="at-btns">
+      <button class="at-btn${isAbs ? ' sel-결석' : ''}"
+        data-action="at-set" data-num="${st.number}" data-status="${isAbs ? '출석' : '결석'}">
+        ${isAbs ? '↩ 출석으로' : '✗ 결석'}
+      </button>
+      ${isAbs ? `<input type="text" class="at-reason-input" placeholder="사유 (선택)"
+        value="${esc(reason)}" data-action="at-reason-input" data-num="${st.number}"
+        style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-sm);width:140px"/>` : ''}
+    </div>
+    <div style="flex-shrink:0">
+      ${isAbs ? `<span class="at-chip-abs">결석${reason ? ' (' + esc(reason) + ')' : ''}</span>`
+              : `<span class="at-chip-ok">출석</span>`}
+    </div>
+  </div>`;
+}
+
 // 출결 행 단일 갱신용 헬퍼
 function buildAtRow(st){
+  const isInfo = TC_CLS?.type === 'info';
   const rec = ATTENDANCE[st.number] || {};
   const status = rec.status || '출석';
   const reason = rec.reason || '';
+  if(isInfo) return buildAtRowInfo(st, status, reason);
   const needReason = status === '지각' || status === '결석';
   const reasons = ['질병','인정','미인정'];
   return buildAtRow2(st, status, reason, needReason, reasons);
@@ -285,10 +330,11 @@ function buildAtRow(st){
 
 // 출결 요약 카드만 갱신
 function updateAtSummary(){
-  const ok   = STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '출석').length;
-  const late = STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '지각').length;
+  const isInfo = TC_CLS?.type === 'info';
   const abs  = STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '결석').length;
-  const none = STUDENTS.length - ok - late - abs;
+  const late = isInfo ? 0 : STUDENTS.filter(s => ATTENDANCE[s.number]?.status === '지각').length;
+  const ok   = STUDENTS.length - abs - late;
+  const none = STUDENTS.length - STUDENTS.filter(s => ATTENDANCE[s.number]?.status).length;
 
   document.querySelectorAll('.at-stat').forEach(el => {
     if(el.classList.contains('ok'))   el.querySelector('.at-stat-num').textContent = ok;

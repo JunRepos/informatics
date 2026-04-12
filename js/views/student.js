@@ -58,13 +58,12 @@ function vStDashboard(){
   // 최근 공지 (최대 3개)
   const recentNotices = NOTICES.slice(0, 3);
 
-  // 출결 통계
-  const myAttend = Object.entries(AT_MONTH_DATA)
-    .map(([, recs]) => recs[ST_USER?.number])
-    .filter(Boolean);
-  const atOk = myAttend.filter(r => r.status === '출석').length;
-  const atLate = myAttend.filter(r => r.status === '지각').length;
-  const atAbs = myAttend.filter(r => r.status === '결석').length;
+  // 제출한 파일 목록 (최근 5개)
+  const mySubmitted = ASSIGNMENTS
+    .filter(a => SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number])
+    .map(a => ({assign: a, sub: SUBMISSIONS[a.id][ST_USER.number]}))
+    .sort((a, b) => b.sub.uploadedAt.localeCompare(a.sub.uploadedAt))
+    .slice(0, 5);
 
   // 게시물 수
   const myPosts = POSTS.filter(p => p.authorId === ST_USER?.number).length;
@@ -90,11 +89,11 @@ function vStDashboard(){
           <div class="dash-stat-label">제출 완료</div>
         </div>
       </div>
-      <div class="dash-stat-card" onclick="setST('attend')">
-        <div class="dash-stat-icon">🗓️</div>
+      <div class="dash-stat-card" onclick="setST('assign')">
+        <div class="dash-stat-icon">📖</div>
         <div class="dash-stat-body">
-          <div class="dash-stat-num">${atOk}<span style="font-size:12px;color:var(--text3)">/${atOk+atLate+atAbs}</span></div>
-          <div class="dash-stat-label">출석</div>
+          <div class="dash-stat-num">${totalAssign}</div>
+          <div class="dash-stat-label">전체 수업</div>
         </div>
       </div>
       <div class="dash-stat-card" onclick="setST('board')">
@@ -139,17 +138,23 @@ function vStDashboard(){
         </div>`).join('')}
     </div>` : ''}
 
-    ${atLate + atAbs > 0 ? `
+    ${mySubmitted.length ? `
     <div class="dash-section">
       <div class="dash-sec-header">
-        <div class="dash-sec-title">🗓️ 이번 달 출결</div>
-        <button class="btn-xs" onclick="setST('attend')">상세 보기 →</button>
+        <div class="dash-sec-title">📄 최근 제출한 파일</div>
+        <button class="btn-xs" onclick="setST('mine')">전체 보기 →</button>
       </div>
-      <div class="at-summary" style="margin:0">
-        <div class="at-stat ok"><div class="at-stat-num">${atOk}</div><div class="at-stat-label">출석</div></div>
-        <div class="at-stat warn"><div class="at-stat-num">${atLate}</div><div class="at-stat-label">지각</div></div>
-        <div class="at-stat bad"><div class="at-stat-num">${atAbs}</div><div class="at-stat-label">결석</div></div>
-      </div>
+      ${mySubmitted.map(({assign: a, sub}) => {
+        const subFiles = sub.files && sub.files.length ? sub.files : [{name: sub.fileName, url: sub.url}];
+        return `<div class="dash-item">
+          <div class="dash-item-icon">📄</div>
+          <div class="dash-item-body">
+            <div class="dash-item-title">${esc(a.title)}</div>
+            <div class="dash-item-meta">${subFiles.map(f => esc(f.name)).join(', ')} · ${fmtDt(sub.uploadedAt)}</div>
+          </div>
+          <div class="dash-item-right"><span class="chip chip-green" style="font-size:10px">제출</span></div>
+        </div>`;
+      }).join('')}
     </div>` : ''}
 
     ${isInfo && OJ_PROBLEMS.length ? `

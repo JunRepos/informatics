@@ -19,6 +19,23 @@ document.addEventListener('keydown', e => {
   if(t.id === 'cp-new' || t.id === 'cp-con') document.getElementById('cp-btn')?.click();
 });
 
+// ── 정보반 결석 사유 입력 (blur 시 저장) ──
+document.addEventListener('focusout', async e => {
+  if(e.target.dataset?.action === 'at-reason-input'){
+    const num = e.target.dataset.num;
+    const reason = e.target.value.trim();
+    const cid = TC_CLS?.id; if(!cid) return;
+    const status = ATTENDANCE[num]?.status || '결석';
+    if(status !== '결석') return;
+    await saveAttendance(cid, AT_DATE, num, status, reason || null);
+    const row = document.getElementById('atr-' + num);
+    if(row) row.outerHTML = buildAtRow({number: num, name: STUDENTS.find(s => s.number === num)?.name || num});
+    // refocus the input if it exists
+    const newInput = document.querySelector(`[data-action="at-reason-input"][data-num="${num}"]`);
+    if(newInput) newInput.focus();
+  }
+});
+
 // ── 날짜/파일 변경 이벤트 ──
 document.addEventListener('change', async e => {
   if(e.target.id === 'at-date-input'){
@@ -89,6 +106,22 @@ document.addEventListener('click', async e => {
   // 출결: 다음 날
   if(e.target.closest('[data-action=at-next-day]')){
     const d = new Date(AT_DATE); d.setDate(d.getDate() + 1);
+    AT_DATE = d.toISOString().slice(0, 10);
+    await loadAttendance(TC_CLS?.id, AT_DATE); render(); return;
+  }
+  // 출결: 이전 수업일 (정보반)
+  if(e.target.closest('[data-action=at-prev-class-day]')){
+    const days = TC_CLS?.classDays || [];
+    const d = new Date(AT_DATE);
+    for(let i = 0; i < 14; i++){ d.setDate(d.getDate() - 1); if(days.includes(d.getDay())) break; }
+    AT_DATE = d.toISOString().slice(0, 10);
+    await loadAttendance(TC_CLS?.id, AT_DATE); render(); return;
+  }
+  // 출결: 다음 수업일 (정보반)
+  if(e.target.closest('[data-action=at-next-class-day]')){
+    const days = TC_CLS?.classDays || [];
+    const d = new Date(AT_DATE);
+    for(let i = 0; i < 14; i++){ d.setDate(d.getDate() + 1); if(days.includes(d.getDay())) break; }
     AT_DATE = d.toISOString().slice(0, 10);
     await loadAttendance(TC_CLS?.id, AT_DATE); render(); return;
   }
