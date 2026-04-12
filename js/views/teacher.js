@@ -342,18 +342,8 @@ function updateAtSummary(){
     if(el.classList.contains('bad'))  el.querySelector('.at-stat-num').textContent = abs;
   });
 
-  let warn = document.querySelector('.at-none-warn');
-  if(none > 0){
-    if(!warn){
-      warn = document.createElement('div');
-      warn.className = 'box-warn at-none-warn';
-      warn.style.marginBottom = '12px';
-      document.getElementById('at-rows')?.before(warn);
-    }
-    warn.textContent = `⚠️ 미체크 ${none}명 — 출결 체크를 완료해주세요.`;
-  } else {
-    warn?.remove();
-  }
+  const warn = document.querySelector('.at-none-warn');
+  if(warn) warn.remove();
 }
 
 // 출결 내보내기 (클립보드)
