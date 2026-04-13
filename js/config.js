@@ -23,8 +23,8 @@ const CLASSES = [
   {id:'c2-4',  label:'2-4반',   emoji:'🏫',type:'normal'},
   {id:'c2-5',  label:'2-5반',   emoji:'🏫',type:'normal'},
   {id:'c2-6',  label:'2-6반',   emoji:'🏫',type:'normal'},
-  {id:'info-2A',label:'정보 2-A',emoji:'💻',type:'info',classDays:[1,2,5]},
-  {id:'info-2B',label:'정보 2-B',emoji:'💻',type:'info',classDays:[3,4,5]},
+  {id:'info-2A',label:'정보 2-A',emoji:'💻',type:'info',classDays:[3,4,5]},
+  {id:'info-2B',label:'정보 2-B',emoji:'💻',type:'info',classDays:[1,2,5]},
 ];
 
 const KNOWN_CLS = new Set(CLASSES.map(c=>c.id));
