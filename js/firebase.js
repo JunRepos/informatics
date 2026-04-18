@@ -143,6 +143,14 @@ async function loadOJSubmissions(cid, pid){
   OJ_SUBMISSIONS[pid] = s.exists() ? s.val() : {};
 }
 
+// ── 노트북 목록 ──
+async function loadNotebooks(cid){
+  const s = await db.ref(`notebooks/${cid}`).get();
+  if(!s.exists()){ NOTEBOOKS = []; return; }
+  NOTEBOOKS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -151,7 +159,8 @@ async function loadAllClassData(cid){
     loadPosts(cid),
     loadTcFiles(cid),
     loadStudents(cid),
-    loadOJProblems(cid)
+    loadOJProblems(cid),
+    loadNotebooks(cid)
   ]);
 }
 

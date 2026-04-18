@@ -19,6 +19,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<!-- marked.js (마크다운 렌더링 — 노트북용) -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -46,6 +48,7 @@
 <script src="js/views/post.js"></script>
 <script src="js/views/assignment.js"></script>
 <script src="js/views/oj.js"></script>
+<script src="js/views/notebook.js"></script>
 
 <!-- 4) 렌더링 코어 (render, go, goHome 등) -->
 <script src="js/render.js"></script>
@@ -54,6 +57,7 @@
 <script src="js/events/actions.js"></script>
 <script src="js/events/forms.js"></script>
 <script src="js/events/oj-actions.js"></script>
+<script src="js/events/notebook.js"></script>
 
 <!-- 6) 앱 초기화 -->
 <script src="js/app.js"></script>

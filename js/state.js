@@ -54,6 +54,12 @@ let OJ_CUSTOM_STDIN   = '';    // 커스텀 입력 텍스트
 let OJ_CUSTOM_OUTPUT  = null;  // 커스텀 실행 결과 {output, error, success}
 let OJ_RESULT_TAB     = 'exec'; // 결과 탭: 'exec' | 'test'
 
+// 노트북(Colab 스타일) 관련
+let NOTEBOOKS     = [];    // 현재 반의 노트북 목록
+let SEL_NOTEBOOK  = null;  // 선택된 노트북 객체
+let NB_CELL_OUTPUTS = {};  // { [cellId]: {output, error, success, running} }
+let NB_CELL_CODES   = {};  // { [cellId]: 수정된 코드 } (학생이 편집한 내용)
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

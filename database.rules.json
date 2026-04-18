@@ -203,6 +203,21 @@
       }
     },
 
+    // ── 노트북 (Colab 스타일 실습) ──
+    "notebooks": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$nbId": {
+          ".validate": "newData.hasChildren(['title', 'cells', 'createdAt'])",
+          "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
+          "createdAt": { ".validate": "newData.isString()" },
+          "cells":     { ".validate": true },
+          "$other":    { ".validate": false }
+        }
+      }
+    },
+
     // ── 그 외 모든 경로 차단 ──
     "$other": {
       ".read": false,
