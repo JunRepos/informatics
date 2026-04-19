@@ -1,13 +1,16 @@
 /* ═══════════════════════════════════════
    events/notebook.js — 노트북 이벤트 핸들러
 
-   ipynb 업로드/파싱/삭제 + 셀 실행 (Pyodide)
+   ipynb 업로드/파싱, CodeMirror 초기화, 셀 실행,
+   셀 CRUD(추가/삭제/이동/복제), 단축키, 마크다운 편집 모드
 ═══════════════════════════════════════ */
 
-// ── Pyodide Worker (노트북 전용, 상태 유지) ──
+// ── Pyodide Worker ──
 let _nbWorker = null;
 let _nbMsgId = 0;
 let _nbCallbacks = {};
+const _nbCMs = {};   // cellId -> CodeMirror instance
+let _nbMdCM = null;  // 마크다운 편집용 CM
 
 function getNBWorker(){
   if(!_nbWorker){
@@ -26,8 +29,8 @@ function runNBPython(code, stdin){
     const id = ++_nbMsgId;
     const timer = setTimeout(() => {
       delete _nbCallbacks[id];
-      resolve({success: false, output: '', error: '시간 초과 (30초)'});
-    }, 30000);
+      resolve({success: false, output: '', error: '시간 초과 (60초)', images: []});
+    }, 60000);
     _nbCallbacks[id] = data => { clearTimeout(timer); resolve(data); };
     getNBWorker().postMessage({id, action: 'run', code, stdin});
   });
@@ -41,23 +44,302 @@ function resetNBWorker(){
   });
 }
 
-// ── ipynb 파일 파싱 (Jupyter/Colab 표준 JSON) ──
+// ── ipynb 파서 ──
 function parseIpynb(jsonText){
   const data = JSON.parse(jsonText);
   if(!data.cells || !Array.isArray(data.cells)) throw new Error('유효한 ipynb 파일이 아닙니다.');
   return data.cells.map((c, idx) => {
     const source = Array.isArray(c.source) ? c.source.join('') : (c.source || '');
     const type = c.cell_type === 'code' ? 'code' : 'markdown';
-    const id = c.metadata?.id || `cell-${idx}`;
+    const id = c.metadata?.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`;
     return {id, type, source};
   });
+}
+
+// ── 노트북 열기 ──
+async function openNotebook(nbId){
+  const nb = NOTEBOOKS.find(x => x.id === nbId); if(!nb) return;
+  SEL_NOTEBOOK = nb;
+  // cells 딥 복사 (학생 편집은 원본에 반영 X)
+  NB_CELLS = (nb.cells || []).map((c, idx) => ({
+    id: c.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`,
+    type: c.type || c.cell_type || 'code',
+    source: c.source || ''
+  }));
+  NB_CELL_OUTPUTS = {};
+  NB_EXEC_COUNT = 0;
+  NB_SELECTED = NB_CELLS[0]?.id || null;
+  NB_EDITING_MD = null;
+  destroyAllCMs();
+  await resetNBWorker().catch(() => {});
+  render();
+}
+
+function closeNotebook(){
+  SEL_NOTEBOOK = null;
+  NB_CELLS = [];
+  NB_CELL_OUTPUTS = {};
+  NB_SELECTED = null;
+  NB_EDITING_MD = null;
+  destroyAllCMs();
+  render();
+}
+
+// ── CodeMirror 헬퍼 ──
+function destroyAllCMs(){
+  Object.keys(_nbCMs).forEach(id => {
+    try { _nbCMs[id].toTextArea?.(); } catch(e){}
+    delete _nbCMs[id];
+  });
+  if(_nbMdCM){ try { _nbMdCM.toTextArea(); } catch(e){} _nbMdCM = null; }
+}
+
+function initNotebookCMs(){
+  if(typeof CodeMirror === 'undefined') return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // 코드 셀
+  document.querySelectorAll('.cb-code-area').forEach(ta => {
+    const cellId = ta.dataset.cellid;
+    if(_nbCMs[cellId]) return; // 이미 초기화됨
+    const cm = CodeMirror.fromTextArea(ta, {
+      mode: 'python',
+      theme: isDark ? 'dracula' : 'default',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      matchBrackets: true,
+      viewportMargin: Infinity,
+      extraKeys: {
+        'Shift-Enter': () => runCellAndNext(cellId),
+        'Ctrl-Enter': () => runCell(cellId),
+        'Cmd-Enter': () => runCell(cellId),
+        'Alt-Enter': () => runCellAndInsert(cellId),
+      }
+    });
+    cm.on('change', () => {
+      const cell = NB_CELLS.find(c => c.id === cellId);
+      if(cell) cell.source = cm.getValue();
+    });
+    cm.on('focus', () => {
+      if(NB_SELECTED !== cellId){
+        NB_SELECTED = cellId;
+        highlightSelected();
+      }
+    });
+    _nbCMs[cellId] = cm;
+  });
+
+  // 마크다운 편집 모드
+  if(NB_EDITING_MD){
+    const ta = document.querySelector(`.cb-md-area[data-cellid="${NB_EDITING_MD}"]`);
+    if(ta && !_nbMdCM){
+      _nbMdCM = CodeMirror.fromTextArea(ta, {
+        mode: 'markdown',
+        theme: isDark ? 'dracula' : 'default',
+        lineNumbers: false,
+        lineWrapping: true,
+        viewportMargin: Infinity,
+        extraKeys: {
+          'Shift-Enter': () => commitMdEdit(),
+          'Esc': () => cancelMdEdit(),
+        }
+      });
+      const editId = NB_EDITING_MD;
+      _nbMdCM.on('change', () => {
+        const cell = NB_CELLS.find(c => c.id === editId);
+        if(cell) cell.source = _nbMdCM.getValue();
+      });
+      setTimeout(() => _nbMdCM?.focus(), 50);
+    }
+  }
+}
+
+function highlightSelected(){
+  document.querySelectorAll('.cb-cell').forEach(el => {
+    el.classList.toggle('cb-selected', el.dataset.cellid === NB_SELECTED);
+  });
+}
+
+// ── 셀 찾기 ──
+function findCellIdx(cellId){ return NB_CELLS.findIndex(c => c.id === cellId); }
+function cellSource(cellId){
+  const cm = _nbCMs[cellId];
+  if(cm) return cm.getValue();
+  const ta = document.getElementById(`cb-code-${cellId}`);
+  return ta?.value ?? NB_CELLS.find(c => c.id === cellId)?.source ?? '';
+}
+
+// ── 셀 실행 ──
+async function runCell(cellId){
+  const cell = NB_CELLS.find(c => c.id === cellId);
+  if(!cell || cell.type !== 'code') return;
+  const code = cellSource(cellId);
+  cell.source = code; // sync
+  const stdin = document.getElementById(`cb-stdin-${cellId}`)?.value || '';
+
+  NB_CELL_OUTPUTS[cellId] = {running: true};
+  updateCellOutputDom(cellId);
+
+  const result = await runNBPython(code, stdin);
+  NB_EXEC_COUNT++;
+  NB_CELL_OUTPUTS[cellId] = {...result, execCount: NB_EXEC_COUNT, running: false};
+  updateCellOutputDom(cellId);
+}
+
+async function runCellAndNext(cellId){
+  await runCell(cellId);
+  const idx = findCellIdx(cellId);
+  // 다음 코드 셀로 이동 (없으면 새로 추가)
+  let nextIdx = -1;
+  for(let i = idx + 1; i < NB_CELLS.length; i++){
+    if(NB_CELLS[i].type === 'code'){ nextIdx = i; break; }
+  }
+  if(nextIdx === -1){
+    // 맨 아래 새 코드 셀 추가
+    addCell(NB_CELLS.length, 'code', true);
+    return;
+  }
+  NB_SELECTED = NB_CELLS[nextIdx].id;
+  highlightSelected();
+  const cm = _nbCMs[NB_SELECTED];
+  cm?.focus();
+}
+
+async function runCellAndInsert(cellId){
+  await runCell(cellId);
+  const idx = findCellIdx(cellId);
+  addCell(idx + 1, 'code', true);
+}
+
+async function runAll(){
+  for(const cell of [...NB_CELLS]){
+    if(cell.type === 'code') await runCell(cell.id);
+  }
+}
+
+// ── 셀 추가/삭제/이동/복제 ──
+function addCell(pos, type, focus){
+  const newCell = {
+    id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type,
+    source: type === 'markdown' ? '' : ''
+  };
+  NB_CELLS.splice(pos, 0, newCell);
+  NB_SELECTED = newCell.id;
+  if(type === 'markdown') NB_EDITING_MD = newCell.id;
+  destroyAllCMs();
+  render();
+  if(focus){
+    setTimeout(() => {
+      if(type === 'code') _nbCMs[newCell.id]?.focus();
+      else _nbMdCM?.focus();
+    }, 80);
+  }
+}
+
+function deleteCell(cellId){
+  const idx = findCellIdx(cellId);
+  if(idx === -1) return;
+  NB_CELLS.splice(idx, 1);
+  delete NB_CELL_OUTPUTS[cellId];
+  // 다음 또는 이전 셀 선택
+  NB_SELECTED = NB_CELLS[idx]?.id || NB_CELLS[idx-1]?.id || null;
+  destroyAllCMs();
+  render();
+}
+
+function moveCell(cellId, dir){
+  const idx = findCellIdx(cellId);
+  const newIdx = idx + dir;
+  if(idx === -1 || newIdx < 0 || newIdx >= NB_CELLS.length) return;
+  const [cell] = NB_CELLS.splice(idx, 1);
+  NB_CELLS.splice(newIdx, 0, cell);
+  destroyAllCMs();
+  render();
+}
+
+function copyCell(cellId){
+  const idx = findCellIdx(cellId);
+  if(idx === -1) return;
+  const orig = NB_CELLS[idx];
+  const clone = {
+    id: 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type: orig.type,
+    source: cellSource(cellId) || orig.source
+  };
+  if(orig.type === 'code') clone.source = cellSource(cellId);
+  NB_CELLS.splice(idx + 1, 0, clone);
+  NB_SELECTED = clone.id;
+  destroyAllCMs();
+  render();
+}
+
+// ── 셀 출력 영역만 갱신 (전체 리렌더 피함) ──
+function updateCellOutputDom(cellId){
+  const cellDiv = document.querySelector(`.cb-cell[data-cellid="${cellId}"]`);
+  if(!cellDiv) return;
+  const result = NB_CELL_OUTPUTS[cellId];
+
+  // 실행 프롬프트 갱신
+  const promptEl = cellDiv.querySelector('.cb-exec-prompt');
+  if(promptEl){
+    if(result?.running) promptEl.textContent = '[*]';
+    else if(result?.execCount) promptEl.textContent = `[${result.execCount}]`;
+    else promptEl.textContent = '[ ]';
+  }
+
+  // 출력 영역 갱신
+  let outDiv = cellDiv.querySelector('.cb-output');
+  if(!result){ outDiv?.remove(); return; }
+
+  if(result.running){
+    if(!outDiv){
+      outDiv = document.createElement('div');
+      outDiv.className = 'cb-output';
+      cellDiv.appendChild(outDiv);
+    }
+    outDiv.className = 'cb-output';
+    outDiv.innerHTML = `<pre style="color:#999;font-style:italic">⏳ 실행 중...</pre>`;
+    return;
+  }
+
+  const html = vNbOutput(result);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const newOut = tmp.firstChild;
+  if(outDiv) outDiv.replaceWith(newOut);
+  else cellDiv.appendChild(newOut);
+}
+
+// ── 마크다운 편집 모드 ──
+function startMdEdit(cellId){
+  NB_EDITING_MD = cellId;
+  NB_SELECTED = cellId;
+  destroyAllCMs();
+  render();
+}
+function commitMdEdit(){
+  if(_nbMdCM){
+    const val = _nbMdCM.getValue();
+    const cell = NB_CELLS.find(c => c.id === NB_EDITING_MD);
+    if(cell) cell.source = val;
+  }
+  NB_EDITING_MD = null;
+  destroyAllCMs();
+  render();
+}
+function cancelMdEdit(){
+  NB_EDITING_MD = null;
+  destroyAllCMs();
+  render();
 }
 
 // ── 이벤트 위임 ──
 document.addEventListener('click', async e => {
   const t = e.target;
 
-  // ── 노트북 업로드 (선생님) ──
+  // 노트북 업로드 (선생님)
   if(t.id === 'nb-upload'){
     const files = Array.from(document.getElementById('nb-file')?.files || []);
     const title = document.getElementById('nb-title')?.value?.trim();
@@ -103,18 +385,11 @@ document.addEventListener('click', async e => {
   if(!el) return;
   const act = el.dataset;
 
-  // 노트북 열기 (선생님/학생 공용)
-  if(act.action === 'open-notebook'){
-    const nb = NOTEBOOKS.find(x => x.id === act.nid); if(!nb) return;
-    SEL_NOTEBOOK = nb;
-    NB_CELL_OUTPUTS = {};
-    NB_CELL_CODES = {};
-    await resetNBWorker().catch(() => {});
-    render();
-    return;
-  }
-
-  // 노트북 삭제
+  // 노트북 열기
+  if(act.action === 'open-notebook'){ await openNotebook(act.nid); return; }
+  // 노트북 목록으로
+  if(act.action === 'nb-close'){ closeNotebook(); return; }
+  // 노트북 삭제 (선생님)
   if(act.action === 'del-notebook'){
     if(!confirm(`"${act.ntitle}" 노트북을 삭제할까요?`)) return;
     const cid = TC_CLS?.id; if(!cid) return;
@@ -125,81 +400,61 @@ document.addEventListener('click', async e => {
   }
 
   // 셀 실행
-  if(act.action === 'nb-run-cell'){
-    const cellId = act.cellid;
-    const codeArea = document.getElementById(`nb-code-${cellId}`);
-    const stdinArea = document.getElementById(`nb-stdin-${cellId}`);
-    if(!codeArea) return;
-    const code = codeArea.value;
-    const stdin = stdinArea?.value || '';
-    NB_CELL_CODES[cellId] = code;
-
-    NB_CELL_OUTPUTS[cellId] = {running: true};
-    // 버튼 상태만 바꿈 (전체 리렌더는 에디터 포커스 상실함)
-    el.textContent = '⏳'; el.disabled = true;
-    // 출력 영역 "실행 중..." 표시
-    const cellDiv = el.closest('.nb-cell-code');
-    let outDiv = cellDiv?.querySelector('.nb-output');
-    if(!outDiv){
-      outDiv = document.createElement('div');
-      outDiv.className = 'nb-output';
-      cellDiv?.querySelector('.nb-cell-main')?.appendChild(outDiv);
-    }
-    outDiv.classList.remove('nb-output-err');
-    outDiv.innerHTML = `<pre style="color:var(--text3);font-style:italic">⏳ 실행 중...</pre>`;
-
-    const result = await runNBPython(code, stdin);
-    NB_CELL_OUTPUTS[cellId] = result;
-
-    // 결과 표시 (해당 셀만 갱신)
-    outDiv.classList.toggle('nb-output-err', result.success === false);
-    let html = '';
-    if(result.output) html += `<pre>${esc(result.output)}</pre>`;
-    if(result.error) html += `<pre class="nb-error">${esc(result.error)}</pre>`;
-    if(!result.output && !result.error && result.success) html += `<pre style="color:var(--text3);font-style:italic">(출력 없음)</pre>`;
-    outDiv.innerHTML = html;
-    el.textContent = '▶'; el.disabled = false;
+  if(act.action === 'nb-run-cell'){ runCell(act.cellid); return; }
+  if(act.action === 'nb-run-all'){
+    el.textContent = '⏳ 실행 중...'; el.disabled = true;
+    await runAll();
+    el.textContent = '▶▶ 모두 실행'; el.disabled = false;
     return;
   }
-
-  // 세션 초기화 (모든 변수 삭제)
   if(act.action === 'nb-reset-all'){
-    if(!confirm('Python 세션을 초기화할까요? 선언한 모든 변수가 사라집니다.')) return;
+    if(!confirm('런타임을 재시작할까요? 선언한 모든 변수가 사라집니다.')) return;
     el.textContent = '⏳'; el.disabled = true;
     await resetNBWorker();
     NB_CELL_OUTPUTS = {};
-    el.textContent = '🔄 세션 초기화'; el.disabled = false;
-    toast('세션이 초기화됐습니다.', 'ok');
+    NB_EXEC_COUNT = 0;
+    el.textContent = '🔄 재시작'; el.disabled = false;
+    toast('런타임이 재시작됐습니다.', 'ok');
     render();
     return;
   }
+
+  // 셀 추가
+  if(act.action === 'nb-add-cell'){ addCell(parseInt(act.pos), act.type, true); return; }
+  // 셀 삭제
+  if(act.action === 'nb-delete'){ deleteCell(act.cellid); return; }
+  // 셀 이동
+  if(act.action === 'nb-move-up'){ moveCell(act.cellid, -1); return; }
+  if(act.action === 'nb-move-down'){ moveCell(act.cellid, 1); return; }
+  // 셀 복제
+  if(act.action === 'nb-copy'){ copyCell(act.cellid); return; }
+
+  // 마크다운 편집 시작 (더블클릭 대신 클릭도 허용 안 함 → dblclick만)
+  // (dblclick 이벤트에서 처리)
 });
 
-// ── Shift+Enter로 셀 실행 ──
-document.addEventListener('keydown', e => {
-  if(e.key !== 'Enter' || !e.shiftKey) return;
-  const ta = e.target;
-  if(!ta.classList?.contains('nb-code-area')) return;
-  e.preventDefault();
-  const cellId = ta.dataset.cellid;
-  const btn = document.querySelector(`[data-action="nb-run-cell"][data-cellid="${cellId}"]`);
-  btn?.click();
+// 마크다운 더블클릭 → 편집 모드
+document.addEventListener('dblclick', e => {
+  const md = e.target.closest?.('.cb-md-render');
+  if(md) startMdEdit(md.dataset.cellid);
 });
 
-// ── 코드 영역 자동 저장 (input) ──
-document.addEventListener('input', e => {
-  if(e.target.classList?.contains('nb-code-area')){
-    NB_CELL_CODES[e.target.dataset.cellid] = e.target.value;
+// 셀 클릭 시 선택 표시
+document.addEventListener('click', e => {
+  const cell = e.target.closest?.('.cb-cell');
+  if(!cell) return;
+  const id = cell.dataset.cellid;
+  if(NB_SELECTED !== id){
+    NB_SELECTED = id;
+    highlightSelected();
   }
 });
 
-// ── Tab 키 4칸 들여쓰기 ──
+// ── 전역 단축키 (노트북 화면에서만) ──
 document.addEventListener('keydown', e => {
-  if(e.key !== 'Tab') return;
-  const ta = e.target;
-  if(!ta.classList?.contains('nb-code-area')) return;
-  e.preventDefault();
-  const s = ta.selectionStart, en = ta.selectionEnd;
-  ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en);
-  ta.selectionStart = ta.selectionEnd = s + 4;
+  // 마크다운 textarea에서 Shift+Enter / Esc
+  if(e.target.classList?.contains('cb-md-area')){
+    if(e.key === 'Enter' && e.shiftKey){ e.preventDefault(); commitMdEdit(); return; }
+    if(e.key === 'Escape'){ e.preventDefault(); cancelMdEdit(); return; }
+  }
 });

@@ -55,10 +55,13 @@ let OJ_CUSTOM_OUTPUT  = null;  // 커스텀 실행 결과 {output, error, succes
 let OJ_RESULT_TAB     = 'exec'; // 결과 탭: 'exec' | 'test'
 
 // 노트북(Colab 스타일) 관련
-let NOTEBOOKS     = [];    // 현재 반의 노트북 목록
-let SEL_NOTEBOOK  = null;  // 선택된 노트북 객체
-let NB_CELL_OUTPUTS = {};  // { [cellId]: {output, error, success, running} }
-let NB_CELL_CODES   = {};  // { [cellId]: 수정된 코드 } (학생이 편집한 내용)
+let NOTEBOOKS       = [];    // 현재 반의 노트북 목록
+let SEL_NOTEBOOK    = null;  // 선택된 노트북 객체
+let NB_CELLS        = [];    // 학생 작업용 셀 배열 (SEL_NOTEBOOK.cells 복사본)
+let NB_CELL_OUTPUTS = {};    // { [cellId]: {output, error, images, execCount} }
+let NB_EXEC_COUNT   = 0;     // 실행 카운터 (전역)
+let NB_SELECTED     = null;  // 선택된 셀 id
+let NB_EDITING_MD   = null;  // 편집 중인 마크다운 셀 id
 
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){

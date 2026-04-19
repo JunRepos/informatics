@@ -164,6 +164,10 @@ function afterRender(){
   const theme = document.documentElement.getAttribute('data-theme');
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = theme === 'dark' ? '☀️' : '🌙');
 
+  // 노트북 CodeMirror 초기화
+  if(typeof initNotebookCMs === 'function' && document.querySelector('.cb-wrap')){
+    initNotebookCMs();
+  }
 
   // CodeMirror 초기화 (OJ 풀이 화면)
   const cmEl = document.getElementById('oj-code-editor');
