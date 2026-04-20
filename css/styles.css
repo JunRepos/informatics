@@ -518,15 +518,3 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .cb-md-area{display:none}
 .cb-md-editor .CodeMirror{background:var(--cb-code-bg);color:var(--cb-text);font-family:-apple-system,'Pretendard',sans-serif;font-size:14px;line-height:1.6;min-height:80px;padding:6px 8px;border:1px solid var(--cb-code-border);border-radius:4px}
 
-/* 반응형 */
-@media(max-width:640px){
-  .cb-cell{margin:4px 6px}
-  .cb-add-row{margin:0 12px}
-  .cb-code-main .CodeMirror{font-size:12.5px}
-  .cb-output{margin-left:44px;font-size:12px}
-  .cb-stdin-wrap{margin-left:44px}
-  .cb-exec-prompt{min-width:36px;padding-left:8px}
-  .cb-cell-actions{right:6px}
-  .cb-act-btn{width:24px;height:24px;font-size:12px}
-  .cb-tb-btn{padding:6px 10px;font-size:12px}
-}
