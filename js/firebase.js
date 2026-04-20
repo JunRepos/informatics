@@ -151,6 +151,29 @@ async function loadNotebooks(cid){
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
 }
 
+// ── 노트북 학생 진행 상황 (셀 편집/추가/삭제) ──
+async function loadNotebookProgress(cid, nbId, studentNum){
+  const s = await db.ref(`notebookProgress/${cid}/${nbId}/${studentNum}`).get();
+  return s.exists() ? s.val() : null;
+}
+
+async function saveNotebookProgress(cid, nbId, studentNum, cells){
+  // cells 배열을 그대로 저장 (source/type/id만 포함)
+  const sanitized = (cells || []).map(c => ({
+    id: c.id || '',
+    type: c.type || 'code',
+    source: c.source || ''
+  }));
+  await db.ref(`notebookProgress/${cid}/${nbId}/${studentNum}`).set({
+    cells: sanitized,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function deleteNotebookProgress(cid, nbId, studentNum){
+  await db.ref(`notebookProgress/${cid}/${nbId}/${studentNum}`).remove();
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([

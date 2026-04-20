@@ -12,6 +12,41 @@ let _nbCallbacks = {};
 const _nbCMs = {};   // cellId -> CodeMirror instance
 let _nbMdCM = null;  // 마크다운 편집용 CM
 
+// ── 자동 저장 (학생 진행 상황) ──
+let _nbSaveTimer = null;
+
+function scheduleNBSave(){
+  // 선생님은 저장하지 않음 (미리보기만)
+  if(IS_TC || !ST_USER || !SEL_NOTEBOOK || !SEL_CLS) return;
+  clearTimeout(_nbSaveTimer);
+  setNBSaveStatus('pending');
+  _nbSaveTimer = setTimeout(async () => {
+    setNBSaveStatus('saving');
+    try {
+      await saveNotebookProgress(SEL_CLS.id, SEL_NOTEBOOK.id, ST_USER.number, NB_CELLS);
+      setNBSaveStatus('saved');
+    } catch(e){
+      console.error('노트북 저장 실패:', e);
+      setNBSaveStatus('error');
+    }
+  }, 1500);
+}
+
+function setNBSaveStatus(state){
+  const el = document.getElementById('cb-save-ind');
+  if(!el) return;
+  const map = {
+    idle:    {text: '',                      color: 'var(--cb-text-3)'},
+    pending: {text: '✏️ 편집 중...',         color: 'var(--cb-text-3)'},
+    saving:  {text: '💾 저장 중...',         color: 'var(--cb-text-3)'},
+    saved:   {text: '✓ 저장됨',              color: '#188038'},
+    error:   {text: '⚠️ 저장 실패',          color: '#d93025'},
+  };
+  const {text, color} = map[state] || map.idle;
+  el.textContent = text;
+  el.style.color = color;
+}
+
 function getNBWorker(){
   if(!_nbWorker){
     _nbWorker = new Worker('js/notebook-worker.js');
@@ -60,8 +95,20 @@ function parseIpynb(jsonText){
 async function openNotebook(nbId){
   const nb = NOTEBOOKS.find(x => x.id === nbId); if(!nb) return;
   SEL_NOTEBOOK = nb;
-  // cells 딥 복사 (학생 편집은 원본에 반영 X)
-  NB_CELLS = (nb.cells || []).map((c, idx) => ({
+
+  // 학생이면 저장된 진행 상황 시도
+  let savedCells = null;
+  if(ST_USER && !IS_TC && SEL_CLS){
+    try {
+      const saved = await loadNotebookProgress(SEL_CLS.id, nbId, ST_USER.number);
+      if(saved && Array.isArray(saved.cells) && saved.cells.length){
+        savedCells = saved.cells;
+      }
+    } catch(e){ console.warn('진행 상황 로드 실패:', e); }
+  }
+
+  const sourceCells = savedCells || nb.cells || [];
+  NB_CELLS = sourceCells.map((c, idx) => ({
     id: c.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`,
     type: c.type || c.cell_type || 'code',
     source: c.source || ''
@@ -73,6 +120,8 @@ async function openNotebook(nbId){
   destroyAllCMs();
   await resetNBWorker().catch(() => {});
   render();
+  // 로드된 진행 상황이 있었으면 저장됨 상태로 표시
+  if(savedCells) setNBSaveStatus('saved');
 }
 
 function closeNotebook(){
@@ -119,7 +168,7 @@ function initNotebookCMs(){
     });
     cm.on('change', () => {
       const cell = NB_CELLS.find(c => c.id === cellId);
-      if(cell) cell.source = cm.getValue();
+      if(cell){ cell.source = cm.getValue(); scheduleNBSave(); }
     });
     cm.on('focus', () => {
       if(NB_SELECTED !== cellId){
@@ -148,7 +197,7 @@ function initNotebookCMs(){
       const editId = NB_EDITING_MD;
       _nbMdCM.on('change', () => {
         const cell = NB_CELLS.find(c => c.id === editId);
-        if(cell) cell.source = _nbMdCM.getValue();
+        if(cell){ cell.source = _nbMdCM.getValue(); scheduleNBSave(); }
       });
       setTimeout(() => _nbMdCM?.focus(), 50);
     }
@@ -230,6 +279,7 @@ function addCell(pos, type, focus){
   if(type === 'markdown') NB_EDITING_MD = newCell.id;
   destroyAllCMs();
   render();
+  scheduleNBSave();
   if(focus){
     setTimeout(() => {
       if(type === 'code') _nbCMs[newCell.id]?.focus();
@@ -243,10 +293,10 @@ function deleteCell(cellId){
   if(idx === -1) return;
   NB_CELLS.splice(idx, 1);
   delete NB_CELL_OUTPUTS[cellId];
-  // 다음 또는 이전 셀 선택
   NB_SELECTED = NB_CELLS[idx]?.id || NB_CELLS[idx-1]?.id || null;
   destroyAllCMs();
   render();
+  scheduleNBSave();
 }
 
 function moveCell(cellId, dir){
@@ -257,6 +307,7 @@ function moveCell(cellId, dir){
   NB_CELLS.splice(newIdx, 0, cell);
   destroyAllCMs();
   render();
+  scheduleNBSave();
 }
 
 function copyCell(cellId){
@@ -273,6 +324,28 @@ function copyCell(cellId){
   NB_SELECTED = clone.id;
   destroyAllCMs();
   render();
+  scheduleNBSave();
+}
+
+// 원본으로 복원
+async function resetToOriginal(){
+  if(!SEL_NOTEBOOK || !ST_USER || !SEL_CLS) return;
+  if(!confirm('선생님이 올린 원본 노트북으로 되돌릴까요?\n지금까지 작성한 내용이 삭제됩니다.')) return;
+  try {
+    await deleteNotebookProgress(SEL_CLS.id, SEL_NOTEBOOK.id, ST_USER.number);
+  } catch(e){ console.warn(e); }
+  NB_CELLS = (SEL_NOTEBOOK.cells || []).map((c, idx) => ({
+    id: c.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`,
+    type: c.type || c.cell_type || 'code',
+    source: c.source || ''
+  }));
+  NB_CELL_OUTPUTS = {};
+  NB_SELECTED = NB_CELLS[0]?.id || null;
+  NB_EDITING_MD = null;
+  destroyAllCMs();
+  render();
+  setNBSaveStatus('saved');
+  toast('원본으로 복원됐습니다.', 'ok');
 }
 
 // ── 셀 출력 영역만 갱신 (전체 리렌더 피함) ──
@@ -430,6 +503,9 @@ document.addEventListener('click', async e => {
   if(act.action === 'nb-copy'){ copyCell(act.cellid); return; }
   // 마크다운 편집 버튼 (툴바)
   if(act.action === 'nb-md-edit-btn'){ startMdEdit(act.cellid); return; }
+
+  // 원본 복원 (학생)
+  if(act.action === 'nb-reset-original'){ await resetToOriginal(); return; }
 
   // 마크다운 편집 시작 (더블클릭 대신 클릭도 허용 안 함 → dblclick만)
   // (dblclick 이벤트에서 처리)

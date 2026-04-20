@@ -218,6 +218,22 @@
       }
     },
 
+    // ── 노트북 학생별 진행 상황 (셀 편집/추가/삭제) ──
+    "notebookProgress": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$nbId": {
+          "$studentNum": {
+            ".validate": "newData.hasChild('cells')",
+            "cells":     { ".validate": true },
+            "updatedAt": { ".validate": "newData.isString()" },
+            "$other":    { ".validate": false }
+          }
+        }
+      }
+    },
+
     // ── 그 외 모든 경로 차단 ──
     "$other": {
       ".read": false,

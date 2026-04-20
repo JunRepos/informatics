@@ -60,12 +60,18 @@ function vNotebookDetail(isTeacher){
   const nb = SEL_NOTEBOOK;
   if(!nb) return emptyBox('❌','노트북을 찾을 수 없습니다.');
 
+  const isStudent = !isTeacher && !!ST_USER;
+  const saveInd = isStudent ? `<div id="cb-save-ind" class="cb-save-ind" style="font-size:11px;color:var(--cb-text-3);margin-right:6px">✓ 저장됨</div>` : '';
+  const resetBtn = isStudent ? `<button class="cb-tb-btn" data-action="nb-reset-original" title="선생님이 올린 원본으로 되돌리기">↺ 원본 복원</button>` : '';
+
   const toolbar = `<div class="cb-toolbar">
     <button class="cb-back-btn" data-action="nb-close">← 목록</button>
     <div class="cb-title">📓 ${esc(nb.title)}</div>
+    ${saveInd}
     <div class="cb-toolbar-actions">
       <button class="cb-tb-btn" data-action="nb-run-all" title="모두 실행">▶▶ 모두 실행</button>
       <button class="cb-tb-btn" data-action="nb-reset-all" title="런타임 재시작 (변수 초기화)">🔄 재시작</button>
+      ${resetBtn}
     </div>
   </div>`;
 
