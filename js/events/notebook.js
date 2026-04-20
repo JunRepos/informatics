@@ -428,6 +428,8 @@ document.addEventListener('click', async e => {
   if(act.action === 'nb-move-down'){ moveCell(act.cellid, 1); return; }
   // 셀 복제
   if(act.action === 'nb-copy'){ copyCell(act.cellid); return; }
+  // 마크다운 편집 버튼 (툴바)
+  if(act.action === 'nb-md-edit-btn'){ startMdEdit(act.cellid); return; }
 
   // 마크다운 편집 시작 (더블클릭 대신 클릭도 허용 안 함 → dblclick만)
   // (dblclick 이벤트에서 처리)

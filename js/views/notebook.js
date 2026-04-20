@@ -99,11 +99,11 @@ function vNbCell(cell, idx){
 
   // 셀 호버 툴바
   const hoverTb = `<div class="cb-cell-actions">
-    ${!isMd ? `<button class="cb-act-btn" data-action="nb-run-cell" data-cellid="${cell.id}" title="실행 (Ctrl+Enter)">▶</button>` : ''}
-    <button class="cb-act-btn" data-action="nb-move-up" data-cellid="${cell.id}" title="위로">↑</button>
-    <button class="cb-act-btn" data-action="nb-move-down" data-cellid="${cell.id}" title="아래로">↓</button>
-    <button class="cb-act-btn" data-action="nb-copy" data-cellid="${cell.id}" title="복제">⧉</button>
-    <button class="cb-act-btn cb-act-del" data-action="nb-delete" data-cellid="${cell.id}" title="삭제">🗑</button>
+    ${!isMd ? `<button class="cb-act-btn" data-action="nb-run-cell" data-cellid="${cell.id}" title="셀 실행 (Ctrl+Enter)">▶</button>` : `<button class="cb-act-btn" data-action="nb-md-edit-btn" data-cellid="${cell.id}" title="편집">✏️</button>`}
+    <button class="cb-act-btn" data-action="nb-move-up" data-cellid="${cell.id}" title="셀 위로 이동">↑</button>
+    <button class="cb-act-btn" data-action="nb-move-down" data-cellid="${cell.id}" title="셀 아래로 이동">↓</button>
+    <button class="cb-act-btn" data-action="nb-copy" data-cellid="${cell.id}" title="셀 복제">⧉</button>
+    <button class="cb-act-btn cb-act-del" data-action="nb-delete" data-cellid="${cell.id}" title="셀 삭제">🗑</button>
   </div>`;
 
   let body = '';
