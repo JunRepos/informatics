@@ -51,13 +51,14 @@
       }
     },
 
-    // ── 게시판 (학생 게시물) ──
+    // ── 게시판 (학생 게시물)
+    //    동일 레벨에 와일드카드 2개는 불가 → $classId 하나로 통일 ──
     "posts": {
+      ".read": true,
       "$classId": {
-        ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": true,
         "$postId": {
-          ".validate": "newData.hasChildren(['title', 'authorName', 'fileName', 'uploadedAt', 'passwordHash'])",
+          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/) && newData.hasChildren(['title', 'authorName', 'fileName', 'uploadedAt', 'passwordHash'])",
           "title":        { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
           "authorName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
           "authorId":     { ".validate": "newData.isString() && newData.val().length <= 20" },
@@ -71,12 +72,6 @@
           "memo":         { ".validate": "newData.isString() && newData.val().length <= 1000" },
           "$other":       { ".validate": false }
         }
-      },
-      // 레거시 게시물 (최상위 posts/{postId}) — 마이그레이션용 읽기/삭제 허용
-      "$legacyPostId": {
-        ".read": true,
-        ".write": true,
-        ".validate": "!$legacyPostId.matches(/^(c2-[1-6]|info-2[AB])$/)"
       }
     },
 
