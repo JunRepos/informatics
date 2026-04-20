@@ -478,6 +478,19 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .cb-stdin-area{width:100%;min-height:50px;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:12px;background:var(--cb-bg);color:var(--cb-text);border:1px solid var(--cb-border);border-radius:4px;resize:vertical;margin-top:4px;box-sizing:border-box}
 .cb-stdin-area:focus{outline:none;border-color:var(--cb-accent)}
 
+/* Colab 스타일 input() 팝업 */
+.cb-input-prompt{margin:8px 0 0 56px;padding:10px 14px;background:#fef7e0;border-left:3px solid #f9ab00;border-radius:0 4px 4px 0;animation:cb-fade-in .2s ease-out}
+[data-theme="dark"] .cb-input-prompt{background:#2b2410;border-left-color:#f9ab00;color:#fde293}
+.cb-ip-header{font-size:13px;margin-bottom:8px;color:#5f4b00}
+[data-theme="dark"] .cb-ip-header{color:#fde293}
+.cb-ip-header b{color:#b97800}
+[data-theme="dark"] .cb-ip-header b{color:#f9ab00}
+.cb-ip-area{width:100%;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;background:#fff;color:var(--cb-text);border:1px solid #e8d896;border-radius:4px;box-sizing:border-box;resize:vertical;min-height:40px}
+[data-theme="dark"] .cb-ip-area{background:#1a1a1a;border-color:#5a4a1a}
+.cb-ip-area:focus{outline:none;border-color:#f9ab00;box-shadow:0 0 0 2px rgba(249,171,0,0.15)}
+.cb-ip-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
+.cb-ip-hint{font-size:11px;color:var(--cb-text-3);margin-left:auto}
+
 /* 출력 영역 */
 .cb-output{margin:6px 0 0 56px;padding:8px 12px;background:var(--cb-output-bg);border-left:2px solid var(--cb-border);border-radius:0 3px 3px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;max-height:420px;overflow:auto;color:var(--cb-text);animation:cb-fade-in .2s ease-out}
 @keyframes cb-fade-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}

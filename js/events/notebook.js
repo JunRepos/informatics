@@ -224,13 +224,93 @@ function cellSource(cellId){
   return ta?.value ?? NB_CELLS.find(c => c.id === cellId)?.source ?? '';
 }
 
+// ── input() 호출 감지 (주석/문자열 제외) ──
+function countInputCalls(code){
+  const stripped = (code || '')
+    .replace(/#.*$/gm, '')             // 주석 제거
+    .replace(/'''[\s\S]*?'''/g, "''")  // 세 작은따옴표 문자열
+    .replace(/"""[\s\S]*?"""/g, '""')  // 세 큰따옴표 문자열
+    .replace(/'[^'\n]*'/g, "''")       // 작은따옴표 문자열
+    .replace(/"[^"\n]*"/g, '""');      // 큰따옴표 문자열
+  const matches = stripped.match(/\binput\s*\(/g);
+  return matches?.length || 0;
+}
+
+// ── 입력값 팝업 (Colab 스타일) ──
+function promptForInputs(cellId, count, existingStdin){
+  return new Promise(resolve => {
+    const cellDiv = document.querySelector(`.cb-cell[data-cellid="${cellId}"]`);
+    if(!cellDiv){ resolve(existingStdin || ''); return; }
+    // 기존 팝업 제거
+    cellDiv.querySelector('.cb-input-prompt')?.remove();
+
+    const div = document.createElement('div');
+    div.className = 'cb-input-prompt';
+    div.innerHTML = `
+      <div class="cb-ip-header">
+        💬 이 셀은 <b>input()</b> 을 ${count}번 호출합니다. 입력할 값을 한 줄씩 넣어주세요:
+      </div>
+      <textarea class="cb-ip-area" rows="${Math.min(Math.max(count, 2), 6)}" placeholder="한 줄에 하나씩..." spellcheck="false">${esc(existingStdin || '')}</textarea>
+      <div class="cb-ip-actions">
+        <button class="cb-ip-run btn-p btn-sm">▶ 실행</button>
+        <button class="cb-ip-cancel btn-sm">취소</button>
+        <span class="cb-ip-hint">💡 Ctrl+Enter 로 실행 · Esc로 취소</span>
+      </div>
+    `;
+    cellDiv.appendChild(div);
+
+    const ta = div.querySelector('.cb-ip-area');
+    const runBtn = div.querySelector('.cb-ip-run');
+    const cancelBtn = div.querySelector('.cb-ip-cancel');
+
+    // 포커스 + 커서 맨 끝
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }, 50);
+
+    const submit = () => {
+      const val = ta.value;
+      // stdin textarea에도 반영 (다음에 재사용 가능)
+      const stdinEl = document.getElementById(`cb-stdin-${cellId}`);
+      if(stdinEl){
+        stdinEl.value = val;
+        // stdin details 펼쳐서 사용자가 값을 볼 수 있게
+        const det = stdinEl.closest('details');
+        if(det) det.open = true;
+      }
+      div.remove();
+      resolve(val);
+    };
+    const cancel = () => { div.remove(); resolve(null); };
+
+    runBtn.addEventListener('click', submit);
+    cancelBtn.addEventListener('click', cancel);
+    ta.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
+    });
+  });
+}
+
 // ── 셀 실행 ──
 async function runCell(cellId){
   const cell = NB_CELLS.find(c => c.id === cellId);
   if(!cell || cell.type !== 'code') return;
   const code = cellSource(cellId);
   cell.source = code; // sync
-  const stdin = document.getElementById(`cb-stdin-${cellId}`)?.value || '';
+
+  // 기존 stdin textarea 값
+  let stdin = document.getElementById(`cb-stdin-${cellId}`)?.value || '';
+  const stdinLines = stdin ? stdin.split('\n').filter(l => l.length > 0).length : 0;
+
+  // input() 사용 감지 → 부족하면 팝업으로 받기
+  const needed = countInputCalls(code);
+  if(needed > 0 && stdinLines < needed){
+    const result = await promptForInputs(cellId, needed, stdin);
+    if(result === null) return; // 사용자가 취소
+    stdin = result;
+  }
 
   NB_CELL_OUTPUTS[cellId] = {running: true};
   updateCellOutputDom(cellId);
