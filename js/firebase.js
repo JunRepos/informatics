@@ -180,6 +180,34 @@ async function loadAllNotebookProgress(cid, nbId){
   return s.exists() ? s.val() : {};
 }
 
+// ── 미션 (게임 실습) ──
+async function loadMissions(cid){
+  const s = await db.ref(`missions/${cid}`).get();
+  if(!s.exists()){ MISSIONS = []; return; }
+  MISSIONS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+}
+
+async function saveMission(cid, missionId, data){
+  await db.ref(`missions/${cid}/${missionId}`).set(data);
+}
+
+async function deleteMission(cid, missionId){
+  await db.ref(`missions/${cid}/${missionId}`).remove();
+  await db.ref(`missionProgress/${cid}/${missionId}`).remove().catch(() => {});
+}
+
+async function loadMissionProgress(cid, mid, studentNum){
+  const s = await db.ref(`missionProgress/${cid}/${mid}/${studentNum}`).get();
+  return s.exists() ? s.val() : null;
+}
+
+async function saveMissionProgress(cid, mid, studentNum, stepPass){
+  await db.ref(`missionProgress/${cid}/${mid}/${studentNum}`).set({
+    stepPass, updatedAt: new Date().toISOString()
+  });
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -189,7 +217,8 @@ async function loadAllClassData(cid){
     loadTcFiles(cid),
     loadStudents(cid),
     loadOJProblems(cid),
-    loadNotebooks(cid)
+    loadNotebooks(cid),
+    loadMissions(cid)
   ]);
 }
 

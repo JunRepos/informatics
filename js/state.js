@@ -66,6 +66,14 @@ let NB_VIEWING_STUDENT = null; // 선생님이 특정 학생 진도 보기 중 (
 let NB_PROGRESS_MAP    = {};   // { [학번]: {cells, updatedAt} } — 로드된 학생 진도 캐시
 let NB_SHOW_PROGRESS   = false; // 학생 진도 패널 표시 여부
 
+// 미션(게임 실습) 관련
+let MISSIONS           = [];    // 현재 반의 미션 목록
+let SEL_MISSION        = null;  // 선택된 미션
+let MISSION_STEP_IDX   = 0;     // 현재 진행 중인 단계 인덱스
+let MISSION_STEP_PASS  = {};    // { [stepId]: {passed:true, code:"..."} } — 통과 상태
+let MISSION_EDITING    = null;  // 선생님: 편집 중인 미션 (null=신규 또는 수정대상)
+let MISSION_VIEW       = 'list'; // 'list' | 'play' | 'edit'
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

@@ -169,6 +169,11 @@ function afterRender(){
     initNotebookCMs();
   }
 
+  // 미션 게임 초기화/정리
+  if(typeof afterRenderMission === 'function'){
+    afterRenderMission();
+  }
+
   // CodeMirror 초기화 (OJ 풀이 화면)
   const cmEl = document.getElementById('oj-code-editor');
   if(cmEl && !cmEl._cm && typeof CodeMirror !== 'undefined'){

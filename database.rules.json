@@ -234,6 +234,39 @@
       }
     },
 
+    // ── 미션 (게임 실습) ──
+    "missions": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$missionId": {
+          ".validate": "newData.hasChildren(['title', 'gameType', 'steps', 'createdAt'])",
+          "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
+          "gameType":    { ".validate": "newData.isString()" },
+          "description": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "steps":       { ".validate": true },
+          "createdAt":   { ".validate": "newData.isString()" },
+          "$other":      { ".validate": false }
+        }
+      }
+    },
+
+    // ── 미션 학생 진도 ──
+    "missionProgress": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$missionId": {
+          "$studentNum": {
+            ".validate": "newData.hasChild('stepPass')",
+            "stepPass":  { ".validate": true },
+            "updatedAt": { ".validate": "newData.isString()" },
+            "$other":    { ".validate": false }
+          }
+        }
+      }
+    },
+
     // ── 그 외 모든 경로 차단 ──
     "$other": {
       ".read": false,

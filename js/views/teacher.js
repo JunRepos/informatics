@@ -27,6 +27,7 @@ function vTeacher(){
     ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
     ${tcIsInfo ? tab('📓 노트북','notebook',TC_TAB,"setTC('notebook')") : ''}
+    ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -42,6 +43,7 @@ function vTeacher(){
   else if(TC_TAB === 'students') body = vTcStudents();
   else if(TC_TAB === 'oj')       body = vTcOJ();
   else if(TC_TAB === 'notebook') body = vTcNotebook();
+  else if(TC_TAB === 'mission')  body = vTcMission();
   else if(TC_TAB === 'settings') body = vTcSettings();
 
   return clsBar + tabs + body;
