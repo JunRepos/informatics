@@ -16,8 +16,8 @@ let _nbMdCM = null;  // 마크다운 편집용 CM
 let _nbSaveTimer = null;
 
 function scheduleNBSave(){
-  // 선생님은 저장하지 않음 (미리보기만)
-  if(IS_TC || !ST_USER || !SEL_NOTEBOOK || !SEL_CLS) return;
+  // 선생님은 저장하지 않음, 학생 진도 보는 중에도 저장 안 함
+  if(IS_TC || NB_VIEWING_STUDENT || !ST_USER || !SEL_NOTEBOOK || !SEL_CLS) return;
   clearTimeout(_nbSaveTimer);
   setNBSaveStatus('pending');
   _nbSaveTimer = setTimeout(async () => {
@@ -130,6 +130,9 @@ function closeNotebook(){
   NB_CELL_OUTPUTS = {};
   NB_SELECTED = null;
   NB_EDITING_MD = null;
+  NB_VIEWING_STUDENT = null;
+  NB_SHOW_PROGRESS = false;
+  NB_PROGRESS_MAP = {};
   destroyAllCMs();
   render();
 }
@@ -146,6 +149,7 @@ function destroyAllCMs(){
 function initNotebookCMs(){
   if(typeof CodeMirror === 'undefined') return;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const readOnly = !!NB_VIEWING_STUDENT; // 학생 진도 보기 중이면 읽기 전용
 
   // 코드 셀
   document.querySelectorAll('.cb-code-area').forEach(ta => {
@@ -158,6 +162,7 @@ function initNotebookCMs(){
       indentUnit: 4,
       tabSize: 4,
       matchBrackets: true,
+      readOnly: readOnly ? 'nocursor' : false,
       viewportMargin: Infinity,
       extraKeys: {
         'Shift-Enter': () => runCellAndNext(cellId),
@@ -506,6 +511,62 @@ document.addEventListener('click', async e => {
 
   // 원본 복원 (학생)
   if(act.action === 'nb-reset-original'){ await resetToOriginal(); return; }
+
+  // 학생 진도 패널 열기 (선생님)
+  if(act.action === 'nb-show-progress'){
+    if(!TC_CLS || !SEL_NOTEBOOK) return;
+    el.textContent = '⏳'; el.disabled = true;
+    try {
+      NB_PROGRESS_MAP = await loadAllNotebookProgress(TC_CLS.id, SEL_NOTEBOOK.id);
+    } catch(e){ toast('진도 로드 실패: ' + e.message, 'err'); el.disabled = false; return; }
+    NB_SHOW_PROGRESS = true;
+    destroyAllCMs();
+    render();
+    return;
+  }
+  // 패널 닫기
+  if(act.action === 'nb-hide-progress'){
+    NB_SHOW_PROGRESS = false;
+    destroyAllCMs();
+    render();
+    return;
+  }
+
+  // 특정 학생 진도 보기
+  if(act.action === 'nb-view-student'){
+    const snum = act.snum;
+    const prog = NB_PROGRESS_MAP[snum];
+    if(!prog || !Array.isArray(prog.cells)){ toast('진도 데이터가 없습니다.', 'err'); return; }
+    NB_VIEWING_STUDENT = snum;
+    NB_SHOW_PROGRESS = false;
+    NB_CELLS = prog.cells.map((c, idx) => ({
+      id: c.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`,
+      type: c.type || 'code',
+      source: c.source || ''
+    }));
+    NB_CELL_OUTPUTS = {};
+    NB_SELECTED = NB_CELLS[0]?.id || null;
+    NB_EDITING_MD = null;
+    destroyAllCMs();
+    await resetNBWorker().catch(() => {});
+    render();
+    return;
+  }
+
+  // 학생 진도 보기 종료 → 원본으로
+  if(act.action === 'nb-exit-viewing'){
+    NB_VIEWING_STUDENT = null;
+    NB_CELLS = (SEL_NOTEBOOK.cells || []).map((c, idx) => ({
+      id: c.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`,
+      type: c.type || c.cell_type || 'code',
+      source: c.source || ''
+    }));
+    NB_CELL_OUTPUTS = {};
+    NB_SELECTED = NB_CELLS[0]?.id || null;
+    destroyAllCMs();
+    render();
+    return;
+  }
 
   // 마크다운 편집 시작 (더블클릭 대신 클릭도 허용 안 함 → dblclick만)
   // (dblclick 이벤트에서 처리)

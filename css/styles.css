@@ -518,3 +518,12 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .cb-md-area{display:none}
 .cb-md-editor .CodeMirror{background:var(--cb-code-bg);color:var(--cb-text);font-family:-apple-system,'Pretendard',sans-serif;font-size:14px;line-height:1.6;min-height:80px;padding:6px 8px;border:1px solid var(--cb-code-border);border-radius:4px}
 
+/* 학생 진도 패널 */
+.cb-progress-wrap{padding:20px}
+.cb-progress-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+
+/* 학생 진도 보기 배너 */
+.cb-viewing-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;background:#fef7e0;border-bottom:1px solid #f9cc5d;font-size:13px;color:#7f5700}
+[data-theme="dark"] .cb-viewing-banner{background:#3d2e00;border-color:#6b4a00;color:#fde293}
+.cb-viewing-banner .cb-tb-btn{padding:4px 10px;font-size:12px}
+

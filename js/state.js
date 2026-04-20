@@ -62,6 +62,9 @@ let NB_CELL_OUTPUTS = {};    // { [cellId]: {output, error, images, execCount} }
 let NB_EXEC_COUNT   = 0;     // 실행 카운터 (전역)
 let NB_SELECTED     = null;  // 선택된 셀 id
 let NB_EDITING_MD   = null;  // 편집 중인 마크다운 셀 id
+let NB_VIEWING_STUDENT = null; // 선생님이 특정 학생 진도 보기 중 (학번)
+let NB_PROGRESS_MAP    = {};   // { [학번]: {cells, updatedAt} } — 로드된 학생 진도 캐시
+let NB_SHOW_PROGRESS   = false; // 학생 진도 패널 표시 여부
 
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){

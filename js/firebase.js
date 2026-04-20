@@ -174,6 +174,12 @@ async function deleteNotebookProgress(cid, nbId, studentNum){
   await db.ref(`notebookProgress/${cid}/${nbId}/${studentNum}`).remove();
 }
 
+// 노트북 전체 학생 진도 로드 (선생님용)
+async function loadAllNotebookProgress(cid, nbId){
+  const s = await db.ref(`notebookProgress/${cid}/${nbId}`).get();
+  return s.exists() ? s.val() : {};
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([

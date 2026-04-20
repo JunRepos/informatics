@@ -63,6 +63,17 @@ function vNotebookDetail(isTeacher){
   const isStudent = !isTeacher && !!ST_USER;
   const saveInd = isStudent ? `<div id="cb-save-ind" class="cb-save-ind" style="font-size:11px;color:var(--cb-text-3);margin-right:6px">✓ 저장됨</div>` : '';
   const resetBtn = isStudent ? `<button class="cb-tb-btn" data-action="nb-reset-original" title="선생님이 올린 원본으로 되돌리기">↺ 원본 복원</button>` : '';
+  const progressBtn = isTeacher ? `<button class="cb-tb-btn" data-action="nb-show-progress" title="학생별 진도 보기">👥 학생 진도</button>` : '';
+
+  // 학생 진도 보는 중일 때 상단 배너
+  const viewingBanner = NB_VIEWING_STUDENT ? (() => {
+    const st = STUDENTS.find(s => s.number === NB_VIEWING_STUDENT);
+    const name = st ? `${st.number} ${st.name}` : NB_VIEWING_STUDENT;
+    return `<div class="cb-viewing-banner">
+      <span>📖 <b>${esc(name)}</b> 학생의 진도를 보고 있습니다 (읽기 전용)</span>
+      <button class="cb-tb-btn" data-action="nb-exit-viewing">← 원본으로</button>
+    </div>`;
+  })() : '';
 
   const toolbar = `<div class="cb-toolbar">
     <button class="cb-back-btn" data-action="nb-close">← 목록</button>
@@ -72,8 +83,15 @@ function vNotebookDetail(isTeacher){
       <button class="cb-tb-btn" data-action="nb-run-all" title="모두 실행">▶▶ 모두 실행</button>
       <button class="cb-tb-btn" data-action="nb-reset-all" title="런타임 재시작 (변수 초기화)">🔄 재시작</button>
       ${resetBtn}
+      ${progressBtn}
     </div>
-  </div>`;
+  </div>
+  ${viewingBanner}`;
+
+  // 학생 진도 패널
+  if(isTeacher && NB_SHOW_PROGRESS){
+    return `<div class="cb-wrap">${toolbar}${vNbProgressPanel()}</div>`;
+  }
 
   const cellsHtml = (NB_CELLS || []).map((cell, idx) => vNbCell(cell, idx)).join('');
 
@@ -147,6 +165,70 @@ function vNbCell(cell, idx){
       <textarea class="cb-stdin-area" id="cb-stdin-${cell.id}" placeholder="한 줄에 하나씩..." spellcheck="false"></textarea>
     </details>
     ${outputHtml}
+  </div>`;
+}
+
+// ── 학생 진도 패널 ──
+function vNbProgressPanel(){
+  const nb = SEL_NOTEBOOK;
+  const origCount = nb.cells?.length || 0;
+
+  // 학생별 상태 계산
+  const rows = STUDENTS.map(st => {
+    const prog = NB_PROGRESS_MAP[st.number];
+    const edited = !!prog;
+    const cellCount = prog?.cells?.length || 0;
+    const updatedAt = prog?.updatedAt;
+    // 원본과 비교해서 변경된 셀 개수
+    let changedCells = 0;
+    if(edited && Array.isArray(prog.cells)){
+      const origById = {};
+      (nb.cells || []).forEach(c => { if(c.id) origById[c.id] = c.source || ''; });
+      prog.cells.forEach(c => {
+        if(!origById.hasOwnProperty(c.id)) changedCells++;
+        else if(origById[c.id] !== (c.source || '')) changedCells++;
+      });
+    }
+    return {st, edited, cellCount, updatedAt, changedCells};
+  }).sort((a, b) => a.st.number.localeCompare(b.st.number));
+
+  const editedCount = rows.filter(r => r.edited).length;
+
+  const tbl = !rows.length ? emptyBox('👥', '등록된 학생이 없습니다.') : `
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>학번</th><th>이름</th><th>상태</th><th>셀 수</th>
+            <th>변경 셀</th><th>마지막 저장</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `<tr>
+            <td style="font-weight:600">${esc(r.st.number)}</td>
+            <td>${esc(r.st.name)}</td>
+            <td>${r.edited ? `<span class="chip chip-green">✓ 편집함</span>` : `<span class="chip chip-gray">원본</span>`}</td>
+            <td>${r.edited ? r.cellCount : origCount}</td>
+            <td>${r.edited ? (r.changedCells ? `<span style="color:var(--accent);font-weight:600">${r.changedCells}</span>` : '-') : '-'}</td>
+            <td style="font-size:11px">${r.updatedAt ? fmtDt(r.updatedAt) : '-'}</td>
+            <td>${r.edited ? `<button class="btn-xs btn-p" data-action="nb-view-student" data-snum="${esc(r.st.number)}">보기</button>` : '<span class="cell-no">-</span>'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  return `<div class="cb-progress-wrap">
+    <div class="cb-progress-header">
+      <div>
+        <div style="font-size:14px;font-weight:700">👥 학생 진도</div>
+        <div style="font-size:12px;color:var(--cb-text-2);margin-top:2px">
+          ${editedCount}명 편집 / ${STUDENTS.length}명 전체
+          ${STUDENTS.length ? `(${Math.round(editedCount / STUDENTS.length * 100)}%)` : ''}
+        </div>
+      </div>
+      <button class="btn-sm" data-action="nb-hide-progress">✕ 닫기</button>
+    </div>
+    ${tbl}
   </div>`;
 }
 
