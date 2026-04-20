@@ -27,11 +27,7 @@ async function ensureMissionPyodide(){
   return _missionPyLoading;
 }
 
-// 학생 코드 실행 후 테스트 케이스 검증
-async function runMissionTests(code, tests){
-  const py = await ensureMissionPyodide();
-
-  // 이전 네임스페이스를 깨끗하게 (테스트별 격리)
+function _resetNamespace(py){
   try {
     py.runPython(`
 for _k in list(globals().keys()):
@@ -40,20 +36,44 @@ for _k in list(globals().keys()):
         except: pass
 `);
   } catch(e){}
+}
 
-  // 학생 코드 실행
-  try {
-    await py.runPythonAsync(code);
-  } catch(e){
-    return {success: false, runError: formatPyError(e), results: []};
+// 학생 코드 실행 후 테스트 케이스 검증
+async function runMissionTests(code, tests){
+  const py = await ensureMissionPyodide();
+
+  const hasBlockTests = tests.some(t => t.type === 'block');
+
+  // 블록 테스트가 아니면 한 번만 실행 (변수 테스트, 함수 테스트)
+  if(!hasBlockTests){
+    _resetNamespace(py);
+    try {
+      await py.runPythonAsync(code);
+    } catch(e){
+      return {success: false, runError: formatPyError(e), results: []};
+    }
   }
 
-  // 테스트 실행
   const results = [];
   for(const t of tests){
     try {
       let actual;
-      if(t.type === 'variable'){
+      if(t.type === 'block'){
+        // 블록 테스트: 매번 깨끗한 네임스페이스 + 입력 변수 설정 + 코드 실행
+        _resetNamespace(py);
+        if(t.inputs){
+          for(const [k, v] of Object.entries(t.inputs)){
+            py.globals.set(k, v);
+          }
+        }
+        try {
+          await py.runPythonAsync(code);
+        } catch(e){
+          results.push({...t, error: formatPyError(e), ok: false}); continue;
+        }
+        const val = py.globals.get(t.output);
+        actual = val?.toJs ? val.toJs({dict_converter: Object.fromEntries}) : val;
+      } else if(t.type === 'variable'){
         const v = py.globals.get(t.name);
         actual = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
       } else if(t.type === 'function' || t.type === 'expr'){
@@ -69,6 +89,23 @@ for _k in list(globals().keys()):
 
   const success = results.length > 0 && results.every(r => r.ok);
   return {success, results};
+}
+
+// 블록 스타일 hook 래퍼 생성 (학생 코드를 매번 실행)
+function makeBlockHook(py, code, inputs, output){
+  // inputs: 배열 (순서대로 게임이 넘기는 값), output: 읽을 변수명
+  return (...args) => {
+    try {
+      // 필요한 변수만 설정 (나머지는 이전 hook에서 남겨둠)
+      inputs.forEach((name, i) => py.globals.set(name, args[i]));
+      py.runPython(code);
+      const v = py.globals.get(output);
+      const jsv = v?.toJs ? v.toJs() : v;
+      return jsv;
+    } catch(e){
+      throw new Error(formatPyError(e));
+    }
+  };
 }
 
 // 학생 함수를 JS에서 호출 가능한 래퍼로 변환 (게임 hook용)
@@ -115,3 +152,4 @@ window.ensureMissionPyodide = ensureMissionPyodide;
 window.runMissionTests = runMissionTests;
 window.getMissionFunction = getMissionFunction;
 window.getMissionVariable = getMissionVariable;
+window.makeBlockHook = makeBlockHook;

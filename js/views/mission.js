@@ -207,6 +207,7 @@ function vMissionEditor(){
 function vMeStepEditor(step, idx){
   const tests = step.tests || [];
   const hooks = GAME_TYPES[0].hooks; // flappybird
+  const hookStyle = step.hookStyle || 'variable';
 
   return `<div class="section me-step" data-sidx="${idx}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -232,6 +233,26 @@ function vMeStepEditor(step, idx){
         <textarea class="me-step-code" style="min-height:80px;font-family:monospace;font-size:13px">${esc(step.starterCode || '')}</textarea>
       </div>
 
+      <div class="field">
+        <label>코드 스타일 & 테스트 방식</label>
+        <div class="me-hookstyle-opts">
+          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="variable" ${hookStyle==='variable'?'checked':''} data-sidx="${idx}"/> <b>변수</b> — 변수를 만들고 값을 넣는 코드 (예: <code>score = 0</code>)</label>
+          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="block" ${hookStyle==='block'?'checked':''} data-sidx="${idx}"/> <b>코드 블록</b> ⭐ — 게임 이벤트 시 실행되는 코드 (변수가 주어지고, 수정 후 돌려줌)</label>
+          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="function" ${hookStyle==='function'?'checked':''} data-sidx="${idx}"/> <b>함수</b> — <code>def 함수이름(...):</code> 형태</label>
+        </div>
+      </div>
+
+      ${hookStyle === 'block' ? `
+        <div class="form-row">
+          <div class="field"><label>입력 변수 (게임이 제공, 쉼표로 구분)</label>
+            <input class="me-block-inputs" type="text" placeholder="예: score 또는 score, pipesPassed" value="${esc((step.blockInputs || []).join(', '))}"/>
+          </div>
+          <div class="field"><label>출력 변수 (게임이 읽어감)</label>
+            <input class="me-block-output" type="text" placeholder="예: score" value="${esc(step.blockOutput || '')}"/>
+          </div>
+        </div>
+      ` : ''}
+
       <div class="field"><label>통과 시 활성화할 게임 기능 (hook)</label>
         <select class="me-step-unlocks">
           <option value="">(없음)</option>
@@ -242,25 +263,41 @@ function vMeStepEditor(step, idx){
       <div class="field">
         <label>테스트 케이스 (모두 통과해야 단계 완료)</label>
         <div class="me-tests" id="me-tests-${idx}">
-          ${tests.map((t, ti) => vMeTestEditor(t, idx, ti)).join('')}
+          ${tests.map((t, ti) => vMeTestEditor(t, idx, ti, hookStyle, step)).join('')}
         </div>
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="variable">+ 변수 테스트</button>
-          <button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="function">+ 함수 호출 테스트</button>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+          ${hookStyle === 'block'
+            ? `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="block">+ 블록 테스트</button>`
+            : hookStyle === 'function'
+              ? `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="function">+ 함수 호출 테스트</button>`
+              : `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="variable">+ 변수 테스트</button>`
+          }
         </div>
       </div>
     </div>
   </div>`;
 }
 
-function vMeTestEditor(t, sidx, tidx){
+function vMeTestEditor(t, sidx, tidx, hookStyle, step){
   if(t.type === 'variable'){
     return `<div class="me-test-row" data-tidx="${tidx}">
       <span style="font-size:11px;color:var(--text3);min-width:60px">변수값</span>
       <input class="me-test-name" type="text" placeholder="변수명 (예: score)" value="${esc(t.name || '')}" style="flex:1"/>
       <span>==</span>
-      <input class="me-test-expected" type="text" placeholder="기대값 (JSON: 0, 15, 1.5, \&quot;hi\&quot;, [1,2])" value="${esc(typeof t.expected === 'string' ? JSON.stringify(t.expected) : JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
+      <input class="me-test-expected" type="text" placeholder="기대값 (JSON: 0, 15, &quot;hi&quot;)" value="${esc(typeof t.expected === 'string' ? JSON.stringify(t.expected) : JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
       <input type="hidden" class="me-test-type" value="variable"/>
+      <button class="btn-xs btn-danger" data-action="me-del-test" data-sidx="${sidx}" data-tidx="${tidx}">✕</button>
+    </div>`;
+  }
+  if(t.type === 'block'){
+    // 블록 테스트: 입력 변수들의 값과 기대 출력값
+    const inputsJson = t.inputs ? JSON.stringify(t.inputs) : '{}';
+    return `<div class="me-test-row me-test-block" data-tidx="${tidx}">
+      <span style="font-size:11px;color:var(--text3);min-width:60px">입력→결과</span>
+      <input class="me-test-block-inputs" type="text" placeholder='예: {"score": 0}' value='${esc(inputsJson)}' style="flex:1.3"/>
+      <span>→</span>
+      <input class="me-test-expected" type="text" placeholder="기대값 (JSON)" value="${esc(JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
+      <input type="hidden" class="me-test-type" value="block"/>
       <button class="btn-xs btn-danger" data-action="me-del-test" data-sidx="${sidx}" data-tidx="${tidx}">✕</button>
     </div>`;
   }
@@ -275,12 +312,12 @@ function vMeTestEditor(t, sidx, tidx){
   </div>`;
 }
 
-// ── 예제 미션 템플릿 (플래피 버드) ──
+// ── 예제 미션 템플릿 (플래피 버드) — 블록 스타일 (beginner-friendly) ──
 function getFlappyBirdSampleMission(){
   return {
     title: '플래피 버드 — 점수 시스템',
     gameType: 'flappybird',
-    description: '변수, 산술 연산자, 조건문을 활용해 플래피 버드의 점수 시스템을 완성해봅시다.',
+    description: '변수와 산술 연산자를 활용해 플래피 버드의 점수 시스템을 완성해봅시다.',
     createdAt: new Date().toISOString(),
     steps: [
       {
@@ -292,33 +329,40 @@ function getFlappyBirdSampleMission(){
         tests: [
           {type: 'variable', name: 'score', expected: 0}
         ],
+        hookStyle: 'variable',
         unlocks: ''
       },
       {
         id: 'step_add_score',
         title: '2️⃣ 장애물 지날 때 점수 +1',
-        description: '## 🎯 목표\n\n장애물을 하나 지날 때마다 점수를 **1점씩** 올리는 함수를 만듭니다.\n\n함수 이름은 `addScore`, 파라미터는 현재 점수 `score`.\n**새 점수 (score + 1)** 를 반환하세요.\n\n```python\ndef addScore(score):\n    return score + 1\n```\n\n저장 후 실행하면 왼쪽 게임에서 장애물을 지날 때마다 점수가 오르는 걸 볼 수 있어요!',
-        hint: '`return` 키워드로 함수의 결과를 돌려줍니다.\n`score + 1` 같은 **산술 연산자(+)** 를 활용하세요.',
-        starterCode: 'def addScore(score):\n    # 현재 score에 1을 더한 값을 반환하세요\n    pass\n',
+        description: '## 🎯 목표\n\n**장애물을 하나 지날 때마다** 실행되는 코드를 작성합니다.\n\n- 변수 `score` 에 현재 점수가 이미 주어져 있어요\n- 거기에 **1을 더해서 다시 `score` 에 저장**하면 됩니다\n\n```python\nscore = score + 1\n```\n\n저장 후 실행하면 왼쪽 게임에서 장애물을 지날 때마다 점수가 오릅니다!',
+        hint: '`score = score + 1` — 산술 연산자 `+` 로 더한 값을 `=` 로 다시 저장합니다.',
+        starterCode: '# score 변수에 현재 점수가 주어져 있어요\n# 1을 더해서 score에 다시 저장하세요\n\n',
+        hookStyle: 'block',
+        blockInputs: ['score'],
+        blockOutput: 'score',
         tests: [
-          {type: 'function', call: 'addScore(0)', expected: 1},
-          {type: 'function', call: 'addScore(5)', expected: 6},
-          {type: 'function', call: 'addScore(99)', expected: 100}
+          {type: 'block', inputs: {score: 0}, output: 'score', expected: 1},
+          {type: 'block', inputs: {score: 5}, output: 'score', expected: 6},
+          {type: 'block', inputs: {score: 99}, output: 'score', expected: 100}
         ],
         unlocks: 'addScore'
       },
       {
         id: 'step_bonus',
         title: '3️⃣ 5개 지나면 1.5배 보너스!',
-        description: '## 🎯 목표\n\n장애물을 **5개 이상** 지났을 때부터는 점수에 **1.5배** 를 곱하는 함수를 만듭니다.\n\n함수 이름: `finalScore(score, pipesPassed)`\n- `score`: 방금 계산된 점수\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**조건:**\n- `pipesPassed < 5` → 점수 그대로 반환\n- `pipesPassed >= 5` → 점수에 1.5를 곱해서 반환 (결과는 정수로 변환: `int(...)`)\n\n```python\ndef finalScore(score, pipesPassed):\n    if pipesPassed >= 5:\n        return int(score * 1.5)\n    else:\n        return score\n```',
-        hint: '조건문 `if / else` 를 사용합니다.\n소수점이 생기지 않게 `int()` 로 감싸세요.',
-        starterCode: 'def finalScore(score, pipesPassed):\n    # pipesPassed가 5 이상이면 score에 1.5를 곱해서 반환\n    # 아니면 score를 그대로 반환\n    pass\n',
+        description: '## 🎯 목표\n\n장애물을 **5개 이상** 지나면 점수에 **1.5배** 보너스를 주세요.\n\n주어진 변수:\n- `score`: 방금 계산된 점수\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**조건:**\n- `pipesPassed` 가 5 이상 → `score` 에 1.5를 곱해서 다시 `score` 에 저장 (소수점 없애려면 `int(...)` 사용)\n- 아니면 아무것도 안 하면 됨\n\n```python\nif pipesPassed >= 5:\n    score = int(score * 1.5)\n```',
+        hint: '`if` 조건문 + 산술 연산자 `*` 를 활용하세요.\n소수점이 생기지 않게 `int(score * 1.5)` 로 감싸세요.',
+        starterCode: '# score: 현재 점수\n# pipesPassed: 지난 장애물 개수\n# 5 이상이면 score에 1.5를 곱해서 다시 저장\n\n',
+        hookStyle: 'block',
+        blockInputs: ['score', 'pipesPassed'],
+        blockOutput: 'score',
         tests: [
-          {type: 'function', call: 'finalScore(3, 3)', expected: 3},
-          {type: 'function', call: 'finalScore(4, 4)', expected: 4},
-          {type: 'function', call: 'finalScore(10, 5)', expected: 15},
-          {type: 'function', call: 'finalScore(20, 7)', expected: 30},
-          {type: 'function', call: 'finalScore(100, 10)', expected: 150}
+          {type: 'block', inputs: {score: 3, pipesPassed: 3}, output: 'score', expected: 3},
+          {type: 'block', inputs: {score: 4, pipesPassed: 4}, output: 'score', expected: 4},
+          {type: 'block', inputs: {score: 10, pipesPassed: 5}, output: 'score', expected: 15},
+          {type: 'block', inputs: {score: 20, pipesPassed: 7}, output: 'score', expected: 30},
+          {type: 'block', inputs: {score: 100, pipesPassed: 10}, output: 'score', expected: 150}
         ],
         unlocks: 'finalScore'
       }

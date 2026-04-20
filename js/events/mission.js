@@ -12,28 +12,38 @@ let _missionSaveTimer = null;    // 학생 진도 저장 debounce
 async function applyPassedHooks(){
   if(!_missionGame || !SEL_MISSION) return;
   _missionGame.clearHooks();
+  const py = await ensureMissionPyodide();
   for(const step of SEL_MISSION.steps || []){
     const pass = MISSION_STEP_PASS[step.id];
     if(!pass?.passed || !step.unlocks) continue;
     try {
-      const fn = await getMissionFunction(step.unlocks);
-      if(fn) _missionGame.setHook(step.unlocks, fn);
+      if(step.hookStyle === 'block'){
+        // 블록 스타일: 학생 코드를 매번 실행
+        const inputs = step.blockInputs || [];
+        const output = step.blockOutput || inputs[0];
+        const hook = makeBlockHook(py, pass.code, inputs, output);
+        _missionGame.setHook(step.unlocks, hook);
+      } else {
+        // 함수 스타일
+        const fn = await getMissionFunction(step.unlocks);
+        if(fn) _missionGame.setHook(step.unlocks, fn);
+      }
     } catch(e){ console.warn('hook 적용 실패:', e); }
   }
 }
 
-// 통과한 모든 단계의 코드를 하나로 합쳐 Pyodide에 재실행 (새로고침 후 등)
+// 통과한 모든 함수 스타일 단계의 코드를 재실행해서 Pyodide 네임스페이스 복원
 async function reloadPassedCode(){
   if(!SEL_MISSION) return;
   const codes = [];
   for(const step of SEL_MISSION.steps || []){
     const pass = MISSION_STEP_PASS[step.id];
-    if(pass?.passed && pass.code) codes.push(pass.code);
+    // 블록 스타일은 네임스페이스 공유 안 함 (매번 새로 실행)
+    if(pass?.passed && pass.code && step.hookStyle !== 'block') codes.push(pass.code);
   }
-  if(!codes.length) return;
   try {
     const py = await ensureMissionPyodide();
-    for(const c of codes){ await py.runPythonAsync(c); }
+    for(const c of codes){ try { await py.runPythonAsync(c); } catch(e){} }
     await applyPassedHooks();
   } catch(e){ console.warn('복원 실패:', e); }
 }
@@ -278,6 +288,7 @@ document.addEventListener('click', async e => {
     const step = MISSION_EDITING.steps[sidx];
     step.tests = step.tests || [];
     if(act.ttype === 'variable') step.tests.push({type: 'variable', name: '', expected: 0});
+    else if(act.ttype === 'block') step.tests.push({type: 'block', inputs: {}, output: step.blockOutput || '', expected: 0});
     else step.tests.push({type: 'function', call: '', expected: 0});
     render(); return;
   }
@@ -312,6 +323,14 @@ function collectEditorState(){
     step.hint = stepEl.querySelector('.me-step-hint')?.value || '';
     step.starterCode = stepEl.querySelector('.me-step-code')?.value || '';
     step.unlocks = stepEl.querySelector('.me-step-unlocks')?.value || '';
+    // hookStyle 수집
+    const hs = stepEl.querySelector('.me-step-hookstyle:checked')?.value || step.hookStyle || 'variable';
+    step.hookStyle = hs;
+    if(hs === 'block'){
+      const inputsRaw = stepEl.querySelector('.me-block-inputs')?.value || '';
+      step.blockInputs = inputsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      step.blockOutput = stepEl.querySelector('.me-block-output')?.value?.trim() || '';
+    }
     // 테스트 수집
     step.tests = [];
     stepEl.querySelectorAll('.me-test-row').forEach(row => {
@@ -323,6 +342,11 @@ function collectEditorState(){
       if(type === 'variable'){
         const name = row.querySelector('.me-test-name')?.value?.trim() || '';
         if(name) step.tests.push({type, name, expected});
+      } else if(type === 'block'){
+        const inputsRaw = row.querySelector('.me-test-block-inputs')?.value || '{}';
+        let inputs = {};
+        try { inputs = JSON.parse(inputsRaw); } catch(e){}
+        step.tests.push({type: 'block', inputs, output: step.blockOutput || '', expected});
       } else {
         const call = row.querySelector('.me-test-call')?.value?.trim() || '';
         if(call) step.tests.push({type: 'function', call, expected});
@@ -383,6 +407,14 @@ async function saveMissionFromEditor(btn){
     btn.disabled = false;
   }
 }
+
+// 에디터의 hookStyle 라디오 변경 시 재렌더
+document.addEventListener('change', e => {
+  if(e.target.classList?.contains('me-step-hookstyle')){
+    collectEditorState();
+    render();
+  }
+});
 
 // 미션 플레이 화면 렌더 후 게임 초기화
 function afterRenderMission(){

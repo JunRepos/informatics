@@ -594,4 +594,10 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .me-tests{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .me-test-row{display:flex;gap:6px;align-items:center;background:var(--surface);padding:5px 8px;border-radius:4px;border:1px solid var(--border)}
 .me-test-row input{font-family:'Consolas',monospace;font-size:12px;padding:4px 8px}
+.me-hookstyle-opts{display:flex;flex-direction:column;gap:6px;padding:6px 0}
+.me-radio{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text);transition:background .12s}
+.me-radio:hover{background:var(--surface2)}
+.me-radio code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'Consolas',monospace;font-size:12px;color:var(--accent)}
+[data-theme="dark"] .me-radio code{background:rgba(255,255,255,.08)}
+.me-radio input[type="radio"]{width:auto;margin:0}
 
