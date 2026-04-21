@@ -164,9 +164,14 @@ function afterRender(){
   const theme = document.documentElement.getAttribute('data-theme');
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = theme === 'dark' ? '☀️' : '🌙');
 
-  // 노트북 CodeMirror 초기화
+  // 노트북 CodeMirror 초기화 — DOM 레이아웃 완료 후 실행 (타이밍 이슈 방지)
   if(typeof initNotebookCMs === 'function' && document.querySelector('.cb-wrap')){
+    // 즉시 한 번 호출 + 다음 프레임에 한 번 더 호출
+    // (stale CM 체크가 있어서 중복 호출 안전함)
     initNotebookCMs();
+    requestAnimationFrame(() => {
+      if(document.querySelector('.cb-wrap')) initNotebookCMs();
+    });
   }
 
   // 미션 게임 초기화/정리

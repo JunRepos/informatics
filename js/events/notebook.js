@@ -177,23 +177,43 @@ function initNotebookCMs(){
   // 코드 셀
   document.querySelectorAll('.cb-code-area').forEach(ta => {
     const cellId = ta.dataset.cellid;
-    if(_nbCMs[cellId]) return; // 이미 초기화됨
-    const cm = CodeMirror.fromTextArea(ta, {
-      mode: 'python',
-      theme: isDark ? 'dracula' : 'default',
-      lineNumbers: true,
-      indentUnit: 4,
-      tabSize: 4,
-      matchBrackets: true,
-      readOnly: readOnly ? 'nocursor' : false,
-      viewportMargin: Infinity,
-      extraKeys: {
-        'Shift-Enter': () => runCellAndNext(cellId),
-        'Ctrl-Enter': () => runCell(cellId),
-        'Cmd-Enter': () => runCell(cellId),
-        'Alt-Enter': () => runCellAndInsert(cellId),
-      }
-    });
+
+    // 기존 CM이 DOM에 아직 연결되어 있으면 skip, 아니면 제거
+    const existing = _nbCMs[cellId];
+    if(existing){
+      try {
+        const wrap = existing.getWrapperElement?.();
+        if(wrap && wrap.isConnected) return; // 아직 유효함
+      } catch(e){}
+      delete _nbCMs[cellId]; // stale
+    }
+
+    // 이미 CM이 이 textarea 위에 생성되어 있다면 skip (fromTextArea 두 번 호출 방지)
+    if(ta.nextSibling && ta.nextSibling.classList?.contains('CodeMirror')) return;
+
+    let cm;
+    try {
+      cm = CodeMirror.fromTextArea(ta, {
+        mode: 'python',
+        theme: isDark ? 'dracula' : 'default',
+        lineNumbers: true,
+        indentUnit: 4,
+        tabSize: 4,
+        matchBrackets: true,
+        readOnly: readOnly ? 'nocursor' : false,
+        viewportMargin: Infinity,
+        extraKeys: {
+          'Shift-Enter': () => runCellAndNext(cellId),
+          'Ctrl-Enter': () => runCell(cellId),
+          'Cmd-Enter': () => runCell(cellId),
+          'Alt-Enter': () => runCellAndInsert(cellId),
+        }
+      });
+    } catch(e){ console.error('CodeMirror 초기화 실패:', cellId, e); return; }
+
+    // 크기 재계산 보장 (DOM 레이아웃 후 한 번 refresh)
+    setTimeout(() => { try { cm.refresh(); } catch(e){} }, 0);
+
     cm.on('change', () => {
       const cell = NB_CELLS.find(c => c.id === cellId);
       if(cell){ cell.source = cm.getValue(); scheduleNBSave(); }

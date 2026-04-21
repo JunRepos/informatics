@@ -457,7 +457,8 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .cb-cell-code.cb-selected .cb-code-wrap{border-color:var(--cb-accent);box-shadow:0 0 0 1px var(--cb-accent)}
 .cb-exec-prompt{flex-shrink:0;padding:9px 0 0 12px;font-family:'Roboto Mono','Consolas',monospace;font-size:11px;color:var(--cb-text-3);min-width:44px;user-select:none;font-weight:500;letter-spacing:-.3px}
 .cb-code-main{flex:1;min-width:0;position:relative;padding:2px 4px 2px 0}
-.cb-code-area{display:none}
+/* CodeMirror 초기화 전 fallback (CM이 로드되면 hidden 처리됨) */
+.cb-code-area{width:100%;min-height:40px;padding:8px 12px;font-family:'Roboto Mono','Consolas','Courier New',monospace;font-size:13.5px;line-height:1.55;background:var(--cb-code-bg);color:var(--cb-text);border:none;outline:none;resize:vertical;box-sizing:border-box;tab-size:4}
 
 /* CodeMirror 코랩 스타일 */
 .cb-code-main .CodeMirror{height:auto;min-height:32px;background:var(--cb-code-bg);color:var(--cb-text);font-family:'Roboto Mono','Consolas','Courier New',monospace;font-size:13.5px;line-height:1.55;padding:4px 0}
