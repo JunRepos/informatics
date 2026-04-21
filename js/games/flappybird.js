@@ -312,14 +312,17 @@ class FlappyBird {
     ctx.fillStyle = '#d9601a'; ctx.fillRect(12, 2, 6, 2);
     ctx.restore();
 
-    // 점수 (큰 숫자, 상단 중앙)
-    const scoreText = this.fmtScore(this.score);
-    ctx.font = 'bold 42px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillText(scoreText, W/2 + 2, 62);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(scoreText, W/2, 60);
+    // 점수 (큰 숫자, 상단 중앙) — gameStartScore hook 있을 때만 표시
+    // (1단계 통과해서 score 변수를 만든 후에만 보임)
+    if(this.hooks.gameStartScore){
+      const scoreText = this.fmtScore(this.score);
+      ctx.font = 'bold 42px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillText(scoreText, W/2 + 2, 62);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(scoreText, W/2, 60);
+    }
 
     // 지난 장애물 (우측 상단)
     ctx.font = 'bold 13px sans-serif';
@@ -354,17 +357,22 @@ class FlappyBird {
 
     // 게임 오버
     if(this.gameOver){
+      const hasScore = !!this.hooks.gameStartScore;
+      const boxH = hasScore ? 86 : 62;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(W/2 - 120, H/2 - 48, 240, 86);
+      ctx.fillRect(W/2 - 120, H/2 - 36, 240, boxH);
       ctx.fillStyle = '#ff6b6b';
       ctx.textAlign = 'center';
       ctx.font = 'bold 20px sans-serif';
-      ctx.fillText('💥 게임 오버', W/2, H/2 - 18);
+      ctx.fillText('💥 게임 오버', W/2, H/2 - 6);
+      if(hasScore){
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(`최종 점수: ${this.fmtScore(this.score)}`, W/2, H/2 + 16);
+      }
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText(`최종 점수: ${this.fmtScore(this.score)}`, W/2, H/2 + 4);
       ctx.font = '11px sans-serif';
-      ctx.fillText('클릭해서 다시 시작', W/2, H/2 + 24);
+      ctx.fillText('클릭해서 다시 시작', W/2, H/2 + (hasScore ? 36 : 16));
     }
 
     // hook 에러 표시

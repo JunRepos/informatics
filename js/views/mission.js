@@ -362,7 +362,7 @@ function getFlappyBirdSampleMission(){
         description: '## 🎯 목표\n\n**score 변수**를 만들어 원하는 숫자를 저장해보세요.\n\n저장한 값이 **왼쪽 게임 화면 상단에 바로 표시**됩니다!\n\n```python\nscore = 0        # 0점으로 시작\nscore = 100      # 100점으로 시작\n```\n\n숫자를 바꾸면서 실행해 봐요. 어떤 숫자든 OK! 🎮',
         experiment: '- `score = 1000` — 큰 숫자로 시작해보기\n- `score = -50` — 음수면 어떻게 될까?\n- `score = 9999` — 엄청 큰 숫자\n\n숫자를 바꾸고 **실행 & 테스트** 를 누를 때마다 게임이 리셋되면서 새 점수로 시작해요!',
         hint: '`score = 원하는숫자` 처럼 `=` 기호로 값을 저장합니다.\n정수(0, 100, 50)면 OK!',
-        starterCode: '# score 변수에 원하는 숫자를 저장하세요\n\nscore = 0\n',
+        starterCode: '# score 변수에 원하는 숫자를 저장해보세요\n# 예) score = 0   /   score = 100\n\n',
         tests: [
           {type: 'exists', name: 'score', typeOf: 'number'}
         ],
