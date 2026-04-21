@@ -54,13 +54,14 @@ function _resetStdin(py){
 }
 
 // 학생 코드 실행 후 테스트 케이스 검증
-async function runMissionTests(code, tests){
+// userStdin: 학생이 팝업으로 입력한 값 (있으면 t.stdin이 없는 테스트에 사용)
+async function runMissionTests(code, tests, userStdin){
   const py = await ensureMissionPyodide();
 
   // 테스트별 격리가 필요한 타입들 (매번 깨끗이 실행)
   const perTestIsolation = tests.some(t =>
     t.type === 'block' || t.stdin !== undefined || t.type === 'exists'
-  );
+  ) || userStdin !== undefined;
 
   if(!perTestIsolation){
     _resetNamespace(py);
@@ -78,7 +79,9 @@ async function runMissionTests(code, tests){
 
       if(perTestIsolation){
         _resetNamespace(py);
-        if(t.stdin !== undefined) _setStdin(py, t.stdin);
+        // stdin: 테스트 자체 > 학생이 입력한 값 > 없음
+        const effStdin = t.stdin !== undefined ? t.stdin : userStdin;
+        if(effStdin !== undefined) _setStdin(py, effStdin);
         if(t.inputs){
           for(const [k, v] of Object.entries(t.inputs)){
             py.globals.set(k, v);

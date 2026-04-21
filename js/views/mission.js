@@ -137,52 +137,61 @@ function vMissionPlay(isTeacher){
 }
 
 function vMiTestResults(results, allPassed){
-  if(!Array.isArray(results)) return '';
-  const items = results.map((r, i) => {
+  if(!Array.isArray(results) || !results.length) return '';
+
+  // 모두 통과: 큼지막한 축하 메시지
+  if(allPassed){
+    // 내가 만든 변수들의 값을 보여줌 (학생이 어떤 값을 넣었는지 피드백)
+    const values = [];
+    const seen = new Set();
+    for(const r of results){
+      if(r.type === 'exists' && r.name && !seen.has(r.name)){
+        seen.add(r.name);
+        if(r.actual !== undefined && r.actual !== null){
+          values.push(`<code>${esc(r.name)}</code> = <b>${esc(JSON.stringify(r.actual))}</b>`);
+        }
+      }
+    }
+    const valueLine = values.length
+      ? `<div class="mi-success-vars">${values.join(' · ')}</div>`
+      : '';
+    return `<div class="mi-results">
+      <div class="mi-success-big">
+        <div class="mi-success-title">🎉 적용 완료!</div>
+        <div class="mi-success-sub">왼쪽 게임에서 바로 확인해보세요 →</div>
+        ${valueLine}
+      </div>
+    </div>`;
+  }
+
+  // 실패: 친절한 에러 메시지만
+  const items = results.filter(r => !r.ok).map((r) => {
     if(r.error){
       return `<div class="mi-test-item fail">
-        <span class="mi-test-icon">✗</span>
+        <span class="mi-test-icon">⚠️</span>
         <div>
-          <div class="mi-test-label">테스트 ${i+1} 오류</div>
+          <div class="mi-test-label">코드 실행 중 오류가 발생했어요</div>
           <pre class="mi-test-detail">${esc(r.error)}</pre>
         </div>
       </div>`;
     }
-
-    let label, detail;
     if(r.type === 'exists'){
-      const typeLabel = r.typeOf ? ` (${r.typeOf} 타입)` : '';
-      label = `변수 <code>${esc(r.name)}</code>${typeLabel} 존재 확인`;
-      detail = r.stdin !== undefined
-        ? `입력 <code>${esc(r.stdin)}</code> → 결과 <b>${esc(JSON.stringify(r.actual))}</b>`
-        : `결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
-    } else if(r.type === 'variable'){
-      label = `변수 <code>${esc(r.name)}</code>`;
-      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
-    } else if(r.type === 'block'){
-      const inputStr = r.stdin !== undefined
-        ? `입력 <code>${esc(r.stdin)}</code>`
-        : (r.inputs ? `<code>${esc(JSON.stringify(r.inputs))}</code>` : '');
-      label = `${inputStr} → 변수 <code>${esc(r.output)}</code>`;
-      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
-    } else {
-      label = `<code>${esc(r.call)}</code>`;
-      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
+      const typeLabel = r.typeOf ? ` (<code>${r.typeOf}</code> 자료형이어야 함)` : '';
+      let msg;
+      if(r.actual === undefined || r.actual === null){
+        msg = `아직 <code>${esc(r.name)}</code> 변수가 만들어지지 않았어요.${typeLabel}`;
+      } else {
+        msg = `<code>${esc(r.name)}</code>의 자료형이 맞지 않아요.${typeLabel}<br>현재 값: <b>${esc(JSON.stringify(r.actual))}</b>`;
+      }
+      return `<div class="mi-test-item fail">
+        <span class="mi-test-icon">✗</span>
+        <div><div class="mi-test-label">${msg}</div></div>
+      </div>`;
     }
+    return '';
+  }).filter(Boolean).join('');
 
-    return `<div class="mi-test-item ${r.ok ? 'pass' : 'fail'}">
-      <span class="mi-test-icon">${r.ok ? '✓' : '✗'}</span>
-      <div>
-        <div class="mi-test-label">${label}</div>
-        <div class="mi-test-detail">${detail}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  return `<div class="mi-results">
-    ${allPassed ? `<div class="mi-success">🎉 모든 테스트 통과! 왼쪽 게임에 적용됐어요.</div>` : ''}
-    ${items}
-  </div>`;
+  return `<div class="mi-results">${items}</div>`;
 }
 
 // ── 선생님: 미션 에디터 ──
@@ -364,10 +373,8 @@ function getFlappyBirdSampleMission(){
         blockInputs: ['score'],
         blockOutput: 'score',
         tests: [
-          {type: 'block', inputs: {score: 0}, output: 'plus', expected: 0.5},
-          {type: 'block', inputs: {score: 0}, output: 'score', expected: 0.5},
-          {type: 'block', inputs: {score: 10}, output: 'score', expected: 10.5},
-          {type: 'block', inputs: {score: 3}, output: 'score', expected: 3.5}
+          {type: 'exists', name: 'plus', typeOf: 'number', inputs: {score: 0}},
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10}}
         ],
         unlocks: 'addScore'
       },
@@ -380,9 +387,8 @@ function getFlappyBirdSampleMission(){
         hookStyle: 'variable',
         unlocks: 'speedConfig',
         tests: [
-          {type: 'exists', name: 'speed', typeOf: 'number', stdin: '1.5'},
-          {type: 'block', stdin: '0.8', output: 'speed', expected: 0.8},
-          {type: 'block', stdin: '2', output: 'speed', expected: 2}
+          // stdin 지정 안 함 → 학생이 팝업으로 입력한 실제 값 사용
+          {type: 'exists', name: 'speed', typeOf: 'number'}
         ]
       },
       {
@@ -396,11 +402,8 @@ function getFlappyBirdSampleMission(){
         blockOutput: 'score',
         unlocks: 'gameOverBonus',
         tests: [
-          {type: 'block', inputs: {score: 0, pipesPassed: 0}, output: 'score', expected: 0},
-          {type: 'block', inputs: {score: 10, pipesPassed: 3}, output: 'score', expected: 19},
-          {type: 'block', inputs: {score: 5, pipesPassed: 5}, output: 'score', expected: 30},
-          {type: 'block', inputs: {score: 20, pipesPassed: 10}, output: 'score', expected: 120},
-          {type: 'block', inputs: {score: 100, pipesPassed: 20}, output: 'score', expected: 500}
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10, pipesPassed: 3}},
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 0, pipesPassed: 0}}
         ]
       },
       {
@@ -414,12 +417,8 @@ function getFlappyBirdSampleMission(){
         blockOutput: 'level',
         unlocks: 'levelCalc',
         tests: [
-          {type: 'block', inputs: {pipesPassed: 0}, output: 'level', expected: 0},
-          {type: 'block', inputs: {pipesPassed: 4}, output: 'level', expected: 0},
-          {type: 'block', inputs: {pipesPassed: 5}, output: 'level', expected: 1},
-          {type: 'block', inputs: {pipesPassed: 9}, output: 'level', expected: 1},
-          {type: 'block', inputs: {pipesPassed: 10}, output: 'level', expected: 2},
-          {type: 'block', inputs: {pipesPassed: 23}, output: 'level', expected: 4}
+          {type: 'exists', name: 'level', typeOf: 'number', inputs: {pipesPassed: 0}},
+          {type: 'exists', name: 'level', typeOf: 'number', inputs: {pipesPassed: 15}}
         ]
       }
     ]

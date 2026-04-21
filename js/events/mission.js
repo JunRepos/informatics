@@ -218,7 +218,7 @@ async function runCurrentStep(){
 
   // 각 단계는 독립적으로 테스트 (이전 단계 코드 prepend 안 함)
   // 이전 단계 코드는 게임 hook 실행 시점에만 사용됨 (applyPassedHooks)
-  const result = await runMissionTests(code, step.tests || []);
+  const result = await runMissionTests(code, step.tests || [], userStdin ?? undefined);
 
   if(result.runError){
     MISSION_STEP_PASS[step.id] = {...(MISSION_STEP_PASS[step.id]||{}), code, passed: false, lastResults: [{error: result.runError, ok: false}]};
