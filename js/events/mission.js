@@ -113,6 +113,9 @@ async function applyPassedHooks(){
   // 진행 중이면 현재 게임은 그대로 두고, 다음 리셋 시 새 hook 적용
   if(_missionGame.started === false || _missionGame.gameOver){
     _missionGame.reset();
+  } else {
+    // 진행 중이면 레벨만 재계산 (새로 쓴 levelCalc 즉시 반영)
+    _missionGame.recalcLevel?.();
   }
 }
 

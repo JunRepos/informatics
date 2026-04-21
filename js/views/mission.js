@@ -11,7 +11,8 @@ const GAME_TYPES = [
     {id:'addScore', label:'addScore(score)', desc:'장애물 하나 지날 때 호출 — 새 점수를 반환'},
     {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'},
     {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
-    {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'}
+    {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'},
+    {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N 표시)'}
   ]}
 ];
 
@@ -336,9 +337,9 @@ function vMeTestEditor(t, sidx, tidx, hookStyle, step){
 // ── 예제 미션 템플릿 (플래피 버드) — 변수 / 형변환 / 입력 ──
 function getFlappyBirdSampleMission(){
   return {
-    title: '플래피 버드 — 변수·자료형·입력',
+    title: '플래피 버드 — 변수·자료형·입력·산술연산자',
     gameType: 'flappybird',
-    description: '변수, 자료형 변환, 입력을 활용해 플래피 버드를 내 마음대로 꾸며보세요!',
+    description: '변수, 자료형, 입력, 산술 연산자(+, **, //) 를 활용해 플래피 버드를 완성해봅시다!',
     createdAt: new Date().toISOString(),
     steps: [
       {
@@ -382,6 +383,43 @@ function getFlappyBirdSampleMission(){
           {type: 'exists', name: 'speed', typeOf: 'number', stdin: '1.5'},
           {type: 'block', stdin: '0.8', output: 'speed', expected: 0.8},
           {type: 'block', stdin: '2', output: 'speed', expected: 2}
+        ]
+      },
+      {
+        id: 'step_game_over_bonus',
+        title: '4️⃣ 거듭제곱(**) — 게임오버 보너스!',
+        description: '## 🎯 목표\n\n게임이 끝났을 때 **지난 장애물 개수의 제곱**만큼 보너스 점수를 추가해봅시다!\n\n주어진 변수:\n- `score`: 현재 점수\n- `pipesPassed`: 지난 장애물 개수\n\n```python\nscore = score + pipesPassed ** 2\n```\n\n**거듭제곱(`**`) 연산자**: `a ** b` = `a`를 `b`번 곱함\n- `2 ** 3` = 2 × 2 × 2 = **8**\n- `5 ** 2` = 5 × 5 = **25**\n\n### 🎮 효과는?\n- 3개 지나고 죽으면 → **+9** 보너스\n- 5개 지나고 죽으면 → **+25** 보너스\n- 10개 지나면 → **+100** 보너스! 🔥\n- 20개 지나면 → **+400** 폭발적 보상!\n\n장애물을 더 많이 지날수록 **기하급수적**으로 점수가 뛰어오르는 짜릿한 마무리!',
+        hint: '`**` 연산자로 제곱을 계산합니다.\n`pipesPassed ** 2` = pipesPassed의 제곱\n\n```python\nscore = score + pipesPassed ** 2\n```',
+        starterCode: '# score: 현재 점수\n# pipesPassed: 지난 장애물 개수\n# pipesPassed의 제곱을 score에 더해서 저장\n\n',
+        hookStyle: 'block',
+        blockInputs: ['score', 'pipesPassed'],
+        blockOutput: 'score',
+        unlocks: 'gameOverBonus',
+        tests: [
+          {type: 'block', inputs: {score: 0, pipesPassed: 0}, output: 'score', expected: 0},
+          {type: 'block', inputs: {score: 10, pipesPassed: 3}, output: 'score', expected: 19},
+          {type: 'block', inputs: {score: 5, pipesPassed: 5}, output: 'score', expected: 30},
+          {type: 'block', inputs: {score: 20, pipesPassed: 10}, output: 'score', expected: 120},
+          {type: 'block', inputs: {score: 100, pipesPassed: 20}, output: 'score', expected: 500}
+        ]
+      },
+      {
+        id: 'step_level_system',
+        title: '5️⃣ 몫(//) — 레벨 시스템!',
+        description: '## 🎯 목표\n\n장애물 **5개 지날 때마다 레벨이 1씩 증가**하도록 만들어봅시다!\n\n주어진 변수:\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**몫(`//`) 연산자**: `a // b` = `a`를 `b`로 나눈 **몫(정수)**\n- `17 // 5` = **3** (17 ÷ 5 = 3…나머지 2)\n- `10 // 5` = **2**\n- `4 // 5` = **0**\n\n```python\nlevel = pipesPassed // 5\n```\n\n### 🎮 효과는?\n왼쪽 게임 화면 **좌측 상단에 `Lv.1`, `Lv.2`, `Lv.3` ...** 배지가 실시간으로 표시됩니다!\n- 0~4개 지남 → Lv.0\n- 5~9개 지남 → Lv.1\n- 10~14개 → Lv.2\n- 15개 → Lv.3 ...\n\n장애물을 많이 지나서 레벨을 올려보세요! ⭐',
+        hint: '`//` 연산자로 몫을 구합니다.\n`pipesPassed // 5` = pipesPassed를 5로 나눈 몫\n\n```python\nlevel = pipesPassed // 5\n```',
+        starterCode: '# pipesPassed: 지난 장애물 개수\n# 5개마다 레벨 1 증가 → pipesPassed를 5로 나눈 몫\n# 결과를 level 변수에 저장\n\n',
+        hookStyle: 'block',
+        blockInputs: ['pipesPassed'],
+        blockOutput: 'level',
+        unlocks: 'levelCalc',
+        tests: [
+          {type: 'block', inputs: {pipesPassed: 0}, output: 'level', expected: 0},
+          {type: 'block', inputs: {pipesPassed: 4}, output: 'level', expected: 0},
+          {type: 'block', inputs: {pipesPassed: 5}, output: 'level', expected: 1},
+          {type: 'block', inputs: {pipesPassed: 9}, output: 'level', expected: 1},
+          {type: 'block', inputs: {pipesPassed: 10}, output: 'level', expected: 2},
+          {type: 'block', inputs: {pipesPassed: 23}, output: 'level', expected: 4}
         ]
       }
     ]

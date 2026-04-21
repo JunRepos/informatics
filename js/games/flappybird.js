@@ -18,9 +18,11 @@ class FlappyBird {
       gameStartScore: null,  // () => number — 시작 점수
       addScore: null,        // (score) => score — 장애물 지날 때
       finalScore: null,      // (score, pipesPassed) => score — 추가 보너스
-      gameOverBonus: null    // (score, pipesPassed) => score — 게임오버 보너스
+      gameOverBonus: null,   // (score, pipesPassed) => score — 게임오버 보너스
+      levelCalc: null        // (pipesPassed) => level — 레벨 계산
     };
     this.speedMultiplier = 1;  // 게임 속도 배수 (1 = 기본)
+    this.currentLevel = 0;
 
     this.reset();
     this.running = false;
@@ -60,6 +62,16 @@ class FlappyBird {
     this._gameOverApplied = false;
     // 시작 점수 hook 적용
     this.applyStartScore();
+    // 시작 레벨 계산
+    this.recalcLevel();
+  }
+
+  recalcLevel(){
+    if(!this.hooks.levelCalc){ this.currentLevel = 0; return; }
+    try {
+      const r = this.hooks.levelCalc(this.pipesPassed);
+      if(typeof r === 'number' && !isNaN(r)) this.currentLevel = r;
+    } catch(e){ this.lastHookError = 'levelCalc: ' + e.message; }
   }
 
   start(){
@@ -77,6 +89,7 @@ class FlappyBird {
     this.hooks.finalScore = null;
     this.hooks.gameStartScore = null;
     this.hooks.gameOverBonus = null;
+    this.hooks.levelCalc = null;
   }
 
   // 시작 점수를 hook에서 가져와 적용
@@ -126,6 +139,8 @@ class FlappyBird {
       if(!p.passed && p.x + p.width < BIRD_X){
         p.passed = true;
         this.pipesPassed++;
+        // 레벨 재계산 (hook 있으면)
+        this.recalcLevel();
         // === 학생 hook 호출 ===
         this.lastHookError = null;
         if(this.hooks.addScore){
@@ -177,6 +192,21 @@ class FlappyBird {
     if(typeof s !== 'number' || isNaN(s)) return '0';
     if(Number.isInteger(s)) return String(s);
     return s.toFixed(1);
+  }
+
+  // 둥근 사각형 path (레벨 배지용)
+  _roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 
   draw(){
@@ -265,6 +295,20 @@ class FlappyBird {
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillText(`지난 장애물: ${this.pipesPassed}`, W - 8, 22);
+
+    // 레벨 (좌측 상단, levelCalc hook이 있을 때만)
+    if(this.hooks.levelCalc){
+      ctx.textAlign = 'left';
+      // 배지 배경
+      const lvlText = `Lv.${this.currentLevel}`;
+      ctx.font = 'bold 14px sans-serif';
+      const tw = ctx.measureText(lvlText).width;
+      ctx.fillStyle = 'rgba(79,70,229,0.85)';
+      this._roundRect(ctx, 8, 8, tw + 14, 22, 11);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(lvlText, 15, 24);
+    }
 
     // 시작 안내
     if(!this.started){
