@@ -12,38 +12,82 @@ let _missionSaveTimer = null;    // 학생 진도 저장 debounce
 async function applyPassedHooks(){
   if(!_missionGame || !SEL_MISSION) return;
   _missionGame.clearHooks();
+  _missionGame.speedMultiplier = 1;
+
   const py = await ensureMissionPyodide();
+
   for(const step of SEL_MISSION.steps || []){
     const pass = MISSION_STEP_PASS[step.id];
     if(!pass?.passed || !step.unlocks) continue;
+
     try {
-      if(step.hookStyle === 'block'){
-        // 블록 스타일: 학생 코드를 매번 실행
+      if(step.unlocks === 'gameStartScore'){
+        // 변수 스타일: 시작 점수. hook 호출 시 학생 코드 재실행 후 score 읽음
+        const code = pass.code;
+        _missionGame.setHook('gameStartScore', () => {
+          try {
+            py.runPython(code);
+            const v = py.globals.get('score');
+            return v?.toJs ? v.toJs() : v;
+          } catch(e){ return 0; }
+        });
+      } else if(step.unlocks === 'speedConfig'){
+        // input()으로 받은 speed 변수 읽어서 게임 속도에 적용 (1회성)
+        try {
+          // 저장된 stdin 사용 (MISSION_STEP_PASS에 기록)
+          const stdin = pass.lastStdin || '1';
+          _resetStdinForMission(py);
+          _setStdinForMission(py, stdin);
+          _resetNamespaceMission(py);
+          await py.runPythonAsync(pass.code);
+          _resetStdinForMission(py);
+          const v = py.globals.get('speed');
+          const s = v?.toJs ? v.toJs() : v;
+          if(typeof s === 'number' && s > 0 && !isNaN(s)){
+            _missionGame.speedMultiplier = s;
+          }
+        } catch(e){ console.warn('speedConfig 적용 실패:', e); }
+      } else if(step.hookStyle === 'block'){
         const inputs = step.blockInputs || [];
         const output = step.blockOutput || inputs[0];
         const hook = makeBlockHook(py, pass.code, inputs, output);
         _missionGame.setHook(step.unlocks, hook);
       } else {
-        // 함수 스타일
         const fn = await getMissionFunction(step.unlocks);
         if(fn) _missionGame.setHook(step.unlocks, fn);
       }
     } catch(e){ console.warn('hook 적용 실패:', e); }
   }
+
+  // 시작 점수 hook이 바뀌었을 수 있으니 게임 리셋 (안 시작됐거나 게임오버인 경우만)
+  // 진행 중이면 현재 게임은 그대로 두고, 다음 리셋 시 새 hook 적용
+  if(_missionGame.started === false || _missionGame.gameOver){
+    _missionGame.reset();
+  }
 }
 
-// 통과한 모든 함수 스타일 단계의 코드를 재실행해서 Pyodide 네임스페이스 복원
+// 헬퍼: 네임스페이스 / stdin (mission-runner.js 내부 함수를 다시 불러씀)
+function _resetNamespaceMission(py){
+  try { py.runPython(`
+for _k in list(globals().keys()):
+    if not _k.startswith('_') and _k not in ('sys','io'):
+        try: del globals()[_k]
+        except: pass
+`); } catch(e){}
+}
+function _setStdinForMission(py, input){
+  const lines = Array.isArray(input) ? input : String(input).split('\n');
+  let idx = 0;
+  try { py.setStdin({stdin: () => idx < lines.length ? lines[idx++] : ''}); } catch(e){}
+}
+function _resetStdinForMission(py){
+  try { py.setStdin({stdin: () => ''}); } catch(e){}
+}
+
+// 통과한 단계 코드 복원 (새로고침 후)
 async function reloadPassedCode(){
   if(!SEL_MISSION) return;
-  const codes = [];
-  for(const step of SEL_MISSION.steps || []){
-    const pass = MISSION_STEP_PASS[step.id];
-    // 블록 스타일은 네임스페이스 공유 안 함 (매번 새로 실행)
-    if(pass?.passed && pass.code && step.hookStyle !== 'block') codes.push(pass.code);
-  }
   try {
-    const py = await ensureMissionPyodide();
-    for(const c of codes){ try { await py.runPythonAsync(c); } catch(e){} }
     await applyPassedHooks();
   } catch(e){ console.warn('복원 실패:', e); }
 }
@@ -125,11 +169,15 @@ async function runCurrentStep(){
     return;
   }
 
+  // 마지막으로 쓴 stdin (speedConfig 등에 재사용)
+  const lastStdin = (step.tests || []).find(t => t.stdin !== undefined)?.stdin;
+
   MISSION_STEP_PASS[step.id] = {
     ...(MISSION_STEP_PASS[step.id]||{}),
     code,
     passed: result.success,
-    lastResults: result.results
+    lastResults: result.results,
+    ...(lastStdin !== undefined ? {lastStdin} : {})
   };
 
   // 통과 시 hook 적용

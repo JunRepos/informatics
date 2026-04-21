@@ -14,7 +14,13 @@ class FlappyBird {
     this.H = canvas.height;
 
     // 학생 hook 슬롯
-    this.hooks = { addScore: null, finalScore: null };
+    this.hooks = {
+      gameStartScore: null,  // () => number — 시작 점수
+      addScore: null,        // (score) => score — 장애물 지날 때
+      finalScore: null,      // (score, pipesPassed) => score — 추가 보너스
+      gameOverBonus: null    // (score, pipesPassed) => score — 게임오버 보너스
+    };
+    this.speedMultiplier = 1;  // 게임 속도 배수 (1 = 기본)
 
     this.reset();
     this.running = false;
@@ -51,6 +57,9 @@ class FlappyBird {
     this.gameOver = false;
     this.started = false;
     this.lastHookError = null;
+    this._gameOverApplied = false;
+    // 시작 점수 hook 적용
+    this.applyStartScore();
   }
 
   start(){
@@ -63,10 +72,27 @@ class FlappyBird {
   stop(){ this.running = false; }
 
   setHook(name, fn){ this.hooks[name] = fn; }
-  clearHooks(){ this.hooks.addScore = null; this.hooks.finalScore = null; }
+  clearHooks(){
+    this.hooks.addScore = null;
+    this.hooks.finalScore = null;
+    this.hooks.gameStartScore = null;
+    this.hooks.gameOverBonus = null;
+  }
+
+  // 시작 점수를 hook에서 가져와 적용
+  applyStartScore(){
+    let initial = 0;
+    if(this.hooks.gameStartScore){
+      try {
+        const r = this.hooks.gameStartScore();
+        if(typeof r === 'number' && !isNaN(r)) initial = r;
+      } catch(e){ this.lastHookError = 'gameStartScore: ' + e.message; }
+    }
+    this.score = initial;
+  }
 
   onInput(){
-    if(this.gameOver){ this.reset(); return; }
+    if(this.gameOver){ this.reset(); this.applyStartScore(); return; }
     if(!this.started) this.started = true;
     this.birdVY = -6.5;
   }
@@ -82,17 +108,21 @@ class FlappyBird {
   update(){
     if(!this.started || this.gameOver) return;
 
+    // 속도 배수 (학생이 speed 변수로 조절)
+    const sp = Math.max(0.3, Math.min(3, this.speedMultiplier || 1));
+
     // 중력
     this.birdVY += 0.38;
     if(this.birdVY > 10) this.birdVY = 10;
     this.birdY += this.birdVY;
 
-    // 파이프 생성
-    if(this.frame % 95 === 0) this.spawnPipe();
+    // 파이프 생성 (속도 빠를수록 자주 생성)
+    const spawnInterval = Math.max(40, Math.round(95 / sp));
+    if(this.frame % spawnInterval === 0) this.spawnPipe();
 
     const BIRD_X = this.W * 0.27;
     for(const p of this.pipes){
-      p.x -= 2.2;
+      p.x -= 2.2 * sp;
       if(!p.passed && p.x + p.width < BIRD_X){
         p.passed = true;
         this.pipesPassed++;
@@ -128,7 +158,25 @@ class FlappyBird {
     if(this.birdY + BH > this.H - 60) this.gameOver = true;
     if(this.birdY < 0){ this.birdY = 0; this.birdVY = 0; }
 
+    // 게임 오버 시 보너스 hook
+    if(this.gameOver && !this._gameOverApplied){
+      this._gameOverApplied = true;
+      if(this.hooks.gameOverBonus){
+        try {
+          const r = this.hooks.gameOverBonus(this.score, this.pipesPassed);
+          if(typeof r === 'number' && !isNaN(r)) this.score = r;
+        } catch(e){ this.lastHookError = 'gameOverBonus: ' + e.message; }
+      }
+    }
+
     this.frame++;
+  }
+
+  // 점수 포맷: 정수면 그대로, 소수점이면 소수 1자리
+  fmtScore(s){
+    if(typeof s !== 'number' || isNaN(s)) return '0';
+    if(Number.isInteger(s)) return String(s);
+    return s.toFixed(1);
   }
 
   draw(){
@@ -204,12 +252,13 @@ class FlappyBird {
     ctx.restore();
 
     // 점수 (큰 숫자, 상단 중앙)
+    const scoreText = this.fmtScore(this.score);
     ctx.font = 'bold 42px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillText(String(this.score), W/2 + 2, 62);
+    ctx.fillText(scoreText, W/2 + 2, 62);
     ctx.fillStyle = '#fff';
-    ctx.fillText(String(this.score), W/2, 60);
+    ctx.fillText(scoreText, W/2, 60);
 
     // 지난 장애물 (우측 상단)
     ctx.font = 'bold 13px sans-serif';
@@ -239,7 +288,7 @@ class FlappyBird {
       ctx.fillText('💥 게임 오버', W/2, H/2 - 18);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 14px sans-serif';
-      ctx.fillText(`최종 점수: ${this.score}`, W/2, H/2 + 4);
+      ctx.fillText(`최종 점수: ${this.fmtScore(this.score)}`, W/2, H/2 + 4);
       ctx.font = '11px sans-serif';
       ctx.fillText('클릭해서 다시 시작', W/2, H/2 + 24);
     }

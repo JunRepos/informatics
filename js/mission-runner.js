@@ -38,14 +38,31 @@ for _k in list(globals().keys()):
   } catch(e){}
 }
 
+// Pyodide stdin 설정 (문자열 또는 줄 배열)
+function _setStdin(py, input){
+  const lines = input == null ? [] : (Array.isArray(input) ? input : String(input).split('\n'));
+  let idx = 0;
+  py.setStdin({
+    stdin: () => {
+      if(idx < lines.length) return lines[idx++];
+      return '';
+    }
+  });
+}
+function _resetStdin(py){
+  try { py.setStdin({stdin: () => ''}); } catch(e){}
+}
+
 // 학생 코드 실행 후 테스트 케이스 검증
 async function runMissionTests(code, tests){
   const py = await ensureMissionPyodide();
 
-  const hasBlockTests = tests.some(t => t.type === 'block');
+  // 테스트별 격리가 필요한 타입들 (매번 깨끗이 실행)
+  const perTestIsolation = tests.some(t =>
+    t.type === 'block' || t.stdin !== undefined || t.type === 'exists'
+  );
 
-  // 블록 테스트가 아니면 한 번만 실행 (변수 테스트, 함수 테스트)
-  if(!hasBlockTests){
+  if(!perTestIsolation){
     _resetNamespace(py);
     try {
       await py.runPythonAsync(code);
@@ -57,10 +74,11 @@ async function runMissionTests(code, tests){
   const results = [];
   for(const t of tests){
     try {
-      let actual;
-      if(t.type === 'block'){
-        // 블록 테스트: 매번 깨끗한 네임스페이스 + 입력 변수 설정 + 코드 실행
+      let actual, ok;
+
+      if(perTestIsolation){
         _resetNamespace(py);
+        if(t.stdin !== undefined) _setStdin(py, t.stdin);
         if(t.inputs){
           for(const [k, v] of Object.entries(t.inputs)){
             py.globals.set(k, v);
@@ -69,18 +87,33 @@ async function runMissionTests(code, tests){
         try {
           await py.runPythonAsync(code);
         } catch(e){
+          _resetStdin(py);
           results.push({...t, error: formatPyError(e), ok: false}); continue;
         }
+        _resetStdin(py);
+      }
+
+      if(t.type === 'block'){
         const val = py.globals.get(t.output);
         actual = val?.toJs ? val.toJs({dict_converter: Object.fromEntries}) : val;
+        ok = approxEqual(actual, t.expected);
       } else if(t.type === 'variable'){
         const v = py.globals.get(t.name);
         actual = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
+        ok = approxEqual(actual, t.expected);
+      } else if(t.type === 'exists'){
+        const v = py.globals.get(t.name);
+        actual = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
+        const exists = actual !== undefined && actual !== null;
+        const typeOk = !t.typeOf || typeof actual === t.typeOf;
+        const rangeOk = (t.min === undefined || actual >= t.min) &&
+                        (t.max === undefined || actual <= t.max);
+        ok = exists && typeOk && rangeOk;
       } else if(t.type === 'function' || t.type === 'expr'){
         const r = py.runPython(t.call);
         actual = r?.toJs ? r.toJs({dict_converter: Object.fromEntries}) : r;
+        ok = approxEqual(actual, t.expected);
       }
-      const ok = approxEqual(actual, t.expected);
       results.push({...t, actual, ok});
     } catch(e){
       results.push({...t, error: formatPyError(e), ok: false});

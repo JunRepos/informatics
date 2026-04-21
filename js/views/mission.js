@@ -7,8 +7,11 @@
 
 const GAME_TYPES = [
   {id:'flappybird', label:'🐦 플래피 버드', hooks:[
+    {id:'gameStartScore', label:'gameStartScore', desc:'게임 시작/재시작 시 점수 (변수 score 읽음)'},
     {id:'addScore', label:'addScore(score)', desc:'장애물 하나 지날 때 호출 — 새 점수를 반환'},
-    {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'}
+    {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'},
+    {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
+    {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'}
   ]}
 ];
 
@@ -144,21 +147,39 @@ function vMiTestResults(results, allPassed){
         </div>
       </div>`;
     }
-    const callLabel = r.type === 'variable' ? `변수 <code>${esc(r.name)}</code>` : `<code>${esc(r.call)}</code>`;
+
+    let label, detail;
+    if(r.type === 'exists'){
+      const typeLabel = r.typeOf ? ` (${r.typeOf} 타입)` : '';
+      label = `변수 <code>${esc(r.name)}</code>${typeLabel} 존재 확인`;
+      detail = r.stdin !== undefined
+        ? `입력 <code>${esc(r.stdin)}</code> → 결과 <b>${esc(JSON.stringify(r.actual))}</b>`
+        : `결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
+    } else if(r.type === 'variable'){
+      label = `변수 <code>${esc(r.name)}</code>`;
+      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
+    } else if(r.type === 'block'){
+      const inputStr = r.stdin !== undefined
+        ? `입력 <code>${esc(r.stdin)}</code>`
+        : (r.inputs ? `<code>${esc(JSON.stringify(r.inputs))}</code>` : '');
+      label = `${inputStr} → 변수 <code>${esc(r.output)}</code>`;
+      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
+    } else {
+      label = `<code>${esc(r.call)}</code>`;
+      detail = `기대 <b>${esc(JSON.stringify(r.expected))}</b> · 결과 <b>${esc(JSON.stringify(r.actual))}</b>`;
+    }
+
     return `<div class="mi-test-item ${r.ok ? 'pass' : 'fail'}">
       <span class="mi-test-icon">${r.ok ? '✓' : '✗'}</span>
       <div>
-        <div class="mi-test-label">${callLabel}</div>
-        <div class="mi-test-detail">
-          기대: <b>${esc(JSON.stringify(r.expected))}</b> ·
-          결과: <b>${esc(JSON.stringify(r.actual))}</b>
-        </div>
+        <div class="mi-test-label">${label}</div>
+        <div class="mi-test-detail">${detail}</div>
       </div>
     </div>`;
   }).join('');
 
   return `<div class="mi-results">
-    ${allPassed ? `<div class="mi-success">🎉 모든 테스트 통과! 게임에 적용됐어요.</div>` : ''}
+    ${allPassed ? `<div class="mi-success">🎉 모든 테스트 통과! 왼쪽 게임에 적용됐어요.</div>` : ''}
     ${items}
   </div>`;
 }
@@ -312,59 +333,56 @@ function vMeTestEditor(t, sidx, tidx, hookStyle, step){
   </div>`;
 }
 
-// ── 예제 미션 템플릿 (플래피 버드) — 블록 스타일 (beginner-friendly) ──
+// ── 예제 미션 템플릿 (플래피 버드) — 변수 / 형변환 / 입력 ──
 function getFlappyBirdSampleMission(){
   return {
-    title: '플래피 버드 — 점수 시스템',
+    title: '플래피 버드 — 변수·자료형·입력',
     gameType: 'flappybird',
-    description: '변수와 산술 연산자를 활용해 플래피 버드의 점수 시스템을 완성해봅시다.',
+    description: '변수, 자료형 변환, 입력을 활용해 플래피 버드를 내 마음대로 꾸며보세요!',
     createdAt: new Date().toISOString(),
     steps: [
       {
         id: 'step_score_var',
-        title: '1️⃣ 점수 변수 만들기',
-        description: '## 🎯 목표\n\n게임에서 점수를 저장할 **변수**가 필요합니다.\n\n`score` 라는 이름의 변수를 만들고 **0**으로 초기화하세요.\n\n```python\n변수이름 = 초기값\n```\n\n처음 게임을 시작했을 때는 점수가 0이어야 하니까요!',
-        hint: '`score = 0` 처럼 `=` 기호를 사용해 변수에 값을 저장합니다.',
-        starterCode: '# 여기에 점수 변수를 만드세요\n',
+        title: '1️⃣ score 변수 만들기 — 시작 점수 정하기',
+        description: '## 🎯 목표\n\n**score 변수**를 만들어 원하는 숫자를 저장해보세요.\n\n저장한 값이 **왼쪽 게임 화면 상단에 바로 표시**됩니다!\n\n```python\nscore = 0        # 0점으로 시작\nscore = 100      # 100점으로 시작\n```\n\n숫자를 바꾸면서 실행해 봐요. 어떤 숫자든 OK! 🎮',
+        hint: '`score = 원하는숫자` 처럼 `=` 기호로 값을 저장합니다.\n정수(0, 100, 50)면 OK!',
+        starterCode: '# score 변수에 원하는 숫자를 저장하세요\n\nscore = 0\n',
         tests: [
-          {type: 'variable', name: 'score', expected: 0}
+          {type: 'exists', name: 'score', typeOf: 'number'}
         ],
         hookStyle: 'variable',
-        unlocks: ''
+        unlocks: 'gameStartScore'
       },
       {
-        id: 'step_add_score',
-        title: '2️⃣ 장애물 지날 때 점수 +1',
-        description: '## 🎯 목표\n\n**장애물을 하나 지날 때마다** 실행되는 코드를 작성합니다.\n\n- 변수 `score` 에 현재 점수가 이미 주어져 있어요\n- 거기에 **1을 더해서 다시 `score` 에 저장**하면 됩니다\n\n```python\nscore = score + 1\n```\n\n저장 후 실행하면 왼쪽 게임에서 장애물을 지날 때마다 점수가 오릅니다!',
-        hint: '`score = score + 1` — 산술 연산자 `+` 로 더한 값을 `=` 로 다시 저장합니다.',
-        starterCode: '# score 변수에 현재 점수가 주어져 있어요\n# 1을 더해서 score에 다시 저장하세요\n\n',
+        id: 'step_plus_float',
+        title: '2️⃣ 자료형 변환 + 덧셈 — 장애물마다 +0.5',
+        description: '## 🎯 목표\n\n장애물을 지날 때마다 **0.5점씩** 더해봅시다!\n\n1. `plus` 변수를 만들고 **0.5** 저장\n2. `score`를 **`float`형으로 변환**\n3. `score`에 `plus`만큼 더해서 다시 저장\n\n```python\nplus = 0.5\nscore = float(score) + plus\n```\n\n✨ **왜 float 변환?**\n`score`는 1단계에서 정수(int)로 만들었어요. 거기에 0.5(float)를 더할 때 **자료형을 맞춰주면** 의도가 명확해집니다.\n\n성공하면 장애물 지날 때마다 0.5씩 오릅니다! (0 → 0.5 → 1.0 → 1.5 ...)',
+        hint: '`float(값)`은 정수를 실수로 바꿔줘요.\n1) `plus = 0.5`\n2) `score = float(score) + plus`',
+        starterCode: '# plus 변수에 0.5 저장\n# score를 float으로 변환 후 plus 만큼 더해서 score에 다시 저장\n\n',
         hookStyle: 'block',
         blockInputs: ['score'],
         blockOutput: 'score',
         tests: [
-          {type: 'block', inputs: {score: 0}, output: 'score', expected: 1},
-          {type: 'block', inputs: {score: 5}, output: 'score', expected: 6},
-          {type: 'block', inputs: {score: 99}, output: 'score', expected: 100}
+          {type: 'block', inputs: {score: 0}, output: 'plus', expected: 0.5},
+          {type: 'block', inputs: {score: 0}, output: 'score', expected: 0.5},
+          {type: 'block', inputs: {score: 10}, output: 'score', expected: 10.5},
+          {type: 'block', inputs: {score: 3}, output: 'score', expected: 3.5}
         ],
         unlocks: 'addScore'
       },
       {
-        id: 'step_bonus',
-        title: '3️⃣ 5개 지나면 1.5배 보너스!',
-        description: '## 🎯 목표\n\n장애물을 **5개 이상** 지나면 점수에 **1.5배** 보너스를 주세요.\n\n주어진 변수:\n- `score`: 방금 계산된 점수\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**조건:**\n- `pipesPassed` 가 5 이상 → `score` 에 1.5를 곱해서 다시 `score` 에 저장 (소수점 없애려면 `int(...)` 사용)\n- 아니면 아무것도 안 하면 됨\n\n```python\nif pipesPassed >= 5:\n    score = int(score * 1.5)\n```',
-        hint: '`if` 조건문 + 산술 연산자 `*` 를 활용하세요.\n소수점이 생기지 않게 `int(score * 1.5)` 로 감싸세요.',
-        starterCode: '# score: 현재 점수\n# pipesPassed: 지난 장애물 개수\n# 5 이상이면 score에 1.5를 곱해서 다시 저장\n\n',
-        hookStyle: 'block',
-        blockInputs: ['score', 'pipesPassed'],
-        blockOutput: 'score',
+        id: 'step_speed_input',
+        title: '3️⃣ 입력(input) — 게임 속도 조절!',
+        description: '## 🎯 목표\n\n사용자로부터 **속도값**을 입력받아 `speed` 변수에 저장하세요.\n\n```python\nspeed = float(input())\n```\n\n- `input()` → 사용자로부터 값을 받아옴 (항상 **문자열** 형태)\n- `float(...)` → 실수로 변환해야 계산 가능!\n\n실행하면 **장애물 속도가 바뀝니다**:\n- **0.5** → 슬로우 모션 🐢\n- **1** → 보통 속도\n- **2** → 빠른 속도 🚀\n\n💡 0.3 ~ 3 사이 값을 넣어보세요!',
+        hint: '`input()`은 값을 받아오지만 **문자열**이에요!\n숫자로 쓰려면 `float(...)` 로 감싸야 합니다.\n\n```python\nspeed = float(input())\n```',
+        starterCode: '# input() 으로 속도값을 받고 float 으로 변환하여 speed 에 저장\n\n',
+        hookStyle: 'variable',
+        unlocks: 'speedConfig',
         tests: [
-          {type: 'block', inputs: {score: 3, pipesPassed: 3}, output: 'score', expected: 3},
-          {type: 'block', inputs: {score: 4, pipesPassed: 4}, output: 'score', expected: 4},
-          {type: 'block', inputs: {score: 10, pipesPassed: 5}, output: 'score', expected: 15},
-          {type: 'block', inputs: {score: 20, pipesPassed: 7}, output: 'score', expected: 30},
-          {type: 'block', inputs: {score: 100, pipesPassed: 10}, output: 'score', expected: 150}
-        ],
-        unlocks: 'finalScore'
+          {type: 'exists', name: 'speed', typeOf: 'number', stdin: '1.5'},
+          {type: 'block', stdin: '0.8', output: 'speed', expected: 0.8},
+          {type: 'block', stdin: '2', output: 'speed', expected: 2}
+        ]
       }
     ]
   };
