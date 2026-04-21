@@ -76,6 +76,8 @@ let MISSION_VIEW       = 'list'; // 'list' | 'play' | 'edit'
 
 // 진도 계획
 let CURRICULUM = null; // {startDate, endDate, classDays, topics, sessions, updatedAt}
+let CUR_VIEW_CLS = 'info-2A';  // 사이드바에서 선택된 반
+let CUR_SETTINGS_OPEN = null;  // 학기 설정 펼침 상태 (null=자동)
 
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){

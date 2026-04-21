@@ -254,11 +254,11 @@ document.addEventListener('click', async e => {
 
   if(act.action === 'cur-sess-add'){
     readCurSetup();
+    // 사이드바에서 선택된 반 or 버튼 data-cid 우선
+    const cid = act.cid || CUR_VIEW_CLS || 'info-2A';
     const dateStr = prompt('추가할 날짜를 입력하세요 (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
     if(!dateStr) return;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ toast('날짜 형식이 잘못됐습니다.', 'err'); return; }
-    const cid = prompt('반을 입력하세요 (info-2A 또는 info-2B):', 'info-2A');
-    if(!cid || !['info-2A', 'info-2B'].includes(cid)){ toast('반 ID가 올바르지 않습니다.', 'err'); return; }
 
     CURRICULUM.sessions = CURRICULUM.sessions || {'info-2A': [], 'info-2B': []};
     CURRICULUM.sessions[cid] = CURRICULUM.sessions[cid] || [];
@@ -270,6 +270,24 @@ document.addEventListener('click', async e => {
     render();
     scheduleCurSave();
     toast('보강 일정이 추가됐습니다.', 'ok');
+    return;
+  }
+
+  // ── 사이드바: 반 전환 ──
+  if(act.action === 'cur-select-cls'){
+    CUR_VIEW_CLS = act.cid;
+    render();
+    return;
+  }
+
+  // ── 학기 설정 패널 토글 ──
+  if(act.action === 'cur-toggle-settings'){
+    readCurSetup();
+    // 현재 상태 계산 (null이면 자동값 기준)
+    const hasAnySession = CUR_CLASS_IDS.some(c => (CURRICULUM?.sessions?.[c] || []).length > 0);
+    const current = CUR_SETTINGS_OPEN === null ? !hasAnySession : CUR_SETTINGS_OPEN;
+    CUR_SETTINGS_OPEN = !current;
+    render();
     return;
   }
 

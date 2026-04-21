@@ -608,40 +608,73 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .me-test-row{display:flex;gap:6px;align-items:center;background:var(--surface);padding:5px 8px;border-radius:4px;border:1px solid var(--border)}
 .me-test-row input{font-family:'Consolas',monospace;font-size:12px;padding:4px 8px}
 /* ═══════════════════════════════════════
-   Curriculum (진도 계획)
+   Curriculum (진도 계획) — 사이드바 레이아웃
 ═══════════════════════════════════════ */
-.cur-cls-row{display:flex;align-items:center;gap:12px;padding:6px 0;flex-wrap:wrap}
-.cur-cls-label{min-width:100px;font-size:13px;font-weight:600;color:var(--text)}
+/* 상단 헤더 */
+.cur-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;padding:4px 2px}
+.cur-top-title{font-size:17px;font-weight:700;color:var(--text)}
+.cur-top-meta{flex:1;font-size:11px;color:var(--text3)}
+.cur-top-actions{display:flex;gap:6px;align-items:center}
+.cur-save-ind{font-size:11px;min-width:60px;text-align:right;transition:opacity .2s}
+
+/* 접이식 학기 설정 */
+.cur-setup-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px;box-shadow:var(--sh);animation:cur-slide-in .2s ease-out}
+@keyframes cur-slide-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.cur-setup-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+
+.cur-cls-row{display:flex;align-items:center;gap:10px;padding:4px 0;flex-wrap:wrap}
+.cur-cls-label{min-width:90px;font-size:12.5px;font-weight:600;color:var(--text)}
 .cur-day-chips{display:flex;gap:4px;flex-wrap:wrap}
-.cur-day-chip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--border);border-radius:50%;font-size:12px;font-weight:600;cursor:pointer;user-select:none;background:var(--surface);color:var(--text3);transition:all .12s}
+.cur-day-chip{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--border);border-radius:50%;font-size:12px;font-weight:600;cursor:pointer;user-select:none;background:var(--surface);color:var(--text3);transition:all .12s}
 .cur-day-chip:hover{border-color:var(--accent);color:var(--accent)}
 .cur-day-chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
 
-.cur-topic-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)}
+/* 주제 목록 (공통) */
+.cur-topics-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh)}
+.cur-topics-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+.cur-topic-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed var(--border)}
 .cur-topic-row:last-child{border-bottom:none}
-.cur-topic-num{min-width:24px;text-align:center;font-size:12px;color:var(--text3);font-weight:600;background:var(--surface2);border-radius:50%;padding:4px 6px}
-.cur-topic-title{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px}
+.cur-topic-num{min-width:26px;height:22px;line-height:22px;text-align:center;font-size:11px;color:var(--text3);font-weight:700;background:var(--surface2);border-radius:50%}
+.cur-topic-title{flex:1;padding:5px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;background:var(--surface);color:var(--text)}
 .cur-topic-title:focus{outline:none;border-color:var(--accent)}
-.cur-topic-actions{display:flex;gap:4px}
+.cur-topic-actions{display:flex;gap:3px}
 
-.cur-stats{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.cur-stat{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px}
-.cur-stat-num{font-weight:700;font-size:14px;color:var(--accent)}
+/* 2열 레이아웃: 사이드바 + 메인 */
+.cur-layout{display:flex;gap:14px;align-items:flex-start}
+.cur-sidebar{flex-shrink:0;width:150px;display:flex;flex-direction:column;gap:8px;position:sticky;top:10px}
+.cur-cls-btn{padding:14px 10px 12px;border:2px solid var(--border);border-radius:var(--r-md);background:var(--surface);cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;font-family:inherit}
+.cur-cls-btn:hover{border-color:var(--accent);background:var(--surface2)}
+.cur-cls-btn.sel{border-color:var(--accent);background:var(--accent-lt);box-shadow:0 2px 8px rgba(79,70,229,.15)}
+.cur-cls-btn-emoji{font-size:28px;line-height:1}
+.cur-cls-btn-label{font-size:13px;font-weight:700;color:var(--text);margin-top:2px}
+.cur-cls-btn-stat{font-size:11px;color:var(--text2);font-weight:600}
+.cur-cls-btn.sel .cur-cls-btn-stat{color:var(--accent)}
+.cur-cls-btn-bar{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+.cur-cls-btn-fill{height:100%;background:var(--accent);transition:width .3s}
 
+/* 메인 영역 */
+.cur-main{flex:1;min-width:0}
+.cur-schedule-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;box-shadow:var(--sh)}
+.cur-sch-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px}
+.cur-sch-head-actions{display:flex;gap:6px}
+.cur-sch-stats{display:flex;gap:8px;font-size:12px;color:var(--text2);padding:6px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap}
+.cur-sch-stats b{color:var(--accent);font-weight:700}
+
+/* 일정 테이블 */
 .cur-tbl-wrap{max-height:600px;overflow-y:auto}
-.cur-tbl{font-size:12.5px;min-width:760px}
-.cur-tbl thead th{position:sticky;top:0;background:var(--surface2);z-index:2}
-.cur-tbl td{padding:6px 8px;vertical-align:middle}
-.cur-date{font-family:'Consolas',monospace;font-weight:600;white-space:nowrap;min-width:90px}
-.cur-sess-topic{min-width:180px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
+.cur-tbl{font-size:12.5px;width:100%}
+.cur-tbl thead th{position:sticky;top:0;background:var(--surface2);z-index:2;font-size:11px;padding:8px 6px}
+.cur-tbl td{padding:6px;vertical-align:middle}
+.cur-date{font-family:'Consolas',monospace;font-weight:600;white-space:nowrap;min-width:100px}
+.cur-sess-topic{width:100%;min-width:160px;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
 .cur-sess-topic:focus{outline:none;border-color:var(--accent)}
-.cur-sess-memo{width:100%;min-width:100px;padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
+.cur-sess-memo{width:100%;min-width:100px;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
 .cur-sess-memo:focus{outline:none;border-color:var(--accent)}
 .cur-skip-lbl{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none}
 .cur-skip-lbl input{width:auto}
-.cur-sess-row.cur-skipped{opacity:.4;background:var(--surface2)}
+.cur-sess-row.cur-skipped{opacity:.45;background:var(--surface2)}
 .cur-sess-row.cur-skipped .cur-sess-topic,.cur-sess-row.cur-skipped .cur-sess-memo{text-decoration:line-through;color:var(--text3)}
-.cur-sess-row.cur-weekend{background:rgba(255,200,0,.06)}
+.cur-sess-row.cur-weekend{background:rgba(255,200,0,.05)}
 
 .me-hookstyle-opts{display:flex;flex-direction:column;gap:6px;padding:6px 0}
 .me-radio{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text);transition:background .12s}
