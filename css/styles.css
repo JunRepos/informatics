@@ -605,6 +605,19 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .mi-test-detail{font-size:11.5px;color:var(--text2);font-family:'Consolas',monospace;white-space:pre-wrap;word-break:break-word;margin:0}
 
 /* 미션 에디터 */
+/* 미션 input() 팝업 */
+.mi-input-prompt{margin:8px 0;padding:10px 14px;background:#fef7e0;border-left:3px solid #f9ab00;border-radius:0 4px 4px 0;animation:mi-pop .2s ease-out}
+[data-theme="dark"] .mi-input-prompt{background:#2b2410;color:#fde293}
+.mi-ip-header{font-size:13px;margin-bottom:8px;color:#5f4b00}
+[data-theme="dark"] .mi-ip-header{color:#fde293}
+.mi-ip-header b{color:#b97800}
+[data-theme="dark"] .mi-ip-header b{color:#f9ab00}
+.mi-ip-area{width:100%;padding:8px 10px;font-family:'Consolas','Roboto Mono',monospace;font-size:13px;background:#fff;color:var(--text);border:1px solid #e8d896;border-radius:4px;box-sizing:border-box;resize:vertical;min-height:40px}
+[data-theme="dark"] .mi-ip-area{background:#1a1a1a;border-color:#5a4a1a}
+.mi-ip-area:focus{outline:none;border-color:#f9ab00;box-shadow:0 0 0 2px rgba(249,171,0,.15)}
+.mi-ip-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
+.mi-ip-hint{font-size:11px;color:var(--text3);margin-left:auto}
+
 .me-step{margin-bottom:12px;border-left:4px solid var(--accent);background:var(--surface2)}
 .me-tests{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .me-test-row{display:flex;gap:6px;align-items:center;background:var(--surface);padding:5px 8px;border-radius:4px;border:1px solid var(--border)}

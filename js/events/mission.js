@@ -8,6 +8,56 @@
 let _missionGame = null;         // 현재 실행 중인 게임 인스턴스
 let _missionSaveTimer = null;    // 학생 진도 저장 debounce
 
+// ── input() 호출 감지 (주석/문자열 제외) ──
+function countMissionInputCalls(code){
+  const stripped = (code || '')
+    .replace(/#.*$/gm, '')
+    .replace(/'''[\s\S]*?'''/g, "''")
+    .replace(/"""[\s\S]*?"""/g, '""')
+    .replace(/'[^'\n]*'/g, "''")
+    .replace(/"[^"\n]*"/g, '""');
+  const matches = stripped.match(/\binput\s*\(/g);
+  return matches?.length || 0;
+}
+
+// ── 미션 input() 팝업 (Colab/노트북 스타일) ──
+function promptMissionInputs(count, existing){
+  return new Promise(resolve => {
+    const area = document.getElementById('mi-code-area');
+    const parent = area?.parentElement || document.body;
+    parent.querySelector('.mi-input-prompt')?.remove();
+
+    const div = document.createElement('div');
+    div.className = 'mi-input-prompt';
+    div.innerHTML = `
+      <div class="mi-ip-header">
+        💬 이 코드는 <b>input()</b>을 ${count}번 호출합니다. 입력할 값을 한 줄씩 넣어주세요:
+      </div>
+      <textarea class="mi-ip-area" rows="${Math.min(Math.max(count, 2), 5)}" placeholder="한 줄에 하나씩..." spellcheck="false">${esc(existing || '')}</textarea>
+      <div class="mi-ip-actions">
+        <button class="mi-ip-ok btn-p btn-sm">▶ 실행</button>
+        <button class="mi-ip-cancel btn-sm">취소</button>
+        <span class="mi-ip-hint">💡 Ctrl+Enter 실행 · Esc 취소</span>
+      </div>
+    `;
+    area?.insertAdjacentElement('afterend', div);
+
+    const ta = div.querySelector('.mi-ip-area');
+    const ok = div.querySelector('.mi-ip-ok');
+    const cancel = div.querySelector('.mi-ip-cancel');
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 30);
+
+    const submit = () => { const v = ta.value; div.remove(); resolve(v); };
+    const abort = () => { div.remove(); resolve(null); };
+    ok.addEventListener('click', submit);
+    cancel.addEventListener('click', abort);
+    ta.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); abort(); }
+    });
+  });
+}
+
 // ── 게임 hook 적용 (통과한 단계의 것만) ──
 async function applyPassedHooks(){
   if(!_missionGame || !SEL_MISSION) return;
@@ -34,8 +84,8 @@ async function applyPassedHooks(){
       } else if(step.unlocks === 'speedConfig'){
         // input()으로 받은 speed 변수 읽어서 게임 속도에 적용 (1회성)
         try {
-          // 저장된 stdin 사용 (MISSION_STEP_PASS에 기록)
-          const stdin = pass.lastStdin || '1';
+          // 학생이 팝업으로 직접 입력한 값 우선, 없으면 테스트 stdin, 기본 1
+          const stdin = pass.actualStdin ?? pass.lastStdin ?? '1';
           _resetStdinForMission(py);
           _setStdinForMission(py, stdin);
           _resetNamespaceMission(py);
@@ -152,6 +202,17 @@ async function runCurrentStep(){
   try { await ensureMissionPyodide(); }
   catch(e){ resEl.innerHTML = `<div class="mi-results"><div class="mi-test-item fail">⚠️ Pyodide 로드 실패: ${esc(e.message)}</div></div>`; return; }
 
+  // input() 감지 → 학생에게 실제 게임에 쓸 값 입력받음
+  let userStdin = null;
+  const inputCount = countMissionInputCalls(code);
+  if(inputCount > 0){
+    const prev = MISSION_STEP_PASS[step.id]?.actualStdin;
+    resEl.innerHTML = '';
+    userStdin = await promptMissionInputs(inputCount, prev);
+    if(userStdin === null){ return; }
+    resEl.innerHTML = `<div class="mi-results"><div style="color:var(--text2);font-size:13px">⏳ Python 실행 중...</div></div>`;
+  }
+
   // 각 단계는 독립적으로 테스트 (이전 단계 코드 prepend 안 함)
   // 이전 단계 코드는 게임 hook 실행 시점에만 사용됨 (applyPassedHooks)
   const result = await runMissionTests(code, step.tests || []);
@@ -162,7 +223,7 @@ async function runCurrentStep(){
     return;
   }
 
-  // 마지막으로 쓴 stdin (speedConfig 등에 재사용)
+  // 첫 테스트의 stdin (fallback용)
   const lastStdin = (step.tests || []).find(t => t.stdin !== undefined)?.stdin;
 
   MISSION_STEP_PASS[step.id] = {
@@ -170,7 +231,8 @@ async function runCurrentStep(){
     code,
     passed: result.success,
     lastResults: result.results,
-    ...(lastStdin !== undefined ? {lastStdin} : {})
+    ...(lastStdin !== undefined ? {lastStdin} : {}),
+    ...(userStdin !== null && userStdin !== undefined ? {actualStdin: userStdin} : {})
   };
 
   // 통과 시 hook 적용
