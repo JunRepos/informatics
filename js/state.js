@@ -74,6 +74,9 @@ let MISSION_STEP_PASS  = {};    // { [stepId]: {passed:true, code:"..."} } — �
 let MISSION_EDITING    = null;  // 선생님: 편집 중인 미션 (null=신규 또는 수정대상)
 let MISSION_VIEW       = 'list'; // 'list' | 'play' | 'edit'
 
+// 진도 계획
+let CURRICULUM = null; // {startDate, endDate, classDays, topics, sessions, updatedAt}
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

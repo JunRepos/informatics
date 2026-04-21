@@ -208,6 +208,29 @@ async function saveMissionProgress(cid, mid, studentNum, stepPass){
   });
 }
 
+// ── 진도 계획 (선생님 전용, 전역 하나) ──
+async function loadCurriculum(){
+  const s = await db.ref('curriculum/plan').get();
+  CURRICULUM = s.exists() ? s.val() : null;
+  // sessions는 Firebase에서 객체로 올 수 있으니 배열로 정규화
+  if(CURRICULUM?.sessions){
+    for(const cid of Object.keys(CURRICULUM.sessions)){
+      const v = CURRICULUM.sessions[cid];
+      if(v && !Array.isArray(v)) CURRICULUM.sessions[cid] = Object.values(v);
+    }
+  }
+  if(CURRICULUM?.topics && !Array.isArray(CURRICULUM.topics)){
+    CURRICULUM.topics = Object.values(CURRICULUM.topics);
+  }
+}
+
+async function saveCurriculum(data){
+  await db.ref('curriculum/plan').set({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([

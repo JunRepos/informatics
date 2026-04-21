@@ -262,6 +262,22 @@
       }
     },
 
+    // ── 진도 계획 (선생님 전역) ──
+    "curriculum": {
+      "plan": {
+        ".read": true,
+        ".write": true,
+        ".validate": true,
+        "startDate": { ".validate": "newData.isString()" },
+        "endDate":   { ".validate": "newData.isString()" },
+        "classDays": { ".validate": true },
+        "topics":    { ".validate": true },
+        "sessions":  { ".validate": true },
+        "updatedAt": { ".validate": "newData.isString()" },
+        "$other":    { ".validate": false }
+      }
+    },
+
     // ── 그 외 모든 경로 차단 ──
     "$other": {
       ".read": false,

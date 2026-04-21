@@ -607,6 +607,42 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .me-tests{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .me-test-row{display:flex;gap:6px;align-items:center;background:var(--surface);padding:5px 8px;border-radius:4px;border:1px solid var(--border)}
 .me-test-row input{font-family:'Consolas',monospace;font-size:12px;padding:4px 8px}
+/* ═══════════════════════════════════════
+   Curriculum (진도 계획)
+═══════════════════════════════════════ */
+.cur-cls-row{display:flex;align-items:center;gap:12px;padding:6px 0;flex-wrap:wrap}
+.cur-cls-label{min-width:100px;font-size:13px;font-weight:600;color:var(--text)}
+.cur-day-chips{display:flex;gap:4px;flex-wrap:wrap}
+.cur-day-chip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid var(--border);border-radius:50%;font-size:12px;font-weight:600;cursor:pointer;user-select:none;background:var(--surface);color:var(--text3);transition:all .12s}
+.cur-day-chip:hover{border-color:var(--accent);color:var(--accent)}
+.cur-day-chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.cur-topic-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.cur-topic-row:last-child{border-bottom:none}
+.cur-topic-num{min-width:24px;text-align:center;font-size:12px;color:var(--text3);font-weight:600;background:var(--surface2);border-radius:50%;padding:4px 6px}
+.cur-topic-title{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px}
+.cur-topic-title:focus{outline:none;border-color:var(--accent)}
+.cur-topic-actions{display:flex;gap:4px}
+
+.cur-stats{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.cur-stat{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px}
+.cur-stat-num{font-weight:700;font-size:14px;color:var(--accent)}
+
+.cur-tbl-wrap{max-height:600px;overflow-y:auto}
+.cur-tbl{font-size:12.5px;min-width:760px}
+.cur-tbl thead th{position:sticky;top:0;background:var(--surface2);z-index:2}
+.cur-tbl td{padding:6px 8px;vertical-align:middle}
+.cur-date{font-family:'Consolas',monospace;font-weight:600;white-space:nowrap;min-width:90px}
+.cur-sess-topic{min-width:180px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
+.cur-sess-topic:focus{outline:none;border-color:var(--accent)}
+.cur-sess-memo{width:100%;min-width:100px;padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)}
+.cur-sess-memo:focus{outline:none;border-color:var(--accent)}
+.cur-skip-lbl{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none}
+.cur-skip-lbl input{width:auto}
+.cur-sess-row.cur-skipped{opacity:.4;background:var(--surface2)}
+.cur-sess-row.cur-skipped .cur-sess-topic,.cur-sess-row.cur-skipped .cur-sess-memo{text-decoration:line-through;color:var(--text3)}
+.cur-sess-row.cur-weekend{background:rgba(255,200,0,.06)}
+
 .me-hookstyle-opts{display:flex;flex-direction:column;gap:6px;padding:6px 0}
 .me-radio{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text);transition:background .12s}
 .me-radio:hover{background:var(--surface2)}

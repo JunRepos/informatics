@@ -29,22 +29,26 @@ function vTeacher(){
     ${tcIsInfo ? tab('📓 노트북','notebook',TC_TAB,"setTC('notebook')") : ''}
     ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
+    ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
 
-  if(!TC_CLS && TC_TAB !== 'settings')
+  // 진도계획/설정은 반 선택 없이 접근 가능
+  const globalTabs = ['settings', 'curriculum'];
+  if(!TC_CLS && !globalTabs.includes(TC_TAB))
     return clsBar + tabs + emptyBox('👆','관리할 반을 선택하세요.');
 
   let body = '';
-  if     (TC_TAB === 'notice')   body = vTcNotice();
-  else if(TC_TAB === 'assign')   body = vTcAssign();
-  else if(TC_TAB === 'board')    body = vTcBoard();
-  else if(TC_TAB === 'attend')   body = vTcAttend();
-  else if(TC_TAB === 'students') body = vTcStudents();
-  else if(TC_TAB === 'oj')       body = vTcOJ();
-  else if(TC_TAB === 'notebook') body = vTcNotebook();
-  else if(TC_TAB === 'mission')  body = vTcMission();
-  else if(TC_TAB === 'settings') body = vTcSettings();
+  if     (TC_TAB === 'notice')     body = vTcNotice();
+  else if(TC_TAB === 'assign')     body = vTcAssign();
+  else if(TC_TAB === 'board')      body = vTcBoard();
+  else if(TC_TAB === 'attend')     body = vTcAttend();
+  else if(TC_TAB === 'students')   body = vTcStudents();
+  else if(TC_TAB === 'oj')         body = vTcOJ();
+  else if(TC_TAB === 'notebook')   body = vTcNotebook();
+  else if(TC_TAB === 'mission')    body = vTcMission();
+  else if(TC_TAB === 'curriculum') body = vTcCurriculum();
+  else if(TC_TAB === 'settings')   body = vTcSettings();
 
   return clsBar + tabs + body;
 }
@@ -53,6 +57,9 @@ function setTC(t){
   TC_TAB = t;
   if(t === 'attend' && TC_CLS){
     loadAttendance(TC_CLS.id, AT_DATE).then(render);
+  } else if(t === 'curriculum'){
+    // 진도 계획은 전역 하나, 최초 진입 시 로드
+    loadCurriculum().then(render);
   } else {
     render();
   }
