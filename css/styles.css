@@ -526,6 +526,8 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .cb-md-render table th{background:var(--cb-bg-2);font-weight:500}
 .cb-md-render hr{border:none;border-top:1px solid var(--cb-border);margin:16px 0}
 .cb-md-render a{color:var(--cb-accent);text-decoration:underline}
+.cb-md-render img{max-width:100%;height:auto;border-radius:6px;margin:8px 0;display:block;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+[data-theme="dark"] .cb-md-render img{background:#fff;padding:4px}
 
 .cb-md-editor{padding:4px 8px}
 .cb-md-area{display:none}

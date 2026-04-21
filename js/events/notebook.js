@@ -84,11 +84,34 @@ function parseIpynb(jsonText){
   const data = JSON.parse(jsonText);
   if(!data.cells || !Array.isArray(data.cells)) throw new Error('유효한 ipynb 파일이 아닙니다.');
   return data.cells.map((c, idx) => {
-    const source = Array.isArray(c.source) ? c.source.join('') : (c.source || '');
+    let source = Array.isArray(c.source) ? c.source.join('') : (c.source || '');
+
+    // attachment: 참조를 data URL로 변환 (Jupyter 일부 형식)
+    if(c.attachments && typeof c.attachments === 'object'){
+      for(const [name, mediaMap] of Object.entries(c.attachments)){
+        if(!mediaMap || typeof mediaMap !== 'object') continue;
+        const entries = Object.entries(mediaMap);
+        if(!entries.length) continue;
+        const [mime, b64] = entries[0];
+        if(mime && b64){
+          const clean = String(b64).replace(/\s+/g, '');
+          const dataUrl = `data:${mime};base64,${clean}`;
+          source = source.split(`attachment:${name}`).join(dataUrl);
+        }
+      }
+    }
+
     const type = c.cell_type === 'code' ? 'code' : 'markdown';
     const id = c.metadata?.id || `cell-${idx}-${Math.random().toString(36).slice(2,8)}`;
     return {id, type, source};
   });
+}
+
+// 셀 배열의 총 바이트 수 추정 (업로드 경고용)
+function estimateCellsSize(cells){
+  try {
+    return new Blob([JSON.stringify(cells)]).size;
+  } catch { return 0; }
 }
 
 // ── 노트북 열기 ──
@@ -519,6 +542,20 @@ document.addEventListener('click', async e => {
         let cells;
         try { cells = parseIpynb(text); }
         catch(err){ errEl.textContent = `"${file.name}" 파싱 실패: ${err.message}`; continue; }
+
+        // 크기 체크 (Firebase 16MB 제한)
+        const size = estimateCellsSize(cells);
+        const sizeMB = (size / 1024 / 1024).toFixed(1);
+        if(size > 14 * 1024 * 1024){
+          errEl.textContent = `"${file.name}" 이 너무 큽니다 (${sizeMB}MB). 이미지 크기를 줄이거나 분할해주세요. (최대 14MB)`;
+          continue;
+        }
+        if(size > 5 * 1024 * 1024){
+          if(!confirm(`"${file.name}" 크기: ${sizeMB}MB\n큰 이미지가 포함된 것 같습니다. 업로드/로딩이 느릴 수 있어요. 계속할까요?`)){
+            continue;
+          }
+        }
+
         const nbTitle = (files.length === 1 && title) ? title : file.name.replace(/\.ipynb$/i, '');
         for(const targetCid of targetClasses){
           const nid = genId();
