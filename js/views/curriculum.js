@@ -50,9 +50,10 @@ function defaultCurriculum(){
   const end = new Date(today); end.setMonth(end.getMonth() + 3);
   const cls2A = CLASSES.find(c => c.id === 'info-2A');
   const cls2B = CLASSES.find(c => c.id === 'info-2B');
+  const toLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   return {
-    startDate: today.toISOString().slice(0, 10),
-    endDate: end.toISOString().slice(0, 10),
+    startDate: toLocal(today),
+    endDate: toLocal(end),
     classDays: {
       'info-2A': cls2A?.classDays || [3, 4, 5],
       'info-2B': cls2B?.classDays || [1, 2, 5]

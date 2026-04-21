@@ -9,6 +9,14 @@
 
 let _curSaveTimer = null;
 
+// 로컬 타임존 기준 YYYY-MM-DD (ISO UTC 변환 버그 방지)
+function toLocalDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function setCurSaveIndicator(state){
   const el = document.getElementById('cur-save-ind');
   if(!el) return;
@@ -61,9 +69,10 @@ function generateCurSessions(cur){
     const d = new Date(start);
     while(d <= end){
       if(days.includes(d.getDay())){
+        const ds = toLocalDateStr(d);
         sessions[cid].push({
-          id: 'sess_' + d.toISOString().slice(0,10) + '_' + cid,
-          date: d.toISOString().slice(0, 10),
+          id: 'sess_' + ds + '_' + cid,
+          date: ds,
           topicId: null,
           memo: '',
           skipped: false,
@@ -256,7 +265,7 @@ document.addEventListener('click', async e => {
     readCurSetup();
     // 사이드바에서 선택된 반 or 버튼 data-cid 우선
     const cid = act.cid || CUR_VIEW_CLS || 'info-2A';
-    const dateStr = prompt('추가할 날짜를 입력하세요 (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    const dateStr = prompt('추가할 날짜를 입력하세요 (YYYY-MM-DD):', toLocalDateStr(new Date()));
     if(!dateStr) return;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ toast('날짜 형식이 잘못됐습니다.', 'err'); return; }
 
