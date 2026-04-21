@@ -152,16 +152,9 @@ async function runCurrentStep(){
   try { await ensureMissionPyodide(); }
   catch(e){ resEl.innerHTML = `<div class="mi-results"><div class="mi-test-item fail">⚠️ Pyodide 로드 실패: ${esc(e.message)}</div></div>`; return; }
 
-  // 통과한 이전 단계들의 코드 + 현재 코드를 같은 네임스페이스에서 실행
-  const codesBefore = [];
-  for(const s of m.steps){
-    if(s.id === step.id) break;
-    const p = MISSION_STEP_PASS[s.id];
-    if(p?.passed && p.code) codesBefore.push(p.code);
-  }
-  const fullCode = codesBefore.join('\n') + '\n' + code;
-
-  const result = await runMissionTests(fullCode, step.tests || []);
+  // 각 단계는 독립적으로 테스트 (이전 단계 코드 prepend 안 함)
+  // 이전 단계 코드는 게임 hook 실행 시점에만 사용됨 (applyPassedHooks)
+  const result = await runMissionTests(code, step.tests || []);
 
   if(result.runError){
     MISSION_STEP_PASS[step.id] = {...(MISSION_STEP_PASS[step.id]||{}), code, passed: false, lastResults: [{error: result.runError, ok: false}]};
