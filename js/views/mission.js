@@ -118,6 +118,11 @@ function vMissionPlay(isTeacher){
 
           <div class="mi-step-desc">${typeof marked !== 'undefined' ? marked.parse(step.description || '') : esc(step.description || '')}</div>
 
+          ${step.experiment ? `<div class="mi-experiment">
+            <div class="mi-exp-title">🎨 자유롭게 바꿔보세요!</div>
+            <div class="mi-exp-body">${typeof marked !== 'undefined' ? marked.parse(step.experiment) : esc(step.experiment)}</div>
+          </div>` : ''}
+
           ${step.hint ? `<details class="mi-hint"><summary>💡 힌트</summary><div>${typeof marked !== 'undefined' ? marked.parse(step.hint) : esc(step.hint)}</div></details>` : ''}
 
           <div class="mi-code-label">✏️ 여기에 코드를 작성하세요:</div>
@@ -355,6 +360,7 @@ function getFlappyBirdSampleMission(){
         id: 'step_score_var',
         title: '1️⃣ score 변수 만들기 — 시작 점수 정하기',
         description: '## 🎯 목표\n\n**score 변수**를 만들어 원하는 숫자를 저장해보세요.\n\n저장한 값이 **왼쪽 게임 화면 상단에 바로 표시**됩니다!\n\n```python\nscore = 0        # 0점으로 시작\nscore = 100      # 100점으로 시작\n```\n\n숫자를 바꾸면서 실행해 봐요. 어떤 숫자든 OK! 🎮',
+        experiment: '- `score = 1000` — 큰 숫자로 시작해보기\n- `score = -50` — 음수면 어떻게 될까?\n- `score = 9999` — 엄청 큰 숫자\n\n숫자를 바꾸고 **실행 & 테스트** 를 누를 때마다 게임이 리셋되면서 새 점수로 시작해요!',
         hint: '`score = 원하는숫자` 처럼 `=` 기호로 값을 저장합니다.\n정수(0, 100, 50)면 OK!',
         starterCode: '# score 변수에 원하는 숫자를 저장하세요\n\nscore = 0\n',
         tests: [
@@ -367,6 +373,7 @@ function getFlappyBirdSampleMission(){
         id: 'step_plus_float',
         title: '2️⃣ 자료형 변환 + 덧셈 — 장애물마다 +0.5',
         description: '## 🎯 목표\n\n장애물을 지날 때마다 **0.5점씩** 더해봅시다!\n\n1. `plus` 변수를 만들고 **0.5** 저장\n2. `score`를 **`float`형으로 변환**\n3. `score`에 `plus`만큼 더해서 다시 저장\n\n```python\nplus = 0.5\nscore = float(score) + plus\n```\n\n✨ **왜 float 변환?**\n`score`는 1단계에서 정수(int)로 만들었어요. 거기에 0.5(float)를 더할 때 **자료형을 맞춰주면** 의도가 명확해집니다.\n\n성공하면 장애물 지날 때마다 0.5씩 오릅니다! (0 → 0.5 → 1.0 → 1.5 ...)',
+        experiment: '- `plus = 1` — 정수로 올리기\n- `plus = 10` — 한번에 10점씩! 수퍼 부스터\n- `plus = -1` — 음수면? 점수가 줄어들어요!\n- `plus = 0.1` — 아주 조금씩\n\n**한 걸음 더**: `score = float(score) + plus * 2` 처럼 곱셈을 섞어봐도 OK!',
         hint: '`float(값)`은 정수를 실수로 바꿔줘요.\n1) `plus = 0.5`\n2) `score = float(score) + plus`',
         starterCode: '# plus 변수에 0.5 저장\n# score를 float으로 변환 후 plus 만큼 더해서 score에 다시 저장\n\n',
         hookStyle: 'block',
@@ -382,6 +389,7 @@ function getFlappyBirdSampleMission(){
         id: 'step_speed_input',
         title: '3️⃣ 입력(input) — 게임 속도 조절!',
         description: '## 🎯 목표\n\n사용자로부터 **속도값**을 입력받아 `speed` 변수에 저장하세요.\n\n```python\nspeed = float(input())\n```\n\n- `input()` → 사용자로부터 값을 받아옴 (항상 **문자열** 형태)\n- `float(...)` → 실수로 변환해야 계산 가능!\n\n실행하면 **장애물 속도가 바뀝니다**:\n- **0.5** → 슬로우 모션 🐢\n- **1** → 보통 속도\n- **2** → 빠른 속도 🚀\n\n💡 0.3 ~ 3 사이 값을 넣어보세요!',
+        experiment: '입력값을 여러 가지로 바꿔가며 실험해봐요:\n\n- **`0.3`** — 초슬로우 (거의 멈춤)\n- **`1`** — 기본 속도\n- **`2.5`** — 빠름!\n- **`3`** — 폭주 모드 🔥\n\n**`float(input())` 대신 `int(input())`** 를 써보면 어떻게 될까요?\n(→ `1.5` 같은 소수는 오류, `2` 같은 정수만 됨. 왜 float가 편할지 느껴봐요!)',
         hint: '`input()`은 값을 받아오지만 **문자열**이에요!\n숫자로 쓰려면 `float(...)` 로 감싸야 합니다.\n\n```python\nspeed = float(input())\n```',
         starterCode: '# input() 으로 속도값을 받고 float 으로 변환하여 speed 에 저장\n\n',
         hookStyle: 'variable',
@@ -395,6 +403,7 @@ function getFlappyBirdSampleMission(){
         id: 'step_game_over_bonus',
         title: '4️⃣ 거듭제곱(**) — 게임오버 보너스!',
         description: '## 🎯 목표\n\n게임이 끝났을 때 **지난 장애물 개수의 제곱**만큼 보너스 점수를 추가해봅시다!\n\n주어진 변수:\n- `score`: 현재 점수\n- `pipesPassed`: 지난 장애물 개수\n\n```python\nscore = score + pipesPassed ** 2\n```\n\n**거듭제곱(`**`) 연산자**: `a ** b` = `a`를 `b`번 곱함\n- `2 ** 3` = 2 × 2 × 2 = **8**\n- `5 ** 2` = 5 × 5 = **25**\n\n### 🎮 효과는?\n- 3개 지나고 죽으면 → **+9** 보너스\n- 5개 지나고 죽으면 → **+25** 보너스\n- 10개 지나면 → **+100** 보너스! 🔥\n- 20개 지나면 → **+400** 폭발적 보상!\n\n장애물을 더 많이 지날수록 **기하급수적**으로 점수가 뛰어오르는 짜릿한 마무리!',
+        experiment: '공식을 바꿔가며 내 스타일의 보너스를 만들어봐요:\n\n- `score = score + pipesPassed ** 3` — **세제곱**! (5개 → +125, 10개 → +1000 💥)\n- `score = score * 2 + pipesPassed ** 2` — 점수 2배 + 제곱\n- `score = score + pipesPassed * 10` — 단순 곱셈 (5개 → +50)\n- `score = score ** 2` — 점수 자체를 제곱!\n\n계산기라고 생각하고 **나만의 공식**을 만들어봐요 🧮',
         hint: '`**` 연산자로 제곱을 계산합니다.\n`pipesPassed ** 2` = pipesPassed의 제곱\n\n```python\nscore = score + pipesPassed ** 2\n```',
         starterCode: '# score: 현재 점수\n# pipesPassed: 지난 장애물 개수\n# pipesPassed의 제곱을 score에 더해서 저장\n\n',
         hookStyle: 'block',
@@ -408,8 +417,9 @@ function getFlappyBirdSampleMission(){
       },
       {
         id: 'step_level_system',
-        title: '5️⃣ 몫(//) — 레벨 시스템!',
-        description: '## 🎯 목표\n\n장애물 **5개 지날 때마다 레벨이 1씩 증가**하도록 만들어봅시다!\n\n주어진 변수:\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**몫(`//`) 연산자**: `a // b` = `a`를 `b`로 나눈 **몫(정수)**\n- `17 // 5` = **3** (17 ÷ 5 = 3…나머지 2)\n- `10 // 5` = **2**\n- `4 // 5` = **0**\n\n```python\nlevel = pipesPassed // 5\n```\n\n### 🎮 효과는?\n왼쪽 게임 화면 **좌측 상단에 `Lv.1`, `Lv.2`, `Lv.3` ...** 배지가 실시간으로 표시됩니다!\n- 0~4개 지남 → Lv.0\n- 5~9개 지남 → Lv.1\n- 10~14개 → Lv.2\n- 15개 → Lv.3 ...\n\n장애물을 많이 지나서 레벨을 올려보세요! ⭐',
+        title: '5️⃣ 몫(//) — 레벨 시스템 + 배경 변화!',
+        description: '## 🎯 목표\n\n장애물 **5개 지날 때마다 레벨이 1씩 증가**하도록 만들어봅시다!\n\n주어진 변수:\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**몫(`//`) 연산자**: `a // b` = `a`를 `b`로 나눈 **몫(정수)**\n- `17 // 5` = **3** (17 ÷ 5 = 3…나머지 2)\n- `10 // 5` = **2**\n- `4 // 5` = **0**\n\n```python\nlevel = pipesPassed // 5\n```\n\n### 🎮 효과는?\n왼쪽 게임 화면 **좌측 상단에 `Lv.N · 테마이름`** 배지가 뜨고,\n**레벨이 바뀔 때마다 배경이 통째로 변해요!** 🌅\n\n- **Lv.0** 낮 ☀️ (파란 하늘)\n- **Lv.1** 아침노을 🌤️\n- **Lv.2** 석양 🌇\n- **Lv.3** 황혼 💜\n- **Lv.4** 밤 🌙 (별이 반짝)\n- **Lv.5+** 우주 🌌 (검은 우주)\n\n장애물을 많이 지나서 모든 테마를 구경해보세요! ⭐',
+        experiment: '레벨 공식을 바꿔서 **배경 전환 타이밍**을 내 맘대로 조절!\n\n- `level = pipesPassed // 3` — 3개마다 빠르게 레벨업 (우주까지 금방!)\n- `level = pipesPassed // 10` — 10개마다 (한 세계를 오래 감상)\n- `level = pipesPassed // 1` — 장애물 하나마다 레벨업! ⚡\n- `level = pipesPassed * 2` — 몫 없이 그냥 2배 (바로 우주 점프)\n\n공식을 바꾸고 **실행** 후 게임을 해보면 배경 바뀌는 순간이 달라져요!',
         hint: '`//` 연산자로 몫을 구합니다.\n`pipesPassed // 5` = pipesPassed를 5로 나눈 몫\n\n```python\nlevel = pipesPassed // 5\n```',
         starterCode: '# pipesPassed: 지난 장애물 개수\n# 5개마다 레벨 1 증가 → pipesPassed를 5로 나눈 몫\n# 결과를 level 변수에 저장\n\n',
         hookStyle: 'block',

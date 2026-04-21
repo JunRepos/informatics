@@ -577,6 +577,18 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .mi-step-desc pre{background:#1e293b;color:#e2e8f0;padding:10px 12px;border-radius:4px;overflow-x:auto;margin:6px 0;font-size:12.5px;border:none}
 .mi-step-desc pre code{background:none;color:inherit;padding:0}
 
+/* 자유롭게 실험해보세요 안내 박스 */
+.mi-experiment{margin-bottom:12px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1px solid #c7d2fe;border-radius:var(--r-sm);padding:10px 14px;color:#3730a3}
+[data-theme="dark"] .mi-experiment{background:linear-gradient(135deg,#1e1b4b,#312e81);border-color:#4338ca;color:#c7d2fe}
+.mi-exp-title{font-size:12px;font-weight:700;margin-bottom:4px;letter-spacing:.2px}
+.mi-exp-body{font-size:12.5px;line-height:1.6}
+.mi-exp-body ul,.mi-exp-body ol{padding-left:20px;margin:4px 0}
+.mi-exp-body li{margin:2px 0}
+.mi-exp-body code{background:rgba(255,255,255,.6);padding:1px 6px;border-radius:3px;font-family:'Consolas',monospace;font-size:11.5px;color:#3730a3}
+[data-theme="dark"] .mi-exp-body code{background:rgba(0,0,0,.35);color:#c7d2fe}
+.mi-exp-body p{margin:4px 0}
+.mi-exp-body strong{font-weight:700}
+
 .mi-hint{margin-bottom:12px;font-size:12.5px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r-sm);padding:4px 10px}
 [data-theme="dark"] .mi-hint{background:#292003;border-color:#713f12;color:#fcd34d}
 .mi-hint summary{cursor:pointer;padding:4px 0;font-weight:600;color:#92400e;user-select:none}

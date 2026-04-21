@@ -209,16 +209,47 @@ class FlappyBird {
     ctx.closePath();
   }
 
+  // 레벨별 배경 테마 (levelCalc hook이 있을 때만 사용)
+  getLevelTheme(){
+    const themes = [
+      {name:'낮',     sky:['#87ceeb','#c4e8f0'], pipe:'#5eaa3f', pipe2:'#4a8b32', pipe3:'#3a6b28', ground:'#ded895', groundDark:'#c3be7b', groundEdge:'#88aa4f', cloud:'rgba(255,255,255,0.7)', stars:false},
+      {name:'아침노을',sky:['#ffb347','#ffdcb8'], pipe:'#7ba44b', pipe2:'#5e8a36', pipe3:'#3e6621', ground:'#e6cfa3', groundDark:'#c9b387', groundEdge:'#9f8a5b', cloud:'rgba(255,255,255,0.65)', stars:false},
+      {name:'석양',   sky:['#ff7e67','#ffb08a'], pipe:'#a37a3f', pipe2:'#7b5a2b', pipe3:'#563d1b', ground:'#e8a76f', groundDark:'#c18859', groundEdge:'#8a5a33', cloud:'rgba(255,220,190,0.6)', stars:false},
+      {name:'황혼',   sky:['#6a5acd','#b27dc9'], pipe:'#5b3d7d', pipe2:'#3e2754', pipe3:'#281536', ground:'#705b93', groundDark:'#56437a', groundEdge:'#382752', cloud:'rgba(220,200,255,0.45)', stars:false},
+      {name:'밤',     sky:['#191970','#2d2580'], pipe:'#2b5f7a', pipe2:'#1d4254', pipe3:'#102735', ground:'#2f3562', groundDark:'#252a4f', groundEdge:'#161a33', cloud:'rgba(200,210,255,0.25)', stars:true},
+      {name:'우주',   sky:['#0a0a2e','#1a0b3a'], pipe:'#4a1a7a', pipe2:'#2d0b50', pipe3:'#18052b', ground:'#1a1040', groundDark:'#100828', groundEdge:'#080416', cloud:'rgba(180,160,255,0.15)', stars:true}
+    ];
+    if(!this.hooks.levelCalc) return themes[0];
+    const idx = Math.max(0, Math.min(themes.length - 1, this.currentLevel));
+    return themes[idx];
+  }
+
   draw(){
     const ctx = this.ctx, W = this.W, H = this.H;
+    const theme = this.getLevelTheme();
 
-    // 하늘 그라디언트
+    // 하늘 그라디언트 (레벨에 따라 변함)
     const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, '#87ceeb'); grd.addColorStop(1, '#c4e8f0');
+    grd.addColorStop(0, theme.sky[0]); grd.addColorStop(1, theme.sky[1]);
     ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
 
+    // 별 (밤/우주 테마)
+    if(theme.stars){
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      // deterministic star positions
+      for(let i = 0; i < 40; i++){
+        const sx = ((i * 37) % W);
+        const sy = ((i * 53) % (H - 100));
+        const size = (i % 3 === 0) ? 2 : 1;
+        const twinkle = Math.abs(Math.sin((this.frame + i * 20) * 0.02));
+        ctx.globalAlpha = 0.4 + twinkle * 0.6;
+        ctx.fillRect(sx, sy, size, size);
+      }
+      ctx.globalAlpha = 1;
+    }
+
     // 구름 (장식)
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = theme.cloud;
     for(let i = 0; i < 3; i++){
       const cx = ((this.frame * 0.2 + i * 150) % (W + 60)) - 30;
       const cy = 30 + i * 45;
@@ -231,31 +262,31 @@ class FlappyBird {
 
     // 파이프
     for(const p of this.pipes){
-      ctx.fillStyle = '#5eaa3f';
+      ctx.fillStyle = theme.pipe;
       ctx.fillRect(p.x, 0, p.width, p.topH);
       ctx.fillRect(p.x, p.topH + p.gap, p.width, H - p.topH - p.gap - 60);
       // 파이프 테두리
-      ctx.fillStyle = '#4a8b32';
+      ctx.fillStyle = theme.pipe2;
       ctx.fillRect(p.x, 0, 3, p.topH);
       ctx.fillRect(p.x, p.topH + p.gap, 3, H - p.topH - p.gap - 60);
       // 입구
-      ctx.fillStyle = '#5eaa3f';
+      ctx.fillStyle = theme.pipe;
       ctx.fillRect(p.x - 4, p.topH - 16, p.width + 8, 16);
       ctx.fillRect(p.x - 4, p.topH + p.gap, p.width + 8, 16);
-      ctx.fillStyle = '#4a8b32';
-      ctx.strokeStyle = '#3a6b28'; ctx.lineWidth = 1;
+      ctx.fillStyle = theme.pipe2;
+      ctx.strokeStyle = theme.pipe3; ctx.lineWidth = 1;
       ctx.strokeRect(p.x - 4, p.topH - 16, p.width + 8, 16);
       ctx.strokeRect(p.x - 4, p.topH + p.gap, p.width + 8, 16);
     }
 
     // 땅
-    ctx.fillStyle = '#ded895';
+    ctx.fillStyle = theme.ground;
     ctx.fillRect(0, H - 60, W, 60);
-    ctx.fillStyle = '#c3be7b';
+    ctx.fillStyle = theme.groundDark;
     for(let x = -(this.frame * 2) % 30; x < W; x += 30){
       ctx.fillRect(x, H - 60, 15, 60);
     }
-    ctx.fillStyle = '#88aa4f';
+    ctx.fillStyle = theme.groundEdge;
     ctx.fillRect(0, H - 62, W, 4);
 
     // 새
@@ -299,15 +330,14 @@ class FlappyBird {
     // 레벨 (좌측 상단, levelCalc hook이 있을 때만)
     if(this.hooks.levelCalc){
       ctx.textAlign = 'left';
-      // 배지 배경
-      const lvlText = `Lv.${this.currentLevel}`;
-      ctx.font = 'bold 14px sans-serif';
+      const lvlText = `Lv.${this.currentLevel} · ${theme.name}`;
+      ctx.font = 'bold 13px sans-serif';
       const tw = ctx.measureText(lvlText).width;
-      ctx.fillStyle = 'rgba(79,70,229,0.85)';
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
       this._roundRect(ctx, 8, 8, tw + 14, 22, 11);
       ctx.fill();
       ctx.fillStyle = '#fff';
-      ctx.fillText(lvlText, 15, 24);
+      ctx.fillText(lvlText, 15, 23);
     }
 
     // 시작 안내
