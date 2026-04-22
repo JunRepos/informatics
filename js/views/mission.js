@@ -8,11 +8,12 @@
 const GAME_TYPES = [
   {id:'flappybird', label:'🐦 플래피 버드', hooks:[
     {id:'gameStartScore', label:'gameStartScore', desc:'게임 시작/재시작 시 점수 (변수 score 읽음)'},
+    {id:'welcomeMessage', label:'welcomeMessage', desc:'시작 화면 메시지 (변수 greeting 읽음)'},
     {id:'addScore', label:'addScore(score)', desc:'장애물 하나 지날 때 호출 — 새 점수를 반환'},
     {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'},
     {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
     {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'},
-    {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N 표시)'}
+    {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N + 배경 변화)'}
   ]}
 ];
 
@@ -348,80 +349,103 @@ function vMeTestEditor(t, sidx, tidx, hookStyle, step){
   </div>`;
 }
 
-// ── 예제 미션 템플릿 (플래피 버드) — 변수 / 형변환 / 입력 ──
+// ── 예제 미션 템플릿 (플래피 버드) — 7단계: 변수→문자열→덧셈→곱셈→입력→몫→창작 ──
 function getFlappyBirdSampleMission(){
   return {
-    title: '플래피 버드 — 변수·자료형·입력·산술연산자',
+    title: '플래피 버드 — 내 손으로 완성하는 게임',
     gameType: 'flappybird',
-    description: '변수, 자료형, 입력, 산술 연산자(+, **, //) 를 활용해 플래피 버드를 완성해봅시다!',
+    description: '변수, 문자열, 산술 연산자, 입력, 자료형 변환을 하나씩 배우며 플래피 버드를 완성합니다. 마지막엔 나만의 공식으로 최고 점수에 도전!',
     createdAt: new Date().toISOString(),
     steps: [
+      // ═══ 1단계: 변수 (=) ═══
       {
         id: 'step_score_var',
-        title: '1️⃣ score 변수 만들기 — 시작 점수 정하기',
-        description: '## 🎯 목표\n\n**score 변수**를 만들어 원하는 숫자를 저장해보세요.\n\n저장한 값이 **왼쪽 게임 화면 상단에 바로 표시**됩니다!\n\n```python\nscore = 0        # 0점으로 시작\nscore = 100      # 100점으로 시작\n```\n\n숫자를 바꾸면서 실행해 봐요. 어떤 숫자든 OK! 🎮',
-        experiment: '- `score = 1000` — 큰 숫자로 시작해보기\n- `score = -50` — 음수면 어떻게 될까?\n- `score = 9999` — 엄청 큰 숫자\n\n숫자를 바꾸고 **실행 & 테스트** 를 누를 때마다 게임이 리셋되면서 새 점수로 시작해요!',
-        hint: '`score = 원하는숫자` 처럼 `=` 기호로 값을 저장합니다.\n정수(0, 100, 50)면 OK!',
-        starterCode: '# score 변수에 원하는 숫자를 저장해보세요\n# 예) score = 0   /   score = 100\n\n',
+        title: '1️⃣ 점수판 만들기 — 변수 선언',
+        description: '## 🎯 목표\n\n게임에 점수판이 보이지 않네요! **`score`** 라는 변수를 만들어 **시작 점수**를 저장해봅시다.\n\n```python\nscore = 0       # 0점으로 시작\nscore = 100     # 100점으로 시작도 가능!\n```\n\n👉 코드를 저장하고 실행하면 왼쪽 게임 화면에 **내가 정한 숫자가 딱 나타납니다** ✨\n\n### 💡 개념: 변수\n- **변수**란? 값을 담는 "상자". 이름을 붙여서 저장하고 꺼낼 수 있어요\n- **`=`** 기호는 "오른쪽 값을 왼쪽 변수에 넣어라" 는 뜻\n- 수학의 등호(=)와 달라요! `score = 0` 은 **"score에 0을 저장"** 입니다',
+        experiment: '어떤 숫자를 넣든 OK. 여러 가지로 시도해봐요!\n\n- `score = 9999` — 무한대 느낌\n- `score = -100` — 음수로 시작! 점수가 마이너스부터 시작돼요\n- `score = 2025` — 올해 연도\n\n**실행 & 테스트**를 누르면 게임이 리셋되면서 새 점수로 시작합니다.',
+        hint: '변수 만드는 법: `변수이름 = 값`\n\n```python\nscore = 0\n```',
+        starterCode: '# score 변수에 원하는 숫자를 저장해보세요\n# 예) score = 0    /    score = 100\n\n',
         tests: [
           {type: 'exists', name: 'score', typeOf: 'number'}
         ],
         hookStyle: 'variable',
         unlocks: 'gameStartScore'
       },
+
+      // ═══ 2단계: 문자열 + 문자열 결합 ═══
       {
-        id: 'step_plus_float',
-        title: '2️⃣ 자료형 변환 + 덧셈 — 장애물마다 +0.5',
-        description: '## 🎯 목표\n\n장애물을 지날 때마다 **0.5점씩** 더해봅시다!\n\n1. `plus` 변수를 만들고 **0.5** 저장\n2. `score`를 **`float`형으로 변환**\n3. `score`에 `plus`만큼 더해서 다시 저장\n\n```python\nplus = 0.5\nscore = float(score) + plus\n```\n\n✨ **왜 float 변환?**\n`score`는 1단계에서 정수(int)로 만들었어요. 거기에 0.5(float)를 더할 때 **자료형을 맞춰주면** 의도가 명확해집니다.\n\n성공하면 장애물 지날 때마다 0.5씩 오릅니다! (0 → 0.5 → 1.0 → 1.5 ...)',
-        experiment: '- `plus = 1` — 정수로 올리기\n- `plus = 10` — 한번에 10점씩! 수퍼 부스터\n- `plus = -1` — 음수면? 점수가 줄어들어요!\n- `plus = 0.1` — 아주 조금씩\n\n**한 걸음 더**: `score = float(score) + plus * 2` 처럼 곱셈을 섞어봐도 OK!',
-        hint: '`float(값)`은 정수를 실수로 바꿔줘요.\n1) `plus = 0.5`\n2) `score = float(score) + plus`',
-        starterCode: '# plus 변수에 0.5 저장\n# score를 float으로 변환 후 plus 만큼 더해서 score에 다시 저장\n\n',
+        id: 'step_greeting',
+        title: '2️⃣ 환영 메시지 — 문자열과 합치기',
+        description: '## 🎯 목표\n\n게임 시작할 때 **내 이름으로 인사**하는 메시지를 띄워봅시다!\n\n```python\nname = "내이름"\ngreeting = "환영해, " + name + "!"\n```\n\n👉 저장하면 왼쪽 게임 **시작 화면에 내 맞춤 메시지**가 뜹니다 💌\n\n### 💡 개념: 문자열(str)과 결합\n- **문자열** = 글자들의 묶음. 항상 **따옴표**로 감쌉니다: `"안녕"`, `\'hello\'`\n- 문자열끼리 **`+`** 로 이어 붙일 수 있어요!\n  - `"안녕" + " " + "친구"` → `"안녕 친구"`\n- 숫자 `+` 숫자 = 합계, 문자열 `+` 문자열 = 연결 (똑같은 `+` 지만 하는 일이 달라요!)',
+        experiment: '메시지를 내 스타일로 꾸며보세요!\n\n- `name = input()` — 이름을 매번 입력받기 (이름 물어봐줌!)\n- `greeting = "🎮 " + name + " 🎮 게임 시작!"`\n- `greeting = name + "은(는) 오늘의 챔피언!"`\n- `greeting = "난 " + name + ", 최고가 될 거야"`\n\n친구 이름 넣고 서로 게임해봐도 재밌어요 😄',
+        hint: '1) 먼저 `name = "이름"` 으로 내 이름 저장\n2) `greeting = "환영해, " + name + "!"` 로 합치기\n3) 따옴표 꼭 붙이기!\n\n```python\nname = "김학생"\ngreeting = "환영해, " + name + "!"\n```',
+        starterCode: '# 1. name 변수에 내 이름 저장 (따옴표 꼭!)\n# 2. greeting 변수에 "환영해, " + name + "!" 저장\n\n',
+        tests: [
+          {type: 'exists', name: 'greeting', typeOf: 'string'}
+        ],
+        hookStyle: 'variable',
+        unlocks: 'welcomeMessage'
+      },
+
+      // ═══ 3단계: 덧셈 (+) ═══
+      {
+        id: 'step_add_score',
+        title: '3️⃣ 장애물마다 점수 +1 — 덧셈 연산자',
+        description: '## 🎯 목표\n\n지금은 점수가 멈춰 있죠? 장애물을 지날 때마다 **1점씩 올라가게** 해봅시다.\n\n주어진 변수:\n- `score`: 현재 점수\n\n```python\nscore = score + 1\n```\n\n👉 저장하면 장애물 지날 때마다 **점수가 1씩 올라갑니다**!\n\n### 💡 개념: 덧셈과 변수 재할당\n- `score + 1` → 현재 score에 1을 **더한 값**\n- `score = score + 1` → 그 값을 **다시 score에 저장**\n- 오른쪽부터 계산 → 왼쪽에 저장 (이 순서 중요!)',
+        experiment: '- `score = score + 5` — 한 번에 5점씩 올리기\n- `score = score + 100` — 100점씩!\n- `score = score - 1` — **뺄셈**! 점수가 줄어들어요 😱\n- `score = score + 1` — 기본\n\n음수를 넣어도 되고, 뺄셈도 되고, 0이면 점수 안 변해요. 자유롭게!',
+        hint: '`score`에 값을 더한 결과를 다시 `score`에 저장:\n\n```python\nscore = score + 1\n```',
+        starterCode: '# score에 1을 더해서 다시 score에 저장하세요\n\n',
         hookStyle: 'block',
         blockInputs: ['score'],
         blockOutput: 'score',
         tests: [
-          {type: 'exists', name: 'plus', typeOf: 'number', inputs: {score: 0}},
-          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10}}
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 0}},
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 50}}
         ],
         unlocks: 'addScore'
       },
+
+      // ═══ 4단계: 곱셈 (*) with multiplier variable ═══
+      {
+        id: 'step_multiplier',
+        title: '4️⃣ 점수 배수기! — 곱셈 연산자',
+        description: '## 🎯 목표\n\n점수가 너무 천천히 올라가나요? **배수기**를 만들어서 점수를 **폭발적**으로 늘려봅시다! 💥\n\n주어진 변수:\n- `score`: 방금 +1된 점수 (3단계 결과)\n\n```python\nmultiplier = 2\nscore = score * multiplier\n```\n\n👉 `multiplier = 2` 면 장애물 지날 때마다 점수가 **2배**씩 커져요!\n- 1 → 2 → 6 → 14 → 30 → 62 → 126... (폭발 🔥)\n\n### 💡 개념: 곱셈과 변수 활용\n- **`*`** 가 곱셈 기호 (수학의 ×)\n- `score * multiplier` → score와 multiplier를 곱한 값\n- `multiplier` 변수 하나만 바꾸면 게임 전체가 달라져요! (코드 한 곳 수정으로 전체 변화)',
+        experiment: '`multiplier` 값을 바꿔가며 반응을 확인해봐요:\n\n- `multiplier = 1` — 아무 효과 없음 (곱해도 그대로)\n- `multiplier = 2` — 기본 (2배씩)\n- `multiplier = 3` — 3배씩 더 폭발적!\n- `multiplier = 10` — 🤯 미친 속도로 증가\n- `multiplier = 0.5` — 반대! 점수가 줄어들어요\n- `multiplier = 0` — 어?! 점수가 0으로 리셋 됨!\n\n**왜 `multiplier`를 변수로 따로 뺐을까요?** → 값을 바꾸기 쉽고, 나중에 "배수기 파워업" 같은 기능 추가하기도 편해요.',
+        hint: '1) `multiplier = 2` 로 배수 변수 만들기\n2) `score = score * multiplier` 로 score에 곱하기\n\n```python\nmultiplier = 2\nscore = score * multiplier\n```',
+        starterCode: '# 1. multiplier 변수에 배수 값 저장 (예: 2)\n# 2. score에 multiplier 를 곱해서 다시 score에 저장\n\n',
+        hookStyle: 'block',
+        blockInputs: ['score'],
+        blockOutput: 'score',
+        tests: [
+          {type: 'exists', name: 'multiplier', typeOf: 'number', inputs: {score: 5}},
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 5}}
+        ],
+        unlocks: 'finalScore'
+      },
+
+      // ═══ 5단계: 입력 + 형변환 ═══
       {
         id: 'step_speed_input',
-        title: '3️⃣ 입력(input) — 게임 속도 조절!',
-        description: '## 🎯 목표\n\n사용자로부터 **속도값**을 입력받아 `speed` 변수에 저장하세요.\n\n```python\nspeed = float(input())\n```\n\n- `input()` → 사용자로부터 값을 받아옴 (항상 **문자열** 형태)\n- `float(...)` → 실수로 변환해야 계산 가능!\n\n실행하면 **장애물 속도가 바뀝니다**:\n- **0.5** → 슬로우 모션 🐢\n- **1** → 보통 속도\n- **2** → 빠른 속도 🚀\n\n💡 0.3 ~ 3 사이 값을 넣어보세요!',
-        experiment: '입력값을 여러 가지로 바꿔가며 실험해봐요:\n\n- **`0.3`** — 초슬로우 (거의 멈춤)\n- **`1`** — 기본 속도\n- **`2.5`** — 빠름!\n- **`3`** — 폭주 모드 🔥\n\n**`float(input())` 대신 `int(input())`** 를 써보면 어떻게 될까요?\n(→ `1.5` 같은 소수는 오류, `2` 같은 정수만 됨. 왜 float가 편할지 느껴봐요!)',
-        hint: '`input()`은 값을 받아오지만 **문자열**이에요!\n숫자로 쓰려면 `float(...)` 로 감싸야 합니다.\n\n```python\nspeed = float(input())\n```',
-        starterCode: '# input() 으로 속도값을 받고 float 으로 변환하여 speed 에 저장\n\n',
+        title: '5️⃣ 속도 조절 — 입력과 자료형 변환',
+        description: '## 🎯 목표\n\n게임 속도를 **직접 입력**해서 조절해봅시다!\n\n```python\nspeed = float(input())\n```\n\n👉 실행하면 **팝업이 뜨고**, 학생이 속도값을 입력해요. 그 값대로 게임 속도가 바뀝니다!\n- **0.5** → 슬로우 모션 🐢\n- **1** → 기본\n- **2** → 빠름 🚀\n\n### 💡 개념: input() 과 형변환 (float)\n- **`input()`** → 사용자로부터 값을 받아옴. 근데 **항상 문자열 `str`** 로 돌아와요!\n- 숫자로 쓰려면 **변환**이 필요:\n  - `int("1")` → `1` (정수)\n  - `float("1.5")` → `1.5` (실수)\n\n`float()` 로 감싸야 `1.5` 같은 소수점도 받을 수 있어요!',
+        experiment: '입력값을 여러 가지로 넣어봐요 (팝업 창에 타이핑):\n\n- **`0.3`** — 초슬로우 (거의 멈춤 🐌)\n- **`1`** — 기본\n- **`2.5`** — 빠름!\n- **`3`** — 폭주 🔥\n\n### 🧪 실험: `float()` 대신 `int(input())`을 써볼까?\n```python\nspeed = int(input())\n```\n- `2` 입력 → ✅ 작동\n- `1.5` 입력 → ❌ 오류!\n\n왜냐? `int()`는 정수만 받거든요. 소수점 있는 값도 받으려면 **꼭 `float()`** 를 써야 해요!',
+        hint: '`input()`은 문자열을 받아오므로 `float()`으로 감싸야 숫자로 쓸 수 있어요:\n\n```python\nspeed = float(input())\n```',
+        starterCode: '# input()으로 속도값을 받아 float으로 변환하고 speed에 저장\n\n',
         hookStyle: 'variable',
         unlocks: 'speedConfig',
         tests: [
-          // stdin 지정 안 함 → 학생이 팝업으로 입력한 실제 값 사용
           {type: 'exists', name: 'speed', typeOf: 'number'}
         ]
       },
-      {
-        id: 'step_game_over_bonus',
-        title: '4️⃣ 거듭제곱(**) — 게임오버 보너스!',
-        description: '## 🎯 목표\n\n게임이 끝났을 때 **지난 장애물 개수의 제곱**만큼 보너스 점수를 추가해봅시다!\n\n주어진 변수:\n- `score`: 현재 점수\n- `pipesPassed`: 지난 장애물 개수\n\n```python\nscore = score + pipesPassed ** 2\n```\n\n**거듭제곱(`**`) 연산자**: `a ** b` = `a`를 `b`번 곱함\n- `2 ** 3` = 2 × 2 × 2 = **8**\n- `5 ** 2` = 5 × 5 = **25**\n\n### 🎮 효과는?\n- 3개 지나고 죽으면 → **+9** 보너스\n- 5개 지나고 죽으면 → **+25** 보너스\n- 10개 지나면 → **+100** 보너스! 🔥\n- 20개 지나면 → **+400** 폭발적 보상!\n\n장애물을 더 많이 지날수록 **기하급수적**으로 점수가 뛰어오르는 짜릿한 마무리!',
-        experiment: '공식을 바꿔가며 내 스타일의 보너스를 만들어봐요:\n\n- `score = score + pipesPassed ** 3` — **세제곱**! (5개 → +125, 10개 → +1000 💥)\n- `score = score * 2 + pipesPassed ** 2` — 점수 2배 + 제곱\n- `score = score + pipesPassed * 10` — 단순 곱셈 (5개 → +50)\n- `score = score ** 2` — 점수 자체를 제곱!\n\n계산기라고 생각하고 **나만의 공식**을 만들어봐요 🧮',
-        hint: '`**` 연산자로 제곱을 계산합니다.\n`pipesPassed ** 2` = pipesPassed의 제곱\n\n```python\nscore = score + pipesPassed ** 2\n```',
-        starterCode: '# score: 현재 점수\n# pipesPassed: 지난 장애물 개수\n# pipesPassed의 제곱을 score에 더해서 저장\n\n',
-        hookStyle: 'block',
-        blockInputs: ['score', 'pipesPassed'],
-        blockOutput: 'score',
-        unlocks: 'gameOverBonus',
-        tests: [
-          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10, pipesPassed: 3}},
-          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 0, pipesPassed: 0}}
-        ]
-      },
+
+      // ═══ 6단계: 몫 (//) + 배경 변화 ═══
       {
         id: 'step_level_system',
-        title: '5️⃣ 몫(//) — 레벨 시스템 + 배경 변화!',
-        description: '## 🎯 목표\n\n장애물 **5개 지날 때마다 레벨이 1씩 증가**하도록 만들어봅시다!\n\n주어진 변수:\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n**몫(`//`) 연산자**: `a // b` = `a`를 `b`로 나눈 **몫(정수)**\n- `17 // 5` = **3** (17 ÷ 5 = 3…나머지 2)\n- `10 // 5` = **2**\n- `4 // 5` = **0**\n\n```python\nlevel = pipesPassed // 5\n```\n\n### 🎮 효과는?\n왼쪽 게임 화면 **좌측 상단에 `Lv.N · 테마이름`** 배지가 뜨고,\n**레벨이 바뀔 때마다 배경이 통째로 변해요!** 🌅\n\n- **Lv.0** 낮 ☀️ (파란 하늘)\n- **Lv.1** 아침노을 🌤️\n- **Lv.2** 석양 🌇\n- **Lv.3** 황혼 💜\n- **Lv.4** 밤 🌙 (별이 반짝)\n- **Lv.5+** 우주 🌌 (검은 우주)\n\n장애물을 많이 지나서 모든 테마를 구경해보세요! ⭐',
-        experiment: '레벨 공식을 바꿔서 **배경 전환 타이밍**을 내 맘대로 조절!\n\n- `level = pipesPassed // 3` — 3개마다 빠르게 레벨업 (우주까지 금방!)\n- `level = pipesPassed // 10` — 10개마다 (한 세계를 오래 감상)\n- `level = pipesPassed // 1` — 장애물 하나마다 레벨업! ⚡\n- `level = pipesPassed * 2` — 몫 없이 그냥 2배 (바로 우주 점프)\n\n공식을 바꾸고 **실행** 후 게임을 해보면 배경 바뀌는 순간이 달라져요!',
-        hint: '`//` 연산자로 몫을 구합니다.\n`pipesPassed // 5` = pipesPassed를 5로 나눈 몫\n\n```python\nlevel = pipesPassed // 5\n```',
-        starterCode: '# pipesPassed: 지난 장애물 개수\n# 5개마다 레벨 1 증가 → pipesPassed를 5로 나눈 몫\n# 결과를 level 변수에 저장\n\n',
+        title: '6️⃣ 레벨 시스템 — 몫 연산자 & 배경 변화',
+        description: '## 🎯 목표\n\n장애물 **5개 지날 때마다 레벨 1 증가** + 레벨마다 **배경이 변합니다**!\n\n주어진 변수:\n- `pipesPassed`: 지금까지 지난 장애물 개수\n\n```python\nlevel = pipesPassed // 5\n```\n\n### 💡 개념: 몫 연산자 `//`\n- `a // b` = `a`를 `b`로 나눈 **몫** (정수 부분만)\n- `17 // 5` = **3** (17÷5 = 3...나머지 2)\n- `10 // 5` = **2**\n- `4 // 5` = **0** (4는 5보다 작으므로)\n\n### 🎮 게임 효과\n- **Lv.0** 낮 ☀️ → **Lv.1** 아침노을 🌤️ → **Lv.2** 석양 🌇\n- **Lv.3** 황혼 💜 → **Lv.4** 밤 🌙 → **Lv.5+** 우주 🌌\n\n장애물 많이 지날수록 세계가 변해요! ⭐',
+        experiment: '레벨 공식을 바꾸면 **세계 전환 속도**가 달라져요:\n\n- `level = pipesPassed // 3` — 3개마다 레벨업 (우주까지 빨리!)\n- `level = pipesPassed // 10` — 10개마다 (천천히 음미)\n- `level = pipesPassed // 1` — 장애물 하나마다! ⚡\n- `level = pipesPassed` — 몫 없이 그대로 (곧바로 우주)\n\n**일반 나눗셈(`/`)** 은 소수점 결과가 나와요: `10 / 3` = `3.333...`  \n**몫(`//`)** 은 정수만: `10 // 3` = `3`\n\n레벨은 정수여야 하니 `//`가 딱!',
+        hint: '`//` 연산자로 몫을 구합니다:\n\n```python\nlevel = pipesPassed // 5\n```',
+        starterCode: '# pipesPassed를 5로 나눈 몫을 level 변수에 저장\n\n',
         hookStyle: 'block',
         blockInputs: ['pipesPassed'],
         blockOutput: 'level',
@@ -429,6 +453,24 @@ function getFlappyBirdSampleMission(){
         tests: [
           {type: 'exists', name: 'level', typeOf: 'number', inputs: {pipesPassed: 0}},
           {type: 'exists', name: 'level', typeOf: 'number', inputs: {pipesPassed: 15}}
+        ]
+      },
+
+      // ═══ 7단계: 자유 창작 (최종) ═══
+      {
+        id: 'step_final_formula',
+        title: '7️⃣ 🎨 나만의 점수 공식 — 최종 보스!',
+        description: '## 🎯 최종 도전\n\n게임이 끝날 때 **나만의 공식**으로 최종 점수를 계산해서 **친구들과 최고 점수 대결!** 🏆\n\n주어진 변수:\n- `score`: 현재까지 모은 점수\n- `pipesPassed`: 지난 장애물 개수\n\n```python\n# 네 마음대로 공식을 만들어!\nscore = ???\n```\n\n### 💡 여태껏 배운 모든 걸 써보자\n- **덧셈 `+`** — 값을 더하기\n- **곱셈 `*`** — 값을 곱하기\n- **뺄셈 `-`** — 값을 빼기\n- **나눗셈 `/`** — 나누기 (실수)\n- **몫 `//`** — 나누기 (정수)\n- **거듭제곱 `**`** — 제곱\n\n정답은 없어요! **내 스타일**대로 만들면 됩니다. 🎨',
+        experiment: '### 💪 도전 예시들\n\n**기본형**\n- `score = score * 2` — 그냥 2배\n- `score = score + 100` — 보너스 100점\n\n**중급형**\n- `score = score + pipesPassed * 10` — 장애물 개수 × 10 보너스\n- `score = score * 2 + pipesPassed` — 점수 2배 + 장애물 개수\n\n**고급형 (폭발적!)**\n- `score = score ** 2` — 점수 자체를 **제곱** 💥\n- `score = score + pipesPassed ** 2` — 제곱 보너스\n- `score = score * pipesPassed + 500` — 장애물 × 점수 + 500\n\n**미친 공식**\n- `score = (score + pipesPassed) ** 2 // 2` — 합쳐서 제곱 후 절반\n- `score = score * 1000 - pipesPassed ** 3` — 천배 곱 - 세제곱\n\n### 🏆 친구랑 대결\n1. 각자 공식 만들기\n2. 같은 게임 플레이 (예: 장애물 10개씩)\n3. 최종 점수 비교 → **공식이 좋은 사람이 승자!** 😎',
+        hint: '제약 없어요! 배운 연산자 중 뭐든 쓰세요.\n\n간단한 예부터:\n```python\nscore = score * 2\n```\n\n그 다음 더 복잡하게:\n```python\nscore = score + pipesPassed ** 2\n```',
+        starterCode: '# 🎨 나만의 최종 점수 공식\n# score와 pipesPassed를 활용해 자유롭게!\n# 정답은 없어요. 친구랑 점수 대결해보세요!\n\n',
+        hookStyle: 'block',
+        blockInputs: ['score', 'pipesPassed'],
+        blockOutput: 'score',
+        unlocks: 'gameOverBonus',
+        tests: [
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10, pipesPassed: 5}},
+          {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 100, pipesPassed: 20}}
         ]
       }
     ]

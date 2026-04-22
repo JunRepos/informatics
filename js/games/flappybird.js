@@ -23,6 +23,7 @@ class FlappyBird {
     };
     this.speedMultiplier = 1;  // 게임 속도 배수 (1 = 기본)
     this.currentLevel = 0;
+    this.welcomeMessage = null;  // 시작 화면 커스텀 인사말 (학생 설정)
 
     this.reset();
     this.running = false;
@@ -194,6 +195,28 @@ class FlappyBird {
     return s.toFixed(1);
   }
 
+  // 텍스트 줄바꿈 (canvas 용)
+  _wrapText(ctx, text, maxWidth, font){
+    if(!text) return [''];
+    ctx.save();
+    if(font) ctx.font = font;
+    const chars = [...text];
+    const lines = [];
+    let cur = '';
+    for(const ch of chars){
+      const test = cur + ch;
+      if(ctx.measureText(test).width > maxWidth && cur){
+        lines.push(cur);
+        cur = ch;
+      } else {
+        cur = test;
+      }
+    }
+    if(cur) lines.push(cur);
+    ctx.restore();
+    return lines.length ? lines.slice(0, 3) : ['']; // 최대 3줄
+  }
+
   // 둥근 사각형 path (레벨 배지용)
   _roundRect(ctx, x, y, w, h, r){
     ctx.beginPath();
@@ -345,14 +368,26 @@ class FlappyBird {
 
     // 시작 안내
     if(!this.started){
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(W/2 - 110, H/2 - 40, 220, 64);
-      ctx.fillStyle = '#fff';
+      const hasCustomMsg = this.welcomeMessage && typeof this.welcomeMessage === 'string';
+      // 메시지 길이에 따라 박스 크기 조정
+      const mainMsg = hasCustomMsg ? this.welcomeMessage.slice(0, 40) : '🐦 플래피 버드';
+      const msgLines = this._wrapText(ctx, mainMsg, 220, hasCustomMsg ? 'bold 15px sans-serif' : 'bold 16px sans-serif');
+      const boxH = 34 + msgLines.length * 22;
+      const boxW = 250;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.62)';
+      ctx.fillRect(W/2 - boxW/2, H/2 - boxH/2, boxW, boxH);
+
       ctx.textAlign = 'center';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText('🐦 플래피 버드', W/2, H/2 - 14);
-      ctx.font = '12px sans-serif';
-      ctx.fillText('클릭 / Space 로 점프', W/2, H/2 + 8);
+      ctx.fillStyle = hasCustomMsg ? '#ffe58a' : '#fff';
+      ctx.font = hasCustomMsg ? 'bold 15px sans-serif' : 'bold 16px sans-serif';
+      msgLines.forEach((line, i) => {
+        ctx.fillText(line, W/2, H/2 - boxH/2 + 24 + i * 22);
+      });
+
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('클릭 / Space 로 점프', W/2, H/2 - boxH/2 + boxH - 10);
     }
 
     // 게임 오버

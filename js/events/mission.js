@@ -63,6 +63,7 @@ async function applyPassedHooks(){
   if(!_missionGame || !SEL_MISSION) return;
   _missionGame.clearHooks();
   _missionGame.speedMultiplier = 1;
+  _missionGame.welcomeMessage = null;
 
   const py = await ensureMissionPyodide();
 
@@ -81,6 +82,17 @@ async function applyPassedHooks(){
             return v?.toJs ? v.toJs() : v;
           } catch(e){ return 0; }
         });
+      } else if(step.unlocks === 'welcomeMessage'){
+        // 학생이 만든 greeting 변수를 읽어 시작 화면 메시지로 사용
+        try {
+          _resetNamespaceMission(py);
+          await py.runPythonAsync(pass.code);
+          const v = py.globals.get('greeting');
+          const msg = v?.toJs ? v.toJs() : v;
+          if(typeof msg === 'string' && msg.trim()){
+            _missionGame.welcomeMessage = msg;
+          }
+        } catch(e){ console.warn('welcomeMessage 적용 실패:', e); }
       } else if(step.unlocks === 'speedConfig'){
         // input()으로 받은 speed 변수 읽어서 게임 속도에 적용 (1회성)
         try {
