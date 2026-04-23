@@ -553,13 +553,13 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .mi-title{flex:1;font-size:14px;font-weight:700}
 .mi-progress-summary{font-size:12px;color:var(--text2);background:var(--accent-lt);padding:4px 10px;border-radius:12px;font-weight:600}
 
-.mi-split{display:flex;gap:0;align-items:stretch;min-height:720px}
-.mi-game-side{flex-shrink:0;background:linear-gradient(180deg,#87ceeb 0%,#c4e8f0 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px;border-right:1px solid var(--border)}
-/* 캔버스 내부 해상도는 360x480 (게임 물리 고정) — CSS로 1.33x 확대 표시 */
-#mi-game-canvas{display:block;width:480px;height:640px;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.25),0 0 0 2px rgba(255,255,255,0.5) inset;outline:none;image-rendering:pixelated}
-.mi-game-controls{display:flex;align-items:center;justify-content:space-between;width:480px;padding:14px 4px 2px;gap:10px}
+.mi-split{display:flex;gap:0;align-items:stretch;min-height:600px}
+.mi-game-side{flex-shrink:0;background:linear-gradient(180deg,#87ceeb 0%,#c4e8f0 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 16px;border-right:1px solid var(--border)}
+/* 캔버스 내부 해상도는 360x480 (게임 물리 고정) — CSS로 1.17x 확대 표시 */
+#mi-game-canvas{display:block;width:420px;height:560px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,0.22),0 0 0 2px rgba(255,255,255,0.5) inset;outline:none;image-rendering:pixelated}
+.mi-game-controls{display:flex;align-items:center;justify-content:space-between;width:420px;padding:12px 4px 2px;gap:10px}
 
-.mi-step-side{flex:1;min-width:0;padding:18px 22px;overflow-y:auto;max-height:820px}
+.mi-step-side{flex:1;min-width:0;padding:18px 22px;overflow-y:auto;max-height:760px}
 
 .mi-step-nav{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .mi-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
