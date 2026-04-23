@@ -20,8 +20,30 @@ function toggleTheme(){
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = next === 'dark' ? '☀️' : '🌙');
 }
 
+// ── 본문 너비 결정 ──
+// 화면/탭에 따라 .wrap 컨테이너 너비 조정
+//   full(1600px): 노트북 / 미션 / OJ 풀이 (IDE 느낌)
+//   wide(1280px): OJ 목록 / 진도 계획 (테이블·분할 뷰)
+//   기본(840px) : 공지/수업/게시판/출결/학생관리/로그인 등 텍스트·폼 위주
+function applyWrapWidth(){
+  const wrap = document.querySelector('.wrap');
+  if(!wrap) return;
+  let cls = '';
+  if(VIEW === 'oj-solve'){
+    cls = 'full';
+  } else if(VIEW === 'teacher'){
+    if(TC_TAB === 'notebook' || TC_TAB === 'mission') cls = 'full';
+    else if(TC_TAB === 'oj' || TC_TAB === 'curriculum') cls = 'wide';
+  } else if(VIEW === 'student'){
+    if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
+    else if(ST_TAB === 'oj') cls = 'wide';
+  }
+  wrap.className = 'wrap' + (cls ? ' ' + cls : '');
+}
+
 // ── 메인 렌더링 ──
 function render(){
+  applyWrapWidth();
   const theme = document.documentElement.getAttribute('data-theme');
   const themeIcon = theme === 'dark' ? '☀️' : '🌙';
 
