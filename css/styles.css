@@ -533,18 +533,20 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .cb-stdin-area{width:100%;min-height:50px;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:12px;background:var(--cb-bg);color:var(--cb-text);border:1px solid var(--cb-border);border-radius:4px;resize:vertical;margin-top:6px;box-sizing:border-box}
 .cb-stdin-area:focus{outline:none;border-color:var(--cb-accent)}
 
-/* Colab 스타일 input() 팝업 */
-.cb-input-prompt{margin:8px 0 0 56px;padding:10px 14px;background:#fef7e0;border-left:3px solid #f9ab00;border-radius:0 4px 4px 0;animation:cb-fade-in .2s ease-out}
+/* 진짜 input() 인라인 프롬프트 (실행 도중 셀 출력 안에 떠오름) */
+.cb-input-prompt{margin:6px 12px;padding:8px 10px;background:#fef7e0;border-left:3px solid #f9ab00;border-radius:0 4px 4px 0;animation:cb-fade-in .2s ease-out;font-family:'Pretendard',-apple-system,sans-serif}
 [data-theme="dark"] .cb-input-prompt{background:#2b2410;border-left-color:#f9ab00;color:#fde293}
-.cb-ip-header{font-size:13px;margin-bottom:8px;color:#5f4b00}
+.cb-ip-header{font-size:12.5px;margin-bottom:6px;color:#5f4b00;font-family:'Roboto Mono','Consolas',monospace;white-space:pre-wrap}
 [data-theme="dark"] .cb-ip-header{color:#fde293}
-.cb-ip-header b{color:#b97800}
-[data-theme="dark"] .cb-ip-header b{color:#f9ab00}
-.cb-ip-area{width:100%;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;background:#fff;color:var(--cb-text);border:1px solid #e8d896;border-radius:4px;box-sizing:border-box;resize:vertical;min-height:40px}
-[data-theme="dark"] .cb-ip-area{background:#1a1a1a;border-color:#5a4a1a}
-.cb-ip-area:focus{outline:none;border-color:#f9ab00;box-shadow:0 0 0 2px rgba(249,171,0,0.15)}
-.cb-ip-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
-.cb-ip-hint{font-size:11px;color:var(--cb-text-3);margin-left:auto}
+.cb-ip-row{display:flex;gap:6px;align-items:center}
+.cb-ip-input{flex:1;padding:6px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;background:#fff;color:var(--cb-text);border:1px solid #e8d896;border-radius:4px;box-sizing:border-box;outline:none}
+[data-theme="dark"] .cb-ip-input{background:#1a1a1a;border-color:#5a4a1a}
+.cb-ip-input:focus{border-color:#f9ab00;box-shadow:0 0 0 2px rgba(249,171,0,0.18)}
+.cb-ip-run{white-space:nowrap}
+.cb-ip-hint{font-size:11px;color:var(--cb-text-3)}
+
+/* input() 후 사용자가 입력한 값 echo (출력에 그대로 표시 — 진짜 터미널처럼) */
+.cb-input-echo{padding:0 12px;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;color:var(--cb-text-2);font-style:italic}
 
 /* 출력 영역 — Colab 스타일 'Out [N]:' 헤더 + 접기 토글 */
 .cb-output{margin:14px 0 0 56px;background:var(--cb-output-bg);border:1px solid var(--cb-border);border-left:3px solid var(--cb-accent);border-radius:0 4px 4px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;color:var(--cb-text);animation:cb-fade-in .2s ease-out;overflow:hidden}

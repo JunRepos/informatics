@@ -271,10 +271,6 @@ function vNbCell(cell, idx){
         <textarea class="cb-code-area" id="cb-code-${cell.id}" data-cellid="${cell.id}" spellcheck="false">${esc(cell.source || '')}</textarea>
       </div>
     </div>
-    <details class="cb-stdin-wrap">
-      <summary class="cb-stdin-summary">💬 입력 (input()에 전달할 값)</summary>
-      <textarea class="cb-stdin-area" id="cb-stdin-${cell.id}" placeholder="한 줄에 하나씩..." spellcheck="false"></textarea>
-    </details>
     ${outputHtml}
   </div>`;
 }

@@ -12,6 +12,14 @@ let _nbCallbacks = {};
 const _nbCMs = {};   // cellId -> CodeMirror instance
 let _nbMdCM = null;  // 마크다운 편집용 CM
 
+// ── stdin 공유 메모리 (worker와 SharedArrayBuffer로 통신) ──
+const _STDIN_BUF_SIZE = 4096;
+let _nbStdinSAB = null;
+let _nbStdinCtrl = null;   // Int32Array(2) — [status, length]
+let _nbStdinData = null;   // Uint8Array
+let _nbStdinSupported = false;
+let _nbAwaitingInput = null; // {cellId, resolve} — 현재 대기 중인 입력 요청
+
 // ── 자동 저장 (학생 진행 상황) ──
 let _nbSaveTimer = null;
 
@@ -51,23 +59,148 @@ function getNBWorker(){
   if(!_nbWorker){
     _nbWorker = new Worker('js/notebook-worker.js');
     _nbWorker.onmessage = (e) => {
-      const cb = _nbCallbacks[e.data.id];
-      if(cb){ delete _nbCallbacks[e.data.id]; cb(e.data); }
+      const data = e.data;
+      // 입력 요청 (Python input() 호출)
+      if(data.type === 'request-input'){
+        handleInputRequest(data.cellId, data.prompt);
+        return;
+      }
+      // stdin 초기화 응답
+      if(data.type === 'init-stdin-done'){
+        _nbStdinSupported = !!data.supported;
+        return;
+      }
+      const cb = _nbCallbacks[data.id];
+      if(cb){ delete _nbCallbacks[data.id]; cb(data); }
     };
     _nbWorker.onerror = (err) => console.error('Notebook worker error:', err);
+
+    // stdin SharedArrayBuffer 셋업 (가능하면)
+    initStdinSAB();
   }
   return _nbWorker;
 }
 
-function runNBPython(code, stdin){
+// ── stdin SharedArrayBuffer 초기화 ──
+function initStdinSAB(){
+  if(typeof SharedArrayBuffer === 'undefined'){
+    console.warn('[noteebook] SharedArrayBuffer 미지원 — input() 폴백 모드');
+    return;
+  }
+  if(!self.crossOriginIsolated){
+    console.warn('[notebook] crossOriginIsolated=false — coi-serviceworker가 아직 활성화 안 됨');
+    return;
+  }
+  try {
+    _nbStdinSAB = new SharedArrayBuffer(8 + _STDIN_BUF_SIZE);
+    _nbStdinCtrl = new Int32Array(_nbStdinSAB, 0, 2);
+    _nbStdinData = new Uint8Array(_nbStdinSAB, 8, _STDIN_BUF_SIZE);
+    _nbWorker.postMessage({type: 'init-stdin', buffer: _nbStdinSAB});
+  } catch(err){
+    console.warn('[notebook] stdin SAB 초기화 실패:', err);
+  }
+}
+
+// ── 입력 요청 처리 (worker → 메인) ──
+async function handleInputRequest(cellId, prompt){
+  // 현재 대기 중인 게 있으면 무시 (방어적)
+  if(_nbAwaitingInput){
+    submitInputResponse(null); // 기존 것 abort
+  }
+
+  const value = await showInlineInputPrompt(cellId, prompt);
+  submitInputResponse(value);
+}
+
+// 사용자 응답을 SharedArrayBuffer 에 쓰고 worker 깨우기
+function submitInputResponse(value){
+  if(!_nbStdinCtrl || !_nbStdinData) return;
+  if(value === null){
+    Atomics.store(_nbStdinCtrl, 0, 2); // abort
+    Atomics.store(_nbStdinCtrl, 1, 0);
+  } else {
+    const bytes = new TextEncoder().encode(String(value));
+    const len = Math.min(bytes.length, _STDIN_BUF_SIZE);
+    _nbStdinData.set(bytes.subarray(0, len));
+    Atomics.store(_nbStdinCtrl, 1, len);
+    Atomics.store(_nbStdinCtrl, 0, 1); // ready
+  }
+  Atomics.notify(_nbStdinCtrl, 0);
+  _nbAwaitingInput = null;
+}
+
+// ── 인라인 입력 프롬프트 (Colab 스타일, 셀 안에 표시) ──
+function showInlineInputPrompt(cellId, prompt){
+  return new Promise(resolve => {
+    _nbAwaitingInput = {cellId, resolve};
+
+    const cellDiv = document.querySelector(`.cb-cell[data-cellid="${cellId}"]`);
+    if(!cellDiv){ resolve(''); return; }
+    // 기존 프롬프트 제거 (혹시 남아있다면)
+    cellDiv.querySelectorAll('.cb-input-prompt').forEach(el => el.remove());
+
+    // 출력 박스 안 하단에 끼워넣기 (없으면 셀 끝에)
+    const outDiv = cellDiv.querySelector('.cb-output');
+    const outBody = outDiv?.querySelector('.cb-out-body');
+
+    const div = document.createElement('div');
+    div.className = 'cb-input-prompt';
+    const label = prompt
+      ? `<span style="color:var(--cb-text);font-weight:500">${esc(prompt)}</span>`
+      : `<span style="color:var(--cb-text-2)">📝 input() 입력 대기 중...</span>`;
+    div.innerHTML = `
+      <div class="cb-ip-header">${label}</div>
+      <div class="cb-ip-row">
+        <input class="cb-ip-input" type="text" placeholder="값을 입력하고 Enter" spellcheck="false" autocomplete="off"/>
+        <button class="cb-ip-run btn-p btn-sm">↵ 입력</button>
+      </div>
+      <div class="cb-ip-hint" style="margin-top:4px">Enter로 제출 · Esc로 취소</div>
+    `;
+    if(outBody) outBody.appendChild(div);
+    else cellDiv.appendChild(div);
+
+    const input = div.querySelector('.cb-ip-input');
+    const runBtn = div.querySelector('.cb-ip-run');
+
+    setTimeout(() => input.focus(), 30);
+
+    const submit = () => {
+      const val = input.value;
+      div.remove();
+      // 사용자가 입력한 값을 출력 영역에 보존 (어떤 값을 넣었는지 보임)
+      if(outBody){
+        const echo = document.createElement('div');
+        echo.className = 'cb-input-echo';
+        echo.textContent = (prompt ? prompt : '') + val;
+        outBody.appendChild(echo);
+      }
+      resolve(val);
+    };
+    const cancel = () => {
+      div.remove();
+      resolve(null);
+    };
+
+    runBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); submit(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
+    });
+  });
+}
+
+function runNBPython(code, stdin, cellId){
   return new Promise(resolve => {
     const id = ++_nbMsgId;
+    // input() 대기 중일 수 있으므로 타임아웃 길게(5분), 진짜 무한 루프 방지용
     const timer = setTimeout(() => {
       delete _nbCallbacks[id];
-      resolve({success: false, output: '', error: '시간 초과 (60초)', images: []});
-    }, 60000);
+      // worker가 input 대기 중이면 abort 신호
+      if(_nbAwaitingInput) submitInputResponse(null);
+      resolve({success: false, output: '', error: '시간 초과 (5분)', images: []});
+    }, 300000);
     _nbCallbacks[id] = data => { clearTimeout(timer); resolve(data); };
-    getNBWorker().postMessage({id, action: 'run', code, stdin});
+    getNBWorker().postMessage({id, action: 'run', code, stdin, cellId});
   });
 }
 
@@ -148,6 +281,10 @@ async function openNotebook(nbId){
 }
 
 function closeNotebook(){
+  // 입력 대기 중이면 abort (worker hang 방지)
+  if(_nbAwaitingInput) submitInputResponse(null);
+  // 표시 중이던 입력 프롬프트 제거
+  document.querySelectorAll('.cb-input-prompt').forEach(el => el.remove());
   SEL_NOTEBOOK = null;
   NB_CELLS = [];
   NB_CELL_OUTPUTS = {};
@@ -267,99 +404,20 @@ function cellSource(cellId){
   return ta?.value ?? NB_CELLS.find(c => c.id === cellId)?.source ?? '';
 }
 
-// ── input() 호출 감지 (주석/문자열 제외) ──
-function countInputCalls(code){
-  const stripped = (code || '')
-    .replace(/#.*$/gm, '')             // 주석 제거
-    .replace(/'''[\s\S]*?'''/g, "''")  // 세 작은따옴표 문자열
-    .replace(/"""[\s\S]*?"""/g, '""')  // 세 큰따옴표 문자열
-    .replace(/'[^'\n]*'/g, "''")       // 작은따옴표 문자열
-    .replace(/"[^"\n]*"/g, '""');      // 큰따옴표 문자열
-  const matches = stripped.match(/\binput\s*\(/g);
-  return matches?.length || 0;
-}
-
-// ── 입력값 팝업 (Colab 스타일) ──
-function promptForInputs(cellId, count, existingStdin){
-  return new Promise(resolve => {
-    const cellDiv = document.querySelector(`.cb-cell[data-cellid="${cellId}"]`);
-    if(!cellDiv){ resolve(existingStdin || ''); return; }
-    // 기존 팝업 제거
-    cellDiv.querySelector('.cb-input-prompt')?.remove();
-
-    const div = document.createElement('div');
-    div.className = 'cb-input-prompt';
-    div.innerHTML = `
-      <div class="cb-ip-header">
-        💬 이 셀은 <b>input()</b> 을 ${count}번 호출합니다. 입력할 값을 한 줄씩 넣어주세요:
-      </div>
-      <textarea class="cb-ip-area" rows="${Math.min(Math.max(count, 2), 6)}" placeholder="한 줄에 하나씩..." spellcheck="false">${esc(existingStdin || '')}</textarea>
-      <div class="cb-ip-actions">
-        <button class="cb-ip-run btn-p btn-sm">▶ 실행</button>
-        <button class="cb-ip-cancel btn-sm">취소</button>
-        <span class="cb-ip-hint">💡 Ctrl+Enter 로 실행 · Esc로 취소</span>
-      </div>
-    `;
-    cellDiv.appendChild(div);
-
-    const ta = div.querySelector('.cb-ip-area');
-    const runBtn = div.querySelector('.cb-ip-run');
-    const cancelBtn = div.querySelector('.cb-ip-cancel');
-
-    // 포커스 + 커서 맨 끝
-    setTimeout(() => {
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
-    }, 50);
-
-    const submit = () => {
-      const val = ta.value;
-      // stdin textarea에도 반영 (다음에 재사용 가능)
-      const stdinEl = document.getElementById(`cb-stdin-${cellId}`);
-      if(stdinEl){
-        stdinEl.value = val;
-        // stdin details 펼쳐서 사용자가 값을 볼 수 있게
-        const det = stdinEl.closest('details');
-        if(det) det.open = true;
-      }
-      div.remove();
-      resolve(val);
-    };
-    const cancel = () => { div.remove(); resolve(null); };
-
-    runBtn.addEventListener('click', submit);
-    cancelBtn.addEventListener('click', cancel);
-    ta.addEventListener('keydown', e => {
-      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); submit(); }
-      else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
-    });
-  });
-}
-
 // ── 셀 실행 ──
+//   진짜 input() 모드: stdin 인자는 빈 값이거나 batch 테스트용 미리 입력
+//   input() 호출 시 worker가 메인에 request-input 메시지를 보냄 → showInlineInputPrompt 처리
 async function runCell(cellId){
   const cell = NB_CELLS.find(c => c.id === cellId);
   if(!cell || cell.type !== 'code') return;
   const code = cellSource(cellId);
   cell.source = code; // sync
 
-  // 기존 stdin textarea 값
-  let stdin = document.getElementById(`cb-stdin-${cellId}`)?.value || '';
-  const stdinLines = stdin ? stdin.split('\n').filter(l => l.length > 0).length : 0;
-
-  // input() 사용 감지 → 부족하면 팝업으로 받기
-  const needed = countInputCalls(code);
-  if(needed > 0 && stdinLines < needed){
-    const result = await promptForInputs(cellId, needed, stdin);
-    if(result === null) return; // 사용자가 취소
-    stdin = result;
-  }
-
   NB_CELL_OUTPUTS[cellId] = {running: true};
   updateCellOutputDom(cellId);
 
   const startedAt = performance.now();
-  const result = await runNBPython(code, stdin);
+  const result = await runNBPython(code, '', cellId);
   const elapsedMs = performance.now() - startedAt;
   NB_EXEC_COUNT++;
   NB_CELL_OUTPUTS[cellId] = {...result, execCount: NB_EXEC_COUNT, elapsedMs, running: false};
@@ -633,6 +691,9 @@ document.addEventListener('click', async e => {
     closeNbMenu();
     if(!confirm('런타임을 재시작할까요? 선언한 모든 변수가 사라집니다.')) return;
     el.textContent = '⏳'; el.disabled = true;
+    // 입력 대기 중이면 먼저 abort (worker hang 방지)
+    if(_nbAwaitingInput) submitInputResponse(null);
+    document.querySelectorAll('.cb-input-prompt').forEach(el => el.remove());
     await resetNBWorker();
     NB_CELL_OUTPUTS = {};
     NB_EXEC_COUNT = 0;
@@ -644,6 +705,8 @@ document.addEventListener('click', async e => {
   if(act.action === 'nb-reset-and-run-all'){
     closeNbMenu();
     if(!confirm('런타임을 재시작 후 모든 셀을 실행할까요?')) return;
+    if(_nbAwaitingInput) submitInputResponse(null);
+    document.querySelectorAll('.cb-input-prompt').forEach(el => el.remove());
     await resetNBWorker();
     NB_CELL_OUTPUTS = {};
     NB_EXEC_COUNT = 0;
