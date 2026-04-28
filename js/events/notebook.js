@@ -358,9 +358,11 @@ async function runCell(cellId){
   NB_CELL_OUTPUTS[cellId] = {running: true};
   updateCellOutputDom(cellId);
 
+  const startedAt = performance.now();
   const result = await runNBPython(code, stdin);
+  const elapsedMs = performance.now() - startedAt;
   NB_EXEC_COUNT++;
-  NB_CELL_OUTPUTS[cellId] = {...result, execCount: NB_EXEC_COUNT, running: false};
+  NB_CELL_OUTPUTS[cellId] = {...result, execCount: NB_EXEC_COUNT, elapsedMs, running: false};
   updateCellOutputDom(cellId);
 }
 
@@ -497,15 +499,13 @@ function updateCellOutputDom(cellId){
   if(result.running){
     if(!outDiv){
       outDiv = document.createElement('div');
-      outDiv.className = 'cb-output';
       cellDiv.appendChild(outDiv);
     }
-    outDiv.className = 'cb-output';
-    outDiv.innerHTML = `<pre style="color:#999;font-style:italic">⏳ 실행 중...</pre>`;
+    outDiv.outerHTML = `<div class="cb-output cb-out-running" data-cellid="${cellId}"><div class="cb-out-header"><span class="cb-out-prompt">Out [*]:</span><span class="cb-out-time">⏱ 실행 중</span></div><div class="cb-out-body"><pre style="color:#999;font-style:italic;margin:0;padding:0 12px">⏳ 실행 중...</pre></div></div>`;
     return;
   }
 
-  const html = vNbOutput(result);
+  const html = vNbOutput(result, cellId);
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const newOut = tmp.firstChild;
@@ -617,12 +617,20 @@ document.addEventListener('click', async e => {
   // 셀 실행
   if(act.action === 'nb-run-cell'){ runCell(act.cellid); return; }
   if(act.action === 'nb-run-all'){
-    el.textContent = '⏳ 실행 중...'; el.disabled = true;
-    await runAll();
-    el.textContent = '▶▶ 모두 실행'; el.disabled = false;
+    NB_OPEN_MENU = null;
+    if(el.classList.contains('cb-menu-item')){
+      // 메뉴에서 호출 — 즉시 메뉴 닫고 실행
+      closeNbMenu();
+      runAll().then(() => toast('모두 실행 완료', 'ok'));
+    } else {
+      el.textContent = '⏳ 실행 중...'; el.disabled = true;
+      await runAll();
+      el.textContent = '▶▶ 모두 실행'; el.disabled = false;
+    }
     return;
   }
   if(act.action === 'nb-reset-all'){
+    closeNbMenu();
     if(!confirm('런타임을 재시작할까요? 선언한 모든 변수가 사라집니다.')) return;
     el.textContent = '⏳'; el.disabled = true;
     await resetNBWorker();
@@ -631,6 +639,102 @@ document.addEventListener('click', async e => {
     el.textContent = '🔄 재시작'; el.disabled = false;
     toast('런타임이 재시작됐습니다.', 'ok');
     render();
+    return;
+  }
+  if(act.action === 'nb-reset-and-run-all'){
+    closeNbMenu();
+    if(!confirm('런타임을 재시작 후 모든 셀을 실행할까요?')) return;
+    await resetNBWorker();
+    NB_CELL_OUTPUTS = {};
+    NB_EXEC_COUNT = 0;
+    render();
+    setTimeout(() => runAll().then(() => toast('재시작 후 모두 실행 완료', 'ok')), 50);
+    return;
+  }
+
+  // ── 메뉴바 ──
+  if(act.action === 'nb-toggle-menu'){
+    const id = act.menuid;
+    NB_OPEN_MENU = (NB_OPEN_MENU === id) ? null : id;
+    refreshMenubar();
+    return;
+  }
+  if(act.action === 'nb-toggle-sidebar'){
+    closeNbMenu();
+    NB_SIDEBAR_OPEN = !NB_SIDEBAR_OPEN;
+    destroyAllCMs(); render();
+    return;
+  }
+  if(act.action === 'nb-toggle-theme'){
+    closeNbMenu();
+    if(typeof toggleTheme === 'function') toggleTheme();
+    // CodeMirror 테마도 갱신해야 함 → 재렌더
+    destroyAllCMs(); render();
+    return;
+  }
+  if(act.action === 'nb-insert-code'){
+    closeNbMenu();
+    // 선택된 셀 다음에 삽입 (없으면 맨 아래)
+    const selIdx = NB_SELECTED ? findCellIdx(NB_SELECTED) : -1;
+    addCell(selIdx >= 0 ? selIdx + 1 : NB_CELLS.length, 'code', true);
+    return;
+  }
+  if(act.action === 'nb-insert-text'){
+    closeNbMenu();
+    const selIdx = NB_SELECTED ? findCellIdx(NB_SELECTED) : -1;
+    addCell(selIdx >= 0 ? selIdx + 1 : NB_CELLS.length, 'markdown', true);
+    return;
+  }
+  if(act.action === 'nb-clear-outputs'){
+    closeNbMenu();
+    if(!confirm('모든 셀의 출력을 지울까요? (실행 결과만 삭제됩니다)')) return;
+    NB_CELL_OUTPUTS = {};
+    render();
+    return;
+  }
+  if(act.action === 'nb-print'){
+    closeNbMenu();
+    window.print();
+    return;
+  }
+  if(act.action === 'nb-download-ipynb'){
+    closeNbMenu();
+    downloadIpynb();
+    return;
+  }
+  if(act.action === 'nb-show-shortcuts'){
+    closeNbMenu();
+    showNbShortcuts();
+    return;
+  }
+
+  // 출력 접기/펴기
+  if(act.action === 'nb-toggle-output'){
+    const cid = act.cellid;
+    if(NB_COLLAPSED_OUTPUTS[cid]) delete NB_COLLAPSED_OUTPUTS[cid];
+    else NB_COLLAPSED_OUTPUTS[cid] = true;
+    const out = document.querySelector(`.cb-output[data-cellid="${cid}"]`);
+    if(out){
+      out.classList.toggle('cb-out-collapsed');
+      const btn = out.querySelector('.cb-out-toggle');
+      if(btn){
+        const collapsed = out.classList.contains('cb-out-collapsed');
+        btn.textContent = collapsed ? '▸' : '▾';
+        btn.title = collapsed ? '출력 펼치기' : '출력 접기';
+      }
+    }
+    return;
+  }
+
+  // 목차 점프
+  if(act.action === 'nb-toc-jump'){
+    closeNbMenu();
+    const cellEl = document.querySelector(`.cb-cell[data-cellid="${act.cellid}"]`);
+    if(cellEl){
+      cellEl.scrollIntoView({behavior: 'smooth', block: 'start'});
+      cellEl.classList.add('cb-flash');
+      setTimeout(() => cellEl.classList.remove('cb-flash'), 1200);
+    }
     return;
   }
 
@@ -733,4 +837,139 @@ document.addEventListener('keydown', e => {
     if(e.key === 'Enter' && e.shiftKey){ e.preventDefault(); commitMdEdit(); return; }
     if(e.key === 'Escape'){ e.preventDefault(); cancelMdEdit(); return; }
   }
+
+  // 노트북 화면일 때만 작동
+  if(!SEL_NOTEBOOK) return;
+
+  // 사이드바 토글: Ctrl+/
+  if((e.ctrlKey || e.metaKey) && e.key === '/'){
+    e.preventDefault();
+    NB_SIDEBAR_OPEN = !NB_SIDEBAR_OPEN;
+    destroyAllCMs(); render();
+    return;
+  }
+  // ipynb 다운로드: Ctrl+S
+  if((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')){
+    e.preventDefault();
+    downloadIpynb();
+    return;
+  }
+  // 메뉴 닫기: Esc (메뉴가 열려 있을 때)
+  if(e.key === 'Escape' && NB_OPEN_MENU){
+    closeNbMenu();
+    return;
+  }
 });
+
+// ── 메뉴바: 외부 클릭 시 닫기 ──
+document.addEventListener('click', e => {
+  if(!NB_OPEN_MENU) return;
+  if(e.target.closest?.('.cb-menubar')) return; // 메뉴 내부 클릭은 통과
+  closeNbMenu();
+});
+
+// ── 메뉴 헬퍼 ──
+function closeNbMenu(){
+  NB_OPEN_MENU = null;
+  refreshMenubar();
+}
+
+function refreshMenubar(){
+  // 메뉴바만 다시 렌더 (전체 render() 피해서 CodeMirror 상태 보존)
+  const menubar = document.getElementById('cb-menubar');
+  if(!menubar) return;
+  if(typeof vNbMenubar === 'function'){
+    const tmp = document.createElement('div');
+    const isStudent = !!ST_USER && !IS_TC;
+    tmp.innerHTML = vNbMenubar(IS_TC, isStudent);
+    const newBar = tmp.firstElementChild;
+    if(newBar) menubar.replaceWith(newBar);
+  }
+}
+
+// ── ipynb 다운로드 ──
+function downloadIpynb(){
+  if(!SEL_NOTEBOOK) return;
+  const ipynb = {
+    cells: NB_CELLS.map(c => {
+      const lines = (c.source || '').split('\n');
+      const sourceArr = lines.map((l, i) => i < lines.length - 1 ? l + '\n' : l);
+      if(c.type === 'code'){
+        const result = NB_CELL_OUTPUTS[c.id];
+        const outputs = [];
+        if(result?.output){
+          outputs.push({
+            output_type: 'stream', name: 'stdout',
+            text: result.output.split('\n').map((l, i, a) => i < a.length - 1 ? l + '\n' : l)
+          });
+        }
+        if(result?.images?.length){
+          for(const b64 of result.images){
+            outputs.push({
+              output_type: 'display_data',
+              data: {'image/png': b64}, metadata: {}
+            });
+          }
+        }
+        if(result?.error){
+          outputs.push({
+            output_type: 'error', ename: 'Error', evalue: '',
+            traceback: result.error.split('\n')
+          });
+        }
+        return {
+          cell_type: 'code', source: sourceArr,
+          metadata: {id: c.id},
+          execution_count: result?.execCount || null,
+          outputs
+        };
+      }
+      return {cell_type: 'markdown', source: sourceArr, metadata: {id: c.id}};
+    }),
+    metadata: {
+      kernelspec: {display_name: 'Python 3', language: 'python', name: 'python3'},
+      language_info: {name: 'python'}
+    },
+    nbformat: 4, nbformat_minor: 5
+  };
+  const blob = new Blob([JSON.stringify(ipynb, null, 1)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (SEL_NOTEBOOK.title || 'notebook') + '.ipynb';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('ipynb 다운로드 시작', 'ok');
+}
+
+// ── 단축키 모달 ──
+function showNbShortcuts(){
+  const lines = [
+    ['Ctrl+Enter', '현재 셀 실행'],
+    ['Shift+Enter', '실행 + 다음 셀로'],
+    ['Alt+Enter', '실행 + 새 셀'],
+    ['Ctrl+S', 'ipynb 로 다운로드'],
+    ['Ctrl+/', '사이드바 토글'],
+    ['Esc (마크다운 편집 중)', '편집 취소'],
+    ['Shift+Enter (마크다운 편집 중)', '렌더링 완료'],
+    ['더블클릭 (텍스트 셀)', '편집 모드'],
+  ];
+  const html = `
+    <div class="modal-ov" onclick="closeModal()" style="display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onclick="event.stopPropagation()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:20px 22px;min-width:380px;max-width:520px;box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:16px;font-weight:700">⌨️ 노트북 단축키</div>
+          <button class="btn-sm" onclick="closeModal()">✕ 닫기</button>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          ${lines.map(([k, v]) => `
+            <tr>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border)"><code style="background:var(--surface2);padding:2px 8px;border-radius:4px;font-family:Consolas,monospace">${esc(k)}</code></td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${esc(v)}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+    </div>`;
+  document.getElementById('modal-root').innerHTML = html;
+}

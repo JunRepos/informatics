@@ -62,7 +62,6 @@ function vNotebookDetail(isTeacher){
 
   const isStudent = !isTeacher && !!ST_USER;
   const saveInd = isStudent ? `<div id="cb-save-ind" class="cb-save-ind" style="font-size:11px;color:var(--cb-text-3);margin-right:6px">✓ 저장됨</div>` : '';
-  const resetBtn = isStudent ? `<button class="cb-tb-btn" data-action="nb-reset-original" title="선생님이 올린 원본으로 되돌리기">↺ 원본 복원</button>` : '';
   const progressBtn = isTeacher ? `<button class="cb-tb-btn" data-action="nb-show-progress" title="학생별 진도 보기">👥 학생 진도</button>` : '';
 
   // 학생 진도 보는 중일 때 상단 배너
@@ -75,18 +74,20 @@ function vNotebookDetail(isTeacher){
     </div>`;
   })() : '';
 
+  // 상단 타이틀 바
   const toolbar = `<div class="cb-toolbar">
     <button class="cb-back-btn" data-action="nb-close">← 목록</button>
+    <button class="cb-tb-btn cb-sidebar-toggle" data-action="nb-toggle-sidebar" title="사이드바 토글 (Ctrl+/)" aria-label="사이드바">☰</button>
     <div class="cb-title">📓 ${esc(nb.title)}</div>
     ${saveInd}
     <div class="cb-toolbar-actions">
-      <button class="cb-tb-btn" data-action="nb-run-all" title="모두 실행">▶▶ 모두 실행</button>
-      <button class="cb-tb-btn" data-action="nb-reset-all" title="런타임 재시작 (변수 초기화)">🔄 재시작</button>
-      ${resetBtn}
       ${progressBtn}
     </div>
   </div>
   ${viewingBanner}`;
+
+  // 메뉴바 (Colab 스타일)
+  const menubar = vNbMenubar(isTeacher, isStudent);
 
   // 학생 진도 패널
   if(isTeacher && NB_SHOW_PROGRESS){
@@ -101,12 +102,122 @@ function vNotebookDetail(isTeacher){
     <button class="cb-add-btn" data-action="nb-add-cell" data-type="markdown" data-pos="${NB_CELLS.length}">+ 텍스트</button>
   </div>`;
 
+  // 좌측 사이드바 (목차)
+  const sidebar = NB_SIDEBAR_OPEN ? vNbSidebar() : '';
+
   return `
     <div class="cb-wrap">
       ${toolbar}
-      <div class="cb-cells" id="cb-cells">${cellsHtml || ''}</div>
-      ${addEndRow}
+      ${menubar}
+      <div class="cb-body${NB_SIDEBAR_OPEN ? ' cb-has-sidebar' : ''}">
+        ${sidebar}
+        <div class="cb-main">
+          <div class="cb-cells" id="cb-cells">${cellsHtml || ''}</div>
+          ${addEndRow}
+        </div>
+      </div>
     </div>`;
+}
+
+// ── 메뉴바 (Colab 스타일: 파일/편집/보기/삽입/런타임/도움말) ──
+function vNbMenubar(isTeacher, isStudent){
+  const menus = [
+    {id: 'file', label: '파일', items: [
+      {label: '⬇️  ipynb 로 다운로드', action: 'nb-download-ipynb', shortcut: 'Ctrl+S'},
+      {label: '🖨️  인쇄', action: 'nb-print', shortcut: 'Ctrl+P'},
+    ]},
+    {id: 'edit', label: '편집', items: [
+      {label: '🧹  모든 출력 지우기', action: 'nb-clear-outputs'},
+      ...(isStudent ? [{label: '↺   원본 복원', action: 'nb-reset-original'}] : []),
+    ]},
+    {id: 'view', label: '보기', items: [
+      {label: '☰   사이드바 ' + (NB_SIDEBAR_OPEN ? '숨기기' : '표시'), action: 'nb-toggle-sidebar', shortcut: 'Ctrl+/'},
+      {label: '🌗  테마 전환', action: 'nb-toggle-theme'},
+    ]},
+    {id: 'insert', label: '삽입', items: [
+      {label: '➕  코드 셀', action: 'nb-insert-code'},
+      {label: '📝  텍스트 셀', action: 'nb-insert-text'},
+    ]},
+    {id: 'runtime', label: '런타임', items: [
+      {label: '▶▶  모두 실행', action: 'nb-run-all'},
+      {label: '🔄  재시작', action: 'nb-reset-all'},
+      {label: '🚀  재시작 후 모두 실행', action: 'nb-reset-and-run-all'},
+    ]},
+    {id: 'help', label: '도움말', items: [
+      {label: '⌨️   단축키 보기', action: 'nb-show-shortcuts'},
+    ]},
+  ];
+
+  return `<div class="cb-menubar" id="cb-menubar">
+    ${menus.map(m => `
+      <div class="cb-menu${NB_OPEN_MENU === m.id ? ' cb-menu-open' : ''}" data-menu="${m.id}">
+        <button class="cb-menu-btn" data-action="nb-toggle-menu" data-menuid="${m.id}">${m.label}</button>
+        <div class="cb-menu-dropdown">
+          ${m.items.map(it => `
+            <button class="cb-menu-item" data-action="${it.action}">
+              <span>${it.label}</span>
+              ${it.shortcut ? `<span class="cb-menu-shortcut">${it.shortcut}</span>` : ''}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ── 좌측 사이드바 (마크다운 헤더 자동 목차) ──
+function vNbSidebar(){
+  const toc = buildNbTOC();
+  let tocHtml;
+  if(!toc.length){
+    tocHtml = `<div class="cb-toc-empty">텍스트 셀에 <code># 제목</code>을<br>적으면 여기에 목차가 생겨요.</div>`;
+  } else {
+    tocHtml = toc.map(it => `
+      <a class="cb-toc-item cb-toc-lv${it.level}" data-action="nb-toc-jump" data-cellid="${it.cellId}">
+        ${esc(it.text)}
+      </a>
+    `).join('');
+  }
+
+  // 코드/텍스트 셀 통계
+  const codeCount = NB_CELLS.filter(c => c.type === 'code').length;
+  const mdCount = NB_CELLS.filter(c => c.type === 'markdown').length;
+  const ranCount = Object.values(NB_CELL_OUTPUTS).filter(o => o?.execCount).length;
+
+  return `<aside class="cb-sidebar">
+    <div class="cb-sidebar-section">
+      <div class="cb-sidebar-title">📋 목차</div>
+      <div class="cb-toc">${tocHtml}</div>
+    </div>
+    <div class="cb-sidebar-section">
+      <div class="cb-sidebar-title">📊 통계</div>
+      <div class="cb-stats">
+        <div class="cb-stat-row"><span>코드 셀</span><b>${codeCount}</b></div>
+        <div class="cb-stat-row"><span>텍스트 셀</span><b>${mdCount}</b></div>
+        <div class="cb-stat-row"><span>실행됨</span><b>${ranCount}/${codeCount}</b></div>
+      </div>
+    </div>
+  </aside>`;
+}
+
+// 마크다운 헤더 추출 → 목차 항목
+function buildNbTOC(){
+  const items = [];
+  for(const cell of (NB_CELLS || [])){
+    if(cell.type !== 'markdown') continue;
+    const lines = (cell.source || '').split('\n');
+    let inFence = false;
+    for(const line of lines){
+      // 코드 블록 안의 # 무시
+      if(/^\s*```/.test(line)){ inFence = !inFence; continue; }
+      if(inFence) continue;
+      const m = line.match(/^(#{1,4})\s+(.+?)\s*$/);
+      if(m){
+        items.push({level: m[1].length, text: m[2].replace(/[#*_`]/g, '').trim(), cellId: cell.id});
+      }
+    }
+  }
+  return items;
 }
 
 // ── 셀 한 개 렌더 ──
@@ -150,7 +261,7 @@ function vNbCell(cell, idx){
   // 코드 셀
   const result = NB_CELL_OUTPUTS[cell.id];
   const execLabel = result?.running ? '[*]' : (result?.execCount ? `[${result.execCount}]` : '[ ]');
-  const outputHtml = result && !result.running ? vNbOutput(result) : (result?.running ? `<div class="cb-output"><pre style="color:#999;font-style:italic">⏳ 실행 중...</pre></div>` : '');
+  const outputHtml = result && !result.running ? vNbOutput(result, cell.id) : (result?.running ? `<div class="cb-output cb-out-running" data-cellid="${cell.id}"><div class="cb-out-header"><span class="cb-out-prompt">Out [*]:</span><span class="cb-out-time">⏱ 실행 중</span></div><div class="cb-out-body"><pre style="color:#999;font-style:italic;margin:0;padding:0 12px">⏳ 실행 중...</pre></div></div>` : '');
 
   return addRow + `<div class="cb-cell cb-cell-code${selected}" data-cellid="${cell.id}">
     ${hoverTb}
@@ -232,13 +343,36 @@ function vNbProgressPanel(){
   </div>`;
 }
 
-function vNbOutput(result){
-  let html = '';
-  if(result.output) html += `<pre class="cb-out-text">${esc(result.output)}</pre>`;
+function vNbOutput(result, cellId){
+  let body = '';
+  if(result.output) body += `<pre class="cb-out-text">${esc(result.output)}</pre>`;
   if(result.images && result.images.length){
-    html += result.images.map(b64 => `<img class="cb-out-img" src="data:image/png;base64,${b64}"/>`).join('');
+    body += result.images.map(b64 => `<img class="cb-out-img" src="data:image/png;base64,${b64}"/>`).join('');
   }
-  if(result.error) html += `<pre class="cb-out-err">${esc(result.error)}</pre>`;
-  if(!html && result.success) html = `<pre style="color:var(--text3);font-style:italic;margin:0">(출력 없음)</pre>`;
-  return `<div class="cb-output${result.error ? ' cb-has-error' : ''}">${html}</div>`;
+  if(result.error) body += `<pre class="cb-out-err">${esc(result.error)}</pre>`;
+  if(!body && result.success) body = `<pre class="cb-out-empty">(출력 없음)</pre>`;
+
+  const collapsed = !!(cellId && NB_COLLAPSED_OUTPUTS[cellId]);
+  const promptLabel = result.execCount ? `Out [${result.execCount}]:` : 'Out:';
+  const timeLabel = formatElapsed(result.elapsedMs);
+
+  return `<div class="cb-output${result.error ? ' cb-has-error' : ''}${collapsed ? ' cb-out-collapsed' : ''}" data-cellid="${cellId || ''}">
+    <div class="cb-out-header">
+      <span class="cb-out-prompt">${promptLabel}</span>
+      ${timeLabel ? `<span class="cb-out-time" title="실행 시간">⏱ ${timeLabel}</span>` : ''}
+      <span class="cb-out-spacer"></span>
+      ${cellId ? `<button class="cb-out-toggle" data-action="nb-toggle-output" data-cellid="${cellId}" title="${collapsed ? '출력 펼치기' : '출력 접기'}">${collapsed ? '▸' : '▾'}</button>` : ''}
+    </div>
+    <div class="cb-out-body">${body}</div>
+  </div>`;
+}
+
+// 실행 시간을 사람 읽기 좋은 문자열로
+function formatElapsed(ms){
+  if(typeof ms !== 'number' || ms < 0) return '';
+  if(ms < 1000) return `${Math.round(ms)}ms`;
+  if(ms < 60000) return `${(ms/1000).toFixed(1)}초`;
+  const m = Math.floor(ms / 60000);
+  const s = Math.round((ms % 60000) / 1000);
+  return `${m}분 ${s}초`;
 }

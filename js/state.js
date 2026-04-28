@@ -65,6 +65,9 @@ let NB_EDITING_MD   = null;  // 편집 중인 마크다운 셀 id
 let NB_VIEWING_STUDENT = null; // 선생님이 특정 학생 진도 보기 중 (학번)
 let NB_PROGRESS_MAP    = {};   // { [학번]: {cells, updatedAt} } — 로드된 학생 진도 캐시
 let NB_SHOW_PROGRESS   = false; // 학생 진도 패널 표시 여부
+let NB_COLLAPSED_OUTPUTS = {}; // { [cellId]: true } — 출력 접힘 상태
+let NB_SIDEBAR_OPEN    = true; // 좌측 사이드바(목차) 열림 여부
+let NB_OPEN_MENU       = null; // 현재 열린 메뉴바 메뉴 id ('file'|'edit'|...|null)
 
 // 미션(게임 실습) 관련
 let MISSIONS           = [];    // 현재 반의 미션 목록

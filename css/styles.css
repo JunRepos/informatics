@@ -421,6 +421,57 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .cb-tb-btn:hover{background:var(--cb-hover)}
 .cb-tb-btn:disabled{cursor:wait;opacity:.6}
 
+/* 메뉴바 (Colab 스타일) */
+.cb-menubar{position:sticky;top:50px;z-index:19;display:flex;align-items:stretch;gap:0;padding:0 10px;background:var(--cb-toolbar-bg);border-bottom:1px solid var(--cb-border);font-family:'Pretendard',-apple-system,sans-serif;font-size:13px}
+.cb-menu{position:relative}
+.cb-menu-btn{background:none;border:none;color:var(--cb-text);font-size:13px;font-weight:500;padding:7px 12px;cursor:pointer;border-radius:4px;transition:background .12s;display:inline-flex;align-items:center;font-family:inherit}
+.cb-menu-btn:hover{background:var(--cb-hover)}
+.cb-menu.cb-menu-open .cb-menu-btn{background:var(--cb-hover);color:var(--cb-accent)}
+.cb-menu-dropdown{display:none;position:absolute;top:100%;left:0;min-width:240px;background:var(--surface);border:1px solid var(--cb-border);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px 0;z-index:30;animation:cb-fade-in .12s ease-out}
+.cb-menu.cb-menu-open .cb-menu-dropdown{display:block}
+.cb-menu-item{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;background:none;border:none;color:var(--cb-text);font-size:13px;padding:7px 14px;cursor:pointer;text-align:left;font-family:inherit;border-radius:0;white-space:nowrap}
+.cb-menu-item:hover{background:var(--cb-hover);color:var(--cb-accent)}
+.cb-menu-item > span:first-child{flex:1}
+.cb-menu-shortcut{font-size:11px;color:var(--cb-text-3);font-family:'Roboto Mono','Consolas',monospace}
+
+.cb-sidebar-toggle{padding:5px 10px;font-size:14px;line-height:1}
+
+/* 본문 컨테이너 (사이드바 + 셀) */
+.cb-body{display:flex;align-items:stretch}
+.cb-main{flex:1;min-width:0}
+
+/* 좌측 사이드바 (목차 + 통계) */
+.cb-sidebar{flex-shrink:0;width:240px;border-right:1px solid var(--cb-border);background:var(--cb-bg-2);padding:14px 12px;font-family:'Pretendard',-apple-system,sans-serif;font-size:13px;max-height:calc(100vh - 200px);overflow-y:auto;position:sticky;top:88px;align-self:flex-start}
+.cb-sidebar-section{margin-bottom:18px}
+.cb-sidebar-title{font-size:11px;font-weight:700;color:var(--cb-text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:0 4px}
+.cb-toc{display:flex;flex-direction:column;gap:1px}
+.cb-toc-item{display:block;padding:5px 8px;border-radius:4px;color:var(--cb-text);text-decoration:none;cursor:pointer;font-size:12.5px;line-height:1.45;transition:all .12s;border-left:2px solid transparent}
+.cb-toc-item:hover{background:var(--cb-hover);color:var(--cb-accent);border-left-color:var(--cb-accent)}
+.cb-toc-lv1{font-weight:700;font-size:13px}
+.cb-toc-lv2{padding-left:18px}
+.cb-toc-lv3{padding-left:30px;font-size:12px;color:var(--cb-text-2)}
+.cb-toc-lv4{padding-left:42px;font-size:11.5px;color:var(--cb-text-2)}
+.cb-toc-empty{font-size:11.5px;color:var(--cb-text-3);padding:8px;background:var(--cb-bg);border:1px dashed var(--cb-border);border-radius:4px;line-height:1.6}
+.cb-toc-empty code{background:var(--cb-code-bg);padding:1px 5px;border-radius:3px;font-family:'Consolas',monospace;font-size:11px;color:var(--cb-accent)}
+.cb-stats{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.cb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:4px;color:var(--cb-text-2)}
+.cb-stat-row b{color:var(--cb-text);font-weight:700;font-family:'Roboto Mono','Consolas',monospace}
+
+/* 목차 점프 시 셀 깜빡임 */
+.cb-cell.cb-flash{animation:cb-flash .9s ease-out}
+@keyframes cb-flash{
+  0%{background:var(--cb-accent);box-shadow:0 0 0 4px var(--cb-accent)}
+  100%{background:transparent;box-shadow:none}
+}
+
+/* 인쇄: 메뉴/사이드바/툴바 숨김 */
+@media print{
+  .cb-toolbar,.cb-menubar,.cb-sidebar,.cb-add-row,.cb-stdin-wrap,.cb-cell-actions,.header,.tabs,.cb-out-toggle{display:none !important}
+  .cb-wrap,.cb-body,.cb-main{display:block !important;border:none !important;box-shadow:none !important}
+  .cb-output{break-inside:avoid;border:1px solid #ddd !important}
+  .cb-cell{break-inside:avoid;page-break-inside:avoid}
+}
+
 /* 셀 리스트 */
 .cb-cells{padding:4px 0}
 
@@ -495,19 +546,27 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .cb-ip-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
 .cb-ip-hint{font-size:11px;color:var(--cb-text-3);margin-left:auto}
 
-/* 출력 영역 — "출력" 라벨로 입력 드롭다운과 시각 분리 */
-.cb-output{margin:14px 0 0 56px;padding:0 0 8px;background:var(--cb-output-bg);border:1px solid var(--cb-border);border-left:3px solid var(--cb-accent);border-radius:0 4px 4px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;max-height:420px;overflow:auto;color:var(--cb-text);animation:cb-fade-in .2s ease-out}
-.cb-output::before{content:'📤 출력';display:block;font-family:'Pretendard',-apple-system,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--cb-text-3);padding:5px 12px;background:linear-gradient(180deg,rgba(127,127,127,.08),transparent);border-bottom:1px solid var(--cb-border);margin-bottom:6px}
+/* 출력 영역 — Colab 스타일 'Out [N]:' 헤더 + 접기 토글 */
+.cb-output{margin:14px 0 0 56px;background:var(--cb-output-bg);border:1px solid var(--cb-border);border-left:3px solid var(--cb-accent);border-radius:0 4px 4px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;color:var(--cb-text);animation:cb-fade-in .2s ease-out;overflow:hidden}
 @keyframes cb-fade-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
 .cb-output.cb-has-error{background:var(--cb-error-bg);border-left-color:var(--cb-error-text)}
+.cb-out-header{display:flex;align-items:center;gap:10px;padding:5px 10px;background:linear-gradient(180deg,rgba(127,127,127,.08),transparent);border-bottom:1px solid var(--cb-border);font-family:'Pretendard',-apple-system,sans-serif;font-size:11px;color:var(--cb-text-3)}
+.cb-out-prompt{font-weight:700;letter-spacing:.02em;color:var(--cb-accent);font-family:'Roboto Mono','Consolas',monospace;font-size:11.5px}
+.cb-output.cb-has-error .cb-out-prompt{color:var(--cb-error-text)}
+.cb-out-time{font-size:10.5px;color:var(--cb-text-3);font-weight:500}
+.cb-out-spacer{flex:1}
+.cb-out-toggle{background:none;border:1px solid transparent;color:var(--cb-text-3);width:22px;height:22px;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1;padding:0;transition:all .12s}
+.cb-out-toggle:hover{background:var(--cb-hover);color:var(--cb-text-2);border-color:var(--cb-border)}
+.cb-out-body{padding:8px 0;max-height:420px;overflow:auto}
+.cb-output.cb-out-collapsed .cb-out-body{display:none}
 .cb-out-text{margin:0;padding:0 12px;white-space:pre-wrap;word-break:break-word;color:var(--cb-text);font-family:inherit;font-size:inherit}
-.cb-output > pre:not([class]){margin:0;padding:0 12px}
+.cb-out-empty{margin:0;padding:0 12px;color:var(--cb-text-3);font-style:italic}
 .cb-out-err{margin:6px 12px 0;padding-top:6px;border-top:1px dashed rgba(217,48,37,.3);white-space:pre-wrap;word-break:break-word;color:var(--cb-error-text);font-family:inherit;font-size:12.5px}
 .cb-out-img{max-width:calc(100% - 24px);margin:8px 12px;display:block;background:#fff;padding:4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 /* 스크롤바 */
-.cb-output::-webkit-scrollbar{width:10px;height:10px}
-.cb-output::-webkit-scrollbar-thumb{background:var(--cb-border);border-radius:5px;border:2px solid var(--cb-output-bg)}
-.cb-output::-webkit-scrollbar-thumb:hover{background:var(--cb-text-3)}
+.cb-out-body::-webkit-scrollbar{width:10px;height:10px}
+.cb-out-body::-webkit-scrollbar-thumb{background:var(--cb-border);border-radius:5px;border:2px solid var(--cb-output-bg)}
+.cb-out-body::-webkit-scrollbar-thumb:hover{background:var(--cb-text-3)}
 
 /* 마크다운 셀 */
 .cb-cell-md{cursor:text;padding:4px 8px 4px 12px}
