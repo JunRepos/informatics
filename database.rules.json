@@ -198,6 +198,22 @@
       }
     },
 
+    // ── OJ 작성 중 코드 자동 저장 (제출 전 임시 저장) ──
+    "ojDrafts": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$problemId": {
+          "$studentNum": {
+            ".validate": "newData.hasChildren(['code', 'updatedAt'])",
+            "code":      { ".validate": "newData.isString() && newData.val().length <= 50000" },
+            "updatedAt": { ".validate": "newData.isString()" },
+            "$other":    { ".validate": false }
+          }
+        }
+      }
+    },
+
     // ── 노트북 (Colab 스타일 실습) ──
     "notebooks": {
       "$classId": {

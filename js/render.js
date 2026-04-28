@@ -217,7 +217,11 @@ function afterRender(){
     });
     cm.setSize('100%', '100%');
     cm.setValue(OJ_CODE || '');
-    cm.on('change', (ed) => { OJ_CODE = ed.getValue(); });
+    cm.on('change', (ed) => {
+      OJ_CODE = ed.getValue();
+      // 학생이면 1.5초 debounce 자동 저장
+      if(typeof scheduleOJDraftSave === 'function') scheduleOJDraftSave();
+    });
     cmEl._cm = cm;
   // OJ 에디터/결과 리사이즈 핸들
   const ojResizeH = document.getElementById('oj-resize-h');
@@ -258,7 +262,10 @@ function afterRender(){
     cmEl.style.width = '100%';
     cmEl.style.padding = '12px';
     cmEl.style.tabSize = '4';
-    cmEl.addEventListener('input', () => { OJ_CODE = cmEl.value; });
+    cmEl.addEventListener('input', () => {
+      OJ_CODE = cmEl.value;
+      if(typeof scheduleOJDraftSave === 'function') scheduleOJDraftSave();
+    });
     cmEl.addEventListener('keydown', (e) => {
       if(e.key === 'Tab'){
         e.preventDefault();

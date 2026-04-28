@@ -48,7 +48,7 @@ function vTcOJForm(){
     ${editData ? `<div class="box-warn" style="margin-bottom:10px">수정 중: <b>${esc(editData.title)}</b></div>` : ''}
     <div class="form">
       <div class="field"><label>문제 제목</label><input id="oj-title" type="text" placeholder="예: 두 수의 합" value="${editData ? esc(editData.title) : ''}"/></div>
-      <div class="field"><label>문제 설명</label><textarea id="oj-desc" placeholder="문제 설명을 입력하세요.&#10;&#10;예)&#10;두 정수 A, B를 입력받아 A+B를 출력하시오.&#10;&#10;입력: 첫 줄에 두 정수 A, B (1 ≤ A, B ≤ 1000)&#10;출력: A+B를 출력" style="min-height:160px">${editData ? esc(editData.description || '') : ''}</textarea></div>
+      <div class="field"><label>문제 설명 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(마크다운 지원: <code>#</code> 제목, <code>**굵게**</code>, <code>\`코드\`</code>, <code>\`\`\`python ... \`\`\`</code>)</span></label><textarea id="oj-desc" placeholder="문제 설명을 입력하세요. 마크다운 사용 가능!&#10;&#10;## 문제&#10;두 정수 A, B를 입력받아 **A+B** 를 출력하시오.&#10;&#10;### 입력&#10;첫 줄에 두 정수 A, B (1 ≤ A, B ≤ 1000)&#10;&#10;### 출력&#10;A+B를 출력" style="min-height:200px">${editData ? esc(editData.description || '') : ''}</textarea></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
         <div style="font-size:13px;font-weight:600;color:var(--text2)">테스트 케이스</div>
         <button type="button" class="btn-xs btn-p" data-action="oj-add-tc">+ 추가</button>
@@ -176,20 +176,27 @@ function vStOJSolve(){
       <div class="oj-example-block"><button class="oj-copy-btn" data-action="oj-copy-example" data-text="${esc(tc.expectedOutput)}">복사</button>${esc(tc.expectedOutput)}</div>
     </div>`).join('');
 
+  // 문제 설명: 마크다운 지원 (제목/코드블록/리스트/강조 등)
+  const descHtml = (typeof marked !== 'undefined' && p.description)
+    ? `<div class="oj-desc oj-desc-md">${marked.parse(p.description)}</div>`
+    : `<div class="oj-desc">${esc(p.description || '')}</div>`;
+
   const left = `<div class="oj-left">
     <div style="font-size:18px;font-weight:700;margin-bottom:16px">${esc(p.title)}</div>
-    <div class="oj-desc">${esc(p.description || '')}</div>
+    ${descHtml}
     ${visibleTcs.length ? `<div class="divider"></div>
       <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px">입출력 예</div>
       ${tcExamples}` : ''}
   </div>`;
 
   // 오른쪽: 에디터 + 결과 패널 + 액션 바
+  const isStudent = !IS_TC && !!ST_USER;
   const right = `<div class="oj-right">
     <div class="oj-editor-header">
       <span>solution.py</span>
-      <div style="display:flex;gap:6px">
-        ${prevCode ? `<button class="btn-xs" data-action="oj-load-prev">이전 코드</button>` : ''}
+      <div style="display:flex;gap:8px;align-items:center">
+        ${isStudent ? `<span id="oj-draft-ind" class="oj-draft-ind" data-state="idle"></span>` : ''}
+        ${prevCode ? `<button class="btn-xs" data-action="oj-load-prev">이전 제출 코드</button>` : ''}
       </div>
     </div>
     <div class="oj-editor-section">
@@ -226,13 +233,28 @@ function vOJResultsPanel(){
   </div>`;
 }
 
+// 에러 박스 렌더 (친절한 한국어 + 원본 traceback 펼치기)
+function vOJErrorBox(rawError){
+  if(!rawError) return '';
+  const info = (typeof friendlyOJError === 'function') ? friendlyOJError(rawError) : null;
+  const friendly = info?.friendly;
+  const lineNum = info?.line;
+  const lineHint = lineNum ? `<span class="oj-err-line">📍 ${lineNum}번째 줄 근처</span>` : '';
+  return `<div class="oj-output-box oj-error">
+    ${friendly
+      ? `<div class="oj-err-friendly">💡 ${friendly}</div>${lineHint}`
+      : `<div class="oj-err-friendly">⚠️ 실행 중 오류가 발생했어요.</div>${lineHint}`}
+    <details class="oj-err-raw"><summary>원본 에러 메시지 보기</summary><pre>${esc(rawError)}</pre></details>
+  </div>`;
+}
+
 // 실행 결과 탭 (커스텀 stdin + 출력)
 function vOJRunTab(){
   let outputHtml = '';
   if(OJ_CUSTOM_OUTPUT === null){
     outputHtml = `<div class="oj-output-box oj-placeholder">실행 결과가 여기에 표시됩니다.</div>`;
   } else if(!OJ_CUSTOM_OUTPUT.success){
-    outputHtml = `<div class="oj-output-box oj-error">${esc(OJ_CUSTOM_OUTPUT.error || '실행 오류')}</div>`;
+    outputHtml = vOJErrorBox(OJ_CUSTOM_OUTPUT.error || '실행 오류');
   } else {
     outputHtml = `<div class="oj-output-box">${esc(OJ_CUSTOM_OUTPUT.output || '(출력 없음)')}</div>`;
   }
@@ -245,7 +267,7 @@ function vOJRunTab(){
     ${outputHtml}`;
 }
 
-// 테스트 결과 탭 (TC 채점 결과)
+// 테스트 결과 탭 (TC 채점 결과 + diff)
 function vOJTestTab(){
   const results = OJ_SUBMIT_RESULTS;
   if(!results) return `<div class="oj-output-box oj-placeholder">제출 후 채점하기 버튼을 눌러 채점하세요.</div>`;
@@ -260,24 +282,37 @@ function vOJTestTab(){
 
   const rows = results.map((r, i) => {
     const label = r.isHidden ? `테스트 ${i + 1} (숨김)` : `테스트 ${i + 1}`;
+
+    // 에러로 실패한 경우: 친절한 메시지
     if(r.error){
+      const errBox = vOJErrorBox(r.error);
       return `<div class="oj-result-row">
         <span>${label}</span>
-        <span class="oj-result-fail">오류</span>
-        <div style="font-size:11px;color:var(--danger);margin-left:auto;max-width:60%;word-break:break-word">${esc(r.error).slice(0, 200)}</div>
+        <span class="oj-result-fail">⚠️ 오류</span>
+      </div>
+      ${!r.isHidden ? `<div class="oj-result-detail">${errBox}</div>` : ''}`;
+    }
+
+    // 통과
+    if(r.passed){
+      return `<div class="oj-result-row">
+        <span>${label}</span>
+        <span class="oj-result-pass">✓ 통과</span>
       </div>`;
     }
-    const detail = r.isHidden ? '' : `
-      <div style="display:flex;gap:12px;padding:6px 0 6px 28px;font-size:12px;color:var(--text3);flex-wrap:wrap">
-        <div>입력: <code style="color:var(--text2)">${esc(r.input).slice(0, 100)}</code></div>
-        <div>기대: <code style="color:var(--text2)">${esc(r.expected).slice(0, 100)}</code></div>
-        <div>출력: <code style="color:var(--text2)">${esc(r.actual).slice(0, 100)}</code></div>
-      </div>`;
+
+    // 실패 (에러 아님, 출력만 다름) — 숨김 TC면 디테일 X
+    const detail = r.isHidden ? '' : `<div class="oj-result-detail">
+      <div class="oj-fail-input"><span class="oj-fail-label">입력</span>
+        <pre>${esc(r.input || '(없음)')}</pre>
+      </div>
+      ${renderOJDiff(r.expected, r.actual)}
+    </div>`;
     return `<div class="oj-result-row">
       <span>${label}</span>
-      <span class="${r.passed ? 'oj-result-pass' : 'oj-result-fail'}">${r.passed ? '✓ 통과' : '✗ 실패'}</span>
-    </div>${!r.isHidden && !r.passed ? detail : ''}`;
+      <span class="oj-result-fail">✗ 출력 불일치</span>
+    </div>${detail}`;
   }).join('');
 
-  return header + `<div style="border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">${rows}</div>`;
+  return header + `<div class="oj-result-list">${rows}</div>`;
 }

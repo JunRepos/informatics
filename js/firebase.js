@@ -143,6 +143,19 @@ async function loadOJSubmissions(cid, pid){
   OJ_SUBMISSIONS[pid] = s.exists() ? s.val() : {};
 }
 
+// ── OJ 작성 중 코드 자동 저장 (학생) ──
+async function loadOJDraft(cid, pid, studentNum){
+  const s = await db.ref(`ojDrafts/${cid}/${pid}/${studentNum}`).get();
+  return s.exists() ? s.val() : null;  // {code, updatedAt}
+}
+
+async function saveOJDraft(cid, pid, studentNum, code){
+  await db.ref(`ojDrafts/${cid}/${pid}/${studentNum}`).set({
+    code: code || '',
+    updatedAt: new Date().toISOString()
+  });
+}
+
 // ── 노트북 목록 ──
 async function loadNotebooks(cid){
   const s = await db.ref(`notebooks/${cid}`).get();
