@@ -471,14 +471,15 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .cb-code-main .CodeMirror-focused .CodeMirror-selected{background:rgba(26,115,232,.15)}
 .cb-code-main .CodeMirror-cursor{border-left-color:var(--cb-accent)}
 
-/* 입력 (stdin) */
-.cb-stdin-wrap{margin:6px 0 0 56px}
-.cb-stdin-summary{cursor:pointer;font-size:11px;color:var(--cb-text-3);padding:3px 0;list-style:none;user-select:none;display:inline-flex;align-items:center;gap:4px;border-radius:3px;transition:color .12s}
-.cb-stdin-summary:hover{color:var(--cb-text-2)}
+/* 입력 (stdin) — "출력의 일부"로 오해 안 되게 칩 스타일로 */
+.cb-stdin-wrap{margin:8px 0 0 56px}
+.cb-stdin-summary{cursor:pointer;font-size:11px;color:var(--cb-text-2);padding:4px 10px 4px 8px;list-style:none;user-select:none;display:inline-flex;align-items:center;gap:5px;border:1px dashed var(--cb-border);background:var(--cb-bg);border-radius:14px;transition:all .12s;font-weight:500}
+.cb-stdin-summary:hover{color:var(--cb-text);border-color:var(--cb-accent);background:var(--cb-output-bg)}
 .cb-stdin-summary::-webkit-details-marker{display:none}
-.cb-stdin-summary::before{content:'▸';display:inline-block;transition:transform .15s;font-size:9px}
-details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
-.cb-stdin-area{width:100%;min-height:50px;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:12px;background:var(--cb-bg);color:var(--cb-text);border:1px solid var(--cb-border);border-radius:4px;resize:vertical;margin-top:4px;box-sizing:border-box}
+.cb-stdin-summary::before{content:'▸';display:inline-block;transition:transform .15s;font-size:9px;color:var(--cb-text-3)}
+details[open] .cb-stdin-summary{border-style:solid;border-color:var(--cb-accent);color:var(--cb-text)}
+details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-accent)}
+.cb-stdin-area{width:100%;min-height:50px;padding:8px 10px;font-family:'Roboto Mono','Consolas',monospace;font-size:12px;background:var(--cb-bg);color:var(--cb-text);border:1px solid var(--cb-border);border-radius:4px;resize:vertical;margin-top:6px;box-sizing:border-box}
 .cb-stdin-area:focus{outline:none;border-color:var(--cb-accent)}
 
 /* Colab 스타일 input() 팝업 */
@@ -494,13 +495,15 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg)}
 .cb-ip-actions{display:flex;gap:8px;margin-top:8px;align-items:center}
 .cb-ip-hint{font-size:11px;color:var(--cb-text-3);margin-left:auto}
 
-/* 출력 영역 */
-.cb-output{margin:6px 0 0 56px;padding:8px 12px;background:var(--cb-output-bg);border-left:2px solid var(--cb-border);border-radius:0 3px 3px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;max-height:420px;overflow:auto;color:var(--cb-text);animation:cb-fade-in .2s ease-out}
+/* 출력 영역 — "출력" 라벨로 입력 드롭다운과 시각 분리 */
+.cb-output{margin:14px 0 0 56px;padding:0 0 8px;background:var(--cb-output-bg);border:1px solid var(--cb-border);border-left:3px solid var(--cb-accent);border-radius:0 4px 4px 0;font-family:'Roboto Mono','Consolas',monospace;font-size:13px;line-height:1.5;max-height:420px;overflow:auto;color:var(--cb-text);animation:cb-fade-in .2s ease-out}
+.cb-output::before{content:'📤 출력';display:block;font-family:'Pretendard',-apple-system,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--cb-text-3);padding:5px 12px;background:linear-gradient(180deg,rgba(127,127,127,.08),transparent);border-bottom:1px solid var(--cb-border);margin-bottom:6px}
 @keyframes cb-fade-in{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
 .cb-output.cb-has-error{background:var(--cb-error-bg);border-left-color:var(--cb-error-text)}
-.cb-out-text{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--cb-text);font-family:inherit;font-size:inherit}
-.cb-out-err{margin:6px 0 0;padding-top:6px;border-top:1px dashed rgba(217,48,37,.3);white-space:pre-wrap;word-break:break-word;color:var(--cb-error-text);font-family:inherit;font-size:12.5px}
-.cb-out-img{max-width:100%;margin:8px 0;display:block;background:#fff;padding:4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.cb-out-text{margin:0;padding:0 12px;white-space:pre-wrap;word-break:break-word;color:var(--cb-text);font-family:inherit;font-size:inherit}
+.cb-output > pre:not([class]){margin:0;padding:0 12px}
+.cb-out-err{margin:6px 12px 0;padding-top:6px;border-top:1px dashed rgba(217,48,37,.3);white-space:pre-wrap;word-break:break-word;color:var(--cb-error-text);font-family:inherit;font-size:12.5px}
+.cb-out-img{max-width:calc(100% - 24px);margin:8px 12px;display:block;background:#fff;padding:4px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 /* 스크롤바 */
 .cb-output::-webkit-scrollbar{width:10px;height:10px}
 .cb-output::-webkit-scrollbar-thumb{background:var(--cb-border);border-radius:5px;border:2px solid var(--cb-output-bg)}
