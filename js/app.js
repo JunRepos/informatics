@@ -4,33 +4,108 @@
    앱 시작, ZIP 다운로드, 레거시 복구 등
 ═══════════════════════════════════════ */
 
-// ── ZIP 다운로드 (과제 제출물) ─��
+// ── 파일명 헬퍼 ──
+// 파일시스템/ZIP에 안전한 이름 (/, \, :, *, ?, ", <, >, | 제거)
+function _safeFilename(s){
+  return String(s || '').replace(/[\/\\:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim() || '_';
+}
+// 확장자 추출 (".py", ".docx", ".tar.gz" 등)
+function _fileExt(filename){
+  const name = String(filename || '');
+  // .tar.gz / .tar.bz2 같은 복합 확장자 우선
+  const compound = name.match(/\.(tar\.(gz|bz2|xz))$/i);
+  if(compound) return '.' + compound[1];
+  const m = name.match(/\.([a-zA-Z0-9]{1,8})$/);
+  return m ? '.' + m[1] : '';
+}
+
+// ── ZIP 일괄 다운로드 (한 수업의 제출물 전부) ──
+//   파일명 규칙
+//     · 학생이 1개 파일 제출: 학번_이름_수업제목.확장자
+//     · 학생이 N개 파일 제출: 학번_이름_수업제목/원본파일명.확장자  (폴더로)
 async function doZipDownload(aid){
   const a = ASSIGNMENTS.find(x => x.id === aid);
+  if(!a){ toast('수업을 찾을 수 없습니다.', 'err'); return; }
+
   const subs = SUBMISSIONS[aid] || {};
-  const entries = Object.entries(subs).filter(([, v]) => v && v.url);
-  if(!entries.length){ toast('제출된 파일이 없습니다.', 'err'); return; }
+  // 다중 파일(files[]) 또는 단일 파일(url) 둘 다 포함
+  const submittedEntries = Object.entries(subs).filter(([, v]) =>
+    v && (v.url || (Array.isArray(v.files) && v.files.length))
+  );
+  if(!submittedEntries.length){ toast('제출된 파일이 없습니다.', 'err'); return; }
 
   const btn = document.getElementById('zip-btn');
-  if(btn){ btn.textContent = '📦 압축 중...'; btn.disabled = true; }
+  const totalStudents = submittedEntries.length;
+  const setBtn = (text, disabled) => { if(btn){ btn.textContent = text; btn.disabled = disabled; } };
 
-  try{
+  setBtn('📦 압축 준비 중...', true);
+
+  const safeAssignTitle = _safeFilename(a.title || '수업');
+  let failedCount = 0;
+
+  try {
     const zip = new JSZip();
-    for(const [num, sub] of entries){
+
+    for(let i = 0; i < submittedEntries.length; i++){
+      const [num, sub] = submittedEntries[i];
+      setBtn(`📦 ${i + 1}/${totalStudents}명 처리 중...`, true);
+
       const st = STUDENTS.find(s => s.number === num);
-      const stName = st ? st.name : num;
-      const fname = `${num}_${stName}_${sub.fileName}`;
-      const res = await fetch(sub.url);
-      const blob = await res.blob();
-      zip.file(fname, blob);
+      const stName = _safeFilename(st ? st.name : num);
+      const studentPrefix = `${_safeFilename(num)}_${stName}`;
+
+      // 파일 목록 정리 (다중/단일 둘 다 처리)
+      const files = (Array.isArray(sub.files) && sub.files.length)
+        ? sub.files
+        : (sub.fileName && sub.url ? [{name: sub.fileName, url: sub.url}] : []);
+      if(!files.length) continue;
+
+      if(files.length === 1){
+        // 단일 파일: 학번_이름_수업제목.확장자
+        const f = files[0];
+        const ext = _fileExt(f.name);
+        const fname = `${studentPrefix}_${safeAssignTitle}${ext}`;
+        try {
+          const res = await fetch(f.url);
+          if(!res.ok) throw new Error('HTTP ' + res.status);
+          zip.file(fname, await res.blob());
+        } catch(err){
+          console.warn(`[ZIP] ${num} 다운로드 실패:`, err);
+          failedCount++;
+        }
+      } else {
+        // 여러 파일: 학번_이름_수업제목/ 폴더 안에 원본 파일명 그대로
+        const folder = `${studentPrefix}_${safeAssignTitle}`;
+        for(const f of files){
+          const safeName = _safeFilename(f.name);
+          try {
+            const res = await fetch(f.url);
+            if(!res.ok) throw new Error('HTTP ' + res.status);
+            zip.file(`${folder}/${safeName}`, await res.blob());
+          } catch(err){
+            console.warn(`[ZIP] ${num}/${f.name} 다운로드 실패:`, err);
+            failedCount++;
+          }
+        }
+      }
     }
+
+    setBtn('📦 압축 중...', true);
     const content = await zip.generateAsync({type: 'blob'});
     const url = URL.createObjectURL(content);
-    dlFile(`${a?.title || 'submissions'}_제출물.zip`, url);
+    dlFile(`${safeAssignTitle}_제출물.zip`, url);
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-  } catch(err){ toast('ZIP 다운로드 실패: ' + err.message, 'err'); }
 
-  if(btn){ btn.textContent = `📦 ZIP 다운로드 (${entries.length}개)`; btn.disabled = false; }
+    if(failedCount > 0){
+      toast(`다운로드 시작 — ${failedCount}개 파일은 실패`, 'err');
+    } else {
+      toast(`📦 ${totalStudents}명 ${a.title} 제출물 다운로드 시작`, 'ok');
+    }
+  } catch(err){
+    toast('ZIP 다운로드 실패: ' + err.message, 'err');
+  }
+
+  setBtn(`📦 일괄 다운로드 (${totalStudents}명)`, false);
 }
 
 // ── 레거시 게시물 복구 ──

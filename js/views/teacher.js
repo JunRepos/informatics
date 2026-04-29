@@ -186,7 +186,7 @@ function vStatusTable(aid){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div class="sec-title" style="margin:0">📊 ${esc(a.title)} — 제출 현황</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${submittedSubs.length ? `<button class="btn-ok btn-sm" id="zip-btn" data-aid="${aid}">📦 ZIP (${submittedSubs.length}개)</button>` : ''}
+        ${submittedSubs.length ? `<button class="btn-ok btn-sm" id="zip-btn" data-aid="${aid}" title="학번_이름_수업제목 형식으로 일괄 ZIP 다운로드">📦 일괄 다운로드 (${submittedSubs.length}명)</button>` : ''}
         <button class="btn-sm" data-action="close-status" data-aid="${aid}">✕ 닫기</button>
       </div>
     </div>
