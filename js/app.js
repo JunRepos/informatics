@@ -19,6 +19,19 @@ function _fileExt(filename){
   return m ? '.' + m[1] : '';
 }
 
+// 한 파일 다운로드.
+// coi-serviceworker(crossOriginIsolated) 환경에서는 Firebase Storage 응답을
+// 읽으려면 credentials: 'omit' 을 명시해야 함 (COEP credentialless 호환).
+async function _fetchSubmissionFile(url){
+  const res = await fetch(url, {
+    mode: 'cors',
+    credentials: 'omit',
+    cache: 'no-store'
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.blob();
+}
+
 // ── ZIP 일괄 다운로드 (한 수업의 제출물 전부) ──
 //   파일명 규칙
 //     · 학생이 1개 파일 제출: 학번_이름_수업제목.확장자
@@ -42,6 +55,8 @@ async function doZipDownload(aid){
 
   const safeAssignTitle = _safeFilename(a.title || '수업');
   let failedCount = 0;
+  const failedDetails = [];  // 실패한 항목 상세 (콘솔용)
+  let addedCount = 0;        // ZIP에 실제로 추가된 파일 수
 
   try {
     const zip = new JSZip();
@@ -61,33 +76,42 @@ async function doZipDownload(aid){
       if(!files.length) continue;
 
       if(files.length === 1){
-        // 단일 파일: 학번_이름_수업제목.확장자
         const f = files[0];
         const ext = _fileExt(f.name);
         const fname = `${studentPrefix}_${safeAssignTitle}${ext}`;
         try {
-          const res = await fetch(f.url);
-          if(!res.ok) throw new Error('HTTP ' + res.status);
-          zip.file(fname, await res.blob());
+          const blob = await _fetchSubmissionFile(f.url);
+          zip.file(fname, blob);
+          addedCount++;
         } catch(err){
-          console.warn(`[ZIP] ${num} 다운로드 실패:`, err);
+          console.warn(`[ZIP] ${num} 다운로드 실패:`, err.message, f.url);
+          failedDetails.push({who: num, file: f.name, msg: err.message});
           failedCount++;
         }
       } else {
-        // 여러 파일: 학번_이름_수업제목/ 폴더 안에 원본 파일명 그대로
         const folder = `${studentPrefix}_${safeAssignTitle}`;
         for(const f of files){
           const safeName = _safeFilename(f.name);
           try {
-            const res = await fetch(f.url);
-            if(!res.ok) throw new Error('HTTP ' + res.status);
-            zip.file(`${folder}/${safeName}`, await res.blob());
+            const blob = await _fetchSubmissionFile(f.url);
+            zip.file(`${folder}/${safeName}`, blob);
+            addedCount++;
           } catch(err){
-            console.warn(`[ZIP] ${num}/${f.name} 다운로드 실패:`, err);
+            console.warn(`[ZIP] ${num}/${f.name} 다운로드 실패:`, err.message, f.url);
+            failedDetails.push({who: num, file: f.name, msg: err.message});
             failedCount++;
           }
         }
       }
+    }
+
+    if(addedCount === 0){
+      // 한 개도 못 받았으면 ZIP 안 만들고 친절한 에러 표시
+      console.error('[ZIP] 모든 파일 다운로드 실패. 상세:', failedDetails);
+      const sample = failedDetails[0]?.msg || '알 수 없는 오류';
+      toast(`다운로드 실패 — 모든 파일을 받을 수 없습니다 (${sample}). 콘솔(F12)에서 상세 확인.`, 'err');
+      setBtn(`📦 일괄 다운로드 (${totalStudents}명)`, false);
+      return;
     }
 
     setBtn('📦 압축 중...', true);
@@ -97,7 +121,8 @@ async function doZipDownload(aid){
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     if(failedCount > 0){
-      toast(`다운로드 시작 — ${failedCount}개 파일은 실패`, 'err');
+      console.warn('[ZIP] 일부 파일 실패:', failedDetails);
+      toast(`📦 ${addedCount}개 다운로드 시작 (${failedCount}개 실패 — 콘솔 확인)`, 'err');
     } else {
       toast(`📦 ${totalStudents}명 ${a.title} 제출물 다운로드 시작`, 'ok');
     }
