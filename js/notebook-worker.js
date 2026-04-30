@@ -182,15 +182,10 @@ sys.stderr = _stderr_capture
     try {
       await pyodide.runPythonAsync(code);
     } catch(err){
-      // Python 에러면 traceback 가져옴
-      try {
-        errorText = pyodide.runPython(`
-import traceback
-traceback.format_exc()
-`);
-      } catch(e2){
-        errorText = err.message || String(err);
-      }
+      // ⚠️ traceback.format_exc()는 쓰면 안 됨 — 이 시점엔 Python의 sys.exc_info()가
+      //   이미 비워져서 항상 "NoneType: None"만 반환함.
+      //   Pyodide PythonError.message 에 포맷된 traceback이 들어 있으니 그걸 사용.
+      errorText = (err && err.message) ? err.message : String(err || '알 수 없는 오류');
     }
 
     // matplotlib 자동 show
