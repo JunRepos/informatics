@@ -14,6 +14,14 @@ const GAME_TYPES = [
     {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
     {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'},
     {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N + 배경 변화)'}
+  ]},
+  {id:'typehunter', label:'⚔️ 타입 헌터', hooks:[
+    {id:'heroSummon',    label:'heroSummon',    desc:'영웅 소환 — 변수 hero_name (str) 읽음'},
+    {id:'heroAttack',    label:'heroAttack',    desc:'공격력 — 변수 attack (int) 읽음, 영웅이 INT 타입(파랑)으로 전환'},
+    {id:'heroSpeed',     label:'heroSpeed',     desc:'이동 속도 — 변수 speed (float) 읽음, FLOAT 타입(보라)'},
+    {id:'heroShield',    label:'heroShield',    desc:'방어막 — 변수 shielded (bool) 읽음, BOOL 타입(황금)'},
+    {id:'heroTransform', label:'heroTransform', desc:'변신술 — 변수 hero 의 자료형이 영웅 색을 결정 (str/int/float/bool)'},
+    {id:'heroFinal',     label:'heroFinal',     desc:'최종: 변수 intro (str) 를 카드로 표시 + 자유 능력 종합'}
   ]}
 ];
 
@@ -34,9 +42,10 @@ function vTcMission(){
 function vMissionList(isTeacher){
   const tcBar = isTeacher ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div class="sec-title" style="margin:0">🎮 게임 미션</div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn-p btn-sm" data-action="mission-new">+ 미션 만들기</button>
-      <button class="btn-sm" data-action="mission-load-sample">🐦 예제 미션 불러오기</button>
+      <button class="btn-sm" data-action="mission-load-sample" title="플래피 버드 7단계: 변수→문자열→덧셈→곱셈→입력→몫→자유창작">🐦 플래피버드 예제</button>
+      <button class="btn-sm" data-action="mission-load-typehunter" title="1차시(변수/자료형/형변환/print) 학습용 슈팅 미션 6단계">⚔️ 타입헌터 예제</button>
     </div>
   </div>` : '';
 
@@ -471,6 +480,107 @@ function getFlappyBirdSampleMission(){
         tests: [
           {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 10, pipesPassed: 5}},
           {type: 'exists', name: 'score', typeOf: 'number', inputs: {score: 100, pipesPassed: 20}}
+        ]
+      }
+    ]
+  };
+}
+
+// ── 예제 미션 템플릿 (타입 헌터) — 1차시: 변수/자료형/형변환/print ──
+function getTypeHunterSampleMission(){
+  return {
+    title: '타입 헌터 — 자료형이 무기다',
+    gameType: 'typehunter',
+    description: '변수와 자료형을 배우면서 영웅을 키우는 슈팅 미션. 영웅의 자료형(str/int/float/bool)이 곧 무기 색이 되어, 같은 색 몬스터만 잡을 수 있습니다. 형변환을 배우면 색을 자유롭게 바꾸며 4종 몬스터 다 잡는 헌터가 돼요!',
+    createdAt: new Date().toISOString(),
+    steps: [
+      // ═══ 1단계: 변수 + 문자열 — 영웅 소환 ═══
+      {
+        id: 'th_summon',
+        title: '1️⃣ 영웅 소환 — 변수 + 문자열',
+        description: '## 🎯 미션\n\n전장에 영웅이 없네요! `hero_name` 이라는 **변수**에 본인 이름(또는 멋진 이름)을 **문자열**로 저장해서 영웅을 소환하세요.\n\n```python\nhero_name = \'홍길동\'\n```\n\n👉 코드를 실행하면 화면 하단에 **빨간색 STR 영웅**이 등장합니다. 이름표도 머리 위에 떠요. ✨\n\n### 💡 개념: 변수 + 문자열(str)\n- **변수** = 값을 담는 상자. `=` 는 \"오른쪽 값을 왼쪽에 넣어라\"\n- **문자열** = 글자들의 묶음. **반드시 따옴표로 감싸기** (`\'홍길동\'` 또는 `"홍길동"`)\n- 영웅은 **str(빨강)** 모드로 시작 → 빨강 슬라임만 잡을 수 있어요\n- 조작: **←/→** 로 이동, **SPACE** 또는 **클릭**으로 공격',
+        experiment: '여러 가지 이름으로 시도해보세요!\n\n- `hero_name = \'전설의 헌터\'`\n- `hero_name = \'김초보\'` — 친근하게\n- `hero_name = \'☠️ 어둠의 군주 ☠️\'` — 이모지도 OK\n\n📌 따옴표 안에 어떤 글자든 자유롭게! 단, **따옴표는 꼭** 있어야 해요.',
+        hint: '따옴표를 빼먹지 마세요!\n\n```python\nhero_name = \'홍길동\'\n```',
+        starterCode: '# 영웅 이름을 문자열로 저장하세요\n# hero_name = \'???\'\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroSummon',
+        tests: [
+          {type: 'exists', name: 'hero_name', typeOf: 'string'}
+        ]
+      },
+
+      // ═══ 2단계: int — 공격력 ═══
+      {
+        id: 'th_attack',
+        title: '2️⃣ 공격력 부여 — 정수(int)',
+        description: '## 🎯 미션\n\n영웅이 약해 보여요! `attack` 변수에 **정수**로 공격력을 저장해주세요. 영웅이 **파란색 INT 모드**로 변신하고 공격력이 적용됩니다.\n\n```python\nattack = 10\n```\n\n👉 영웅이 **파란색**으로 바뀌고, 파란 골렘 몬스터들이 등장합니다. 같은 파란 광선으로 처치 가능! 💥\n\n### 💡 개념: 정수(int)\n- **정수** = 소수점이 없는 숫자: `0, 1, -5, 100, 9999`\n- 따옴표 ❌ — 따옴표가 있으면 문자열이 됨!\n- `attack = 10` (정수) ✅  vs  `attack = \'10\'` (문자열) ❌\n- 공격력이 클수록 몬스터가 한 방에 죽어요',
+        experiment: '공격력을 다양하게:\n\n- `attack = 1` — 약한 공격, 한 마리에 여러 발 필요\n- `attack = 5` — 평범\n- `attack = 100` — 한 방 컷! 💀\n- `attack = -5` — 음수도 정수입니다 (효과는...?)\n\n💡 **실험**: `attack = 10.5` 처럼 소수점을 넣어보세요. 정수가 아니라 실수(float)라서 INT 변신이 안 될 거예요!',
+        hint: '따옴표 없이 숫자만 적으세요.\n\n```python\nattack = 10\n```',
+        starterCode: '# 공격력을 정수로 저장하세요 (따옴표 없이!)\n# attack = ???\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroAttack',
+        tests: [
+          {type: 'exists', name: 'attack', typeOf: 'number'}
+        ]
+      },
+
+      // ═══ 3단계: float — 이동 속도 ═══
+      {
+        id: 'th_speed',
+        title: '3️⃣ 속도 부스트 — 실수(float)',
+        description: '## 🎯 미션\n\n좀 빨라져 봅시다! `speed` 변수에 **실수(소수점이 있는 숫자)** 로 이동 속도를 저장하세요. 영웅이 **보라색 FLOAT 모드**로 변신합니다.\n\n```python\nspeed = 1.5\n```\n\n👉 영웅이 **보라색**으로 변신하고 이동 속도가 변수 값에 비례. 보라 유령 몬스터들이 등장합니다 👻\n\n### 💡 개념: 실수(float)\n- **실수** = **소수점이 있는** 숫자: `1.5, 3.14, -0.5, 0.001`\n- `1.0` 도 float! `1` 은 int, `1.0` 은 float — 점 하나 차이가 자료형을 바꿉니다\n- 게임에서 `speed = 0.5` 면 슬로우, `speed = 3` 이면 빠름',
+        experiment: '속도를 바꿔가며 체감해보세요:\n\n- `speed = 0.5` — 🐢 느릿느릿\n- `speed = 1.0` — 평범\n- `speed = 2.5` — 🚀 빠름\n- `speed = 4` — 광속!\n\n💡 **재미있는 사실**: 빠를수록 발사 속도(연사)도 빨라져서 더 많이 쏠 수 있어요.',
+        hint: '소수점을 꼭 넣으세요!\n\n```python\nspeed = 1.5\n```',
+        starterCode: '# 이동 속도를 실수로 저장하세요 (소수점!)\n# speed = ???\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroSpeed',
+        tests: [
+          {type: 'exists', name: 'speed', typeOf: 'number'}
+        ]
+      },
+
+      // ═══ 4단계: bool — 방어막 ═══
+      {
+        id: 'th_shield',
+        title: '4️⃣ 방어막 가동 — 불리언(bool)',
+        description: '## 🎯 미션\n\n위험한 적들이 점점 강해지네요! `shielded` 변수에 **`True`** 를 저장해서 황금 방어막을 활성화하세요. 영웅이 **황금색 BOOL 모드**로 변신!\n\n```python\nshielded = True\n```\n\n👉 영웅이 **황금색**으로 빛나며 방어막 발동. 적 공격을 무시하고 황금 결정 몬스터들을 처치할 수 있어요. 🛡️✨\n\n### 💡 개념: 불리언(bool)\n- **불리언** = 단 두 가지 값: **`True`(참)** 또는 **`False`(거짓)**\n- ⚠️ **첫 글자 반드시 대문자** — `true`, `false` 로 쓰면 에러!\n- 따옴표 ❌ — `\'True\'` 는 문자열이지 불리언이 아님\n- 게임 안에서는 \"방어막 켤까?\" 같은 yes/no 결정에 사용',
+        experiment: '두 가지 값만 시도해보세요:\n\n- `shielded = True` — 🛡️ 무적!\n- `shielded = False` — 방어막 OFF (기본 상태)\n\n💡 **실험**: `shielded = \'True\'` 라고 따옴표를 붙이면 어떻게 될까요? (문자열이라 BOOL 변신이 안 됨!)',
+        hint: 'True의 T는 대문자, 따옴표 없이!\n\n```python\nshielded = True\n```',
+        starterCode: '# 방어막 활성화 — True 또는 False\n# shielded = ???\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroShield',
+        tests: [
+          {type: 'exists', name: 'shielded', typeOf: 'boolean'}
+        ]
+      },
+
+      // ═══ 5단계: 형변환 — 변신술 ═══
+      {
+        id: 'th_transform',
+        title: '5️⃣ 변신술 — 형변환 (int/float/str/bool)',
+        description: '## 🎯 미션\n\n이제 진짜 헌터가 될 시간! `hero` 변수의 **자료형**이 영웅의 색을 결정합니다. **형변환** 함수로 자유롭게 변신하세요.\n\n```python\nhero = \'전사\'         # str → 빨강\nhero = int(\'100\')     # int → 파랑 (문자열을 정수로 변환!)\nhero = float(99)      # float → 보라 (정수를 실수로!)\nhero = bool(1)        # bool → 황금 (1은 True, 0은 False)\n```\n\n👉 이번엔 **4종 몬스터가 모두 등장**합니다! 한 가지 자료형만으론 못 잡아요. 코드를 실행하면 hero의 마지막 자료형으로 영웅 변신.\n\n### 💡 개념: 형변환 함수\n| 함수 | 역할 | 예시 |\n|---|---|---|\n| `int(값)` | 정수로 변환 | `int(\'100\')` → `100` |\n| `float(값)` | 실수로 변환 | `float(\'3.14\')` → `3.14` |\n| `str(값)` | 문자열로 변환 | `str(99)` → `\'99\'` |\n| `bool(값)` | 불리언으로 변환 | `bool(1)` → `True`, `bool(0)` → `False` |',
+        experiment: '여러 형변환 시도해보세요:\n\n```python\n# 문자열을 숫자로\nhero = int(\'500\')\n\n# 정수를 실수로\nhero = float(42)\n\n# 숫자를 문자열로\nhero = str(2026)\n\n# 0이 아닌 모든 숫자는 True\nhero = bool(7)\n```\n\n💡 **재미있는 사실**: `bool(0)` 은 False, 하지만 **0이 아닌 모든 숫자**는 True예요! `bool(-1)`, `bool(0.001)` 도 True.\n\n⚠️ **주의**: `int(\'hello\')` 는 에러 — 숫자가 아닌 문자열은 int로 못 바꿔요.',
+        hint: '`hero = ` 다음에 형변환 함수를 사용하세요.\n\n```python\nhero = int(\'100\')   # str → int\n```\n\n이러면 변수 hero의 값은 100, 자료형은 int (영웅 = 파랑 모드)',
+        starterCode: '# 형변환을 사용해 영웅을 변신시키세요\n# hero = int(\'100\')   ← 예시\n# hero = float(...)\n# hero = str(...)\n# hero = bool(...)\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroTransform',
+        tests: [
+          {type: 'exists', name: 'hero'}
+        ]
+      },
+
+      // ═══ 6단계: print + 종합 — 자기소개 카드 ═══
+      {
+        id: 'th_final',
+        title: '6️⃣ 🎨 나만의 영웅 카드 — print + 종합',
+        description: '## 🎯 최종 미션\n\n전설의 헌터가 된 본인의 자기소개 카드를 만드세요! `intro` 변수에 **여러 정보를 담은 문자열**을 저장하면 게임 화면에 카드로 표시됩니다.\n\n```python\nintro = \'=== 영웅 카드 ===\\n이름: 홍길동\\n공격력: 100\\n방어막: True\\n자료형: str\'\n```\n\n👉 게임 화면 상단에 **나만의 카드**가 떠요. `print()` 도 같이 써서 콘솔에 출력해보세요!\n\n### 💡 개념: print + 형변환 + 문자열\n- **`\\n`** — 줄바꿈 (한 줄 내려가기)\n- **`+`** 문자열 결합 — 다른 변수 끼워넣을 때 `str()` 필수\n- 예: `\'공격력: \' + str(attack)` — 숫자를 문자열로 바꿔야 합쳐짐\n\n### 🏆 친구들과 대결\n자기 영웅 만들고 1분 동안 몬스터 가장 많이 잡은 사람이 우승!',
+        experiment: '### 💪 카드 꾸미기 예시\n\n**기본형**\n```python\nintro = \'이름: 김민지\\n공격력: 50\'\n```\n\n**변수 활용**\n```python\nintro = \'⚔️ \' + name + \' ⚔️\\n공격력: \' + str(50) + \'\\n방어: 활성\'\n```\n\n**자기 멋대로**\n```python\nintro = \'🔥 전설의 헌터 🔥\\n레벨: 99\\n칭호: 4종 마스터\\n좌우명: 형변환은 곧 힘\'\n```\n\n💡 **`\\n`** 으로 줄을 나누세요. **`+`** 로 다른 변수랑 합칠 땐 `str()` 으로 형변환!',
+        hint: '문자열에 줄바꿈 넣기:\n\n```python\nintro = \'첫 줄\\n둘째 줄\\n셋째 줄\'\nprint(intro)\n```\n\n변수 끼워넣기:\n```python\nname = \'헌터\'\nintro = \'이름: \' + name + \'\\n레벨: 99\'\n```',
+        starterCode: '# 🎨 나만의 영웅 카드\n# intro 변수에 카드 내용을 저장하세요. \\n 으로 줄바꿈!\n# print() 로도 출력해보세요\n\nintro = \'=== 영웅 카드 ===\\n이름: ???\\n???\'\nprint(intro)\n\n',
+        hookStyle: 'variable',
+        unlocks: 'heroFinal',
+        tests: [
+          {type: 'exists', name: 'intro', typeOf: 'string'}
         ]
       }
     ]

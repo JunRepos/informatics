@@ -67,11 +67,41 @@ async function applyPassedHooks(){
 
   const py = await ensureMissionPyodide();
 
+  // 타입 헌터 hook 처리 (변수 읽어 게임 setter 호출)
+  const isTypeHunter = SEL_MISSION?.gameType === 'typehunter';
+  const TYPEHUNTER_HOOKS = {
+    heroSummon:    {varName: 'hero_name', setter: 'setHeroName'},
+    heroAttack:    {varName: 'attack',    setter: 'setHeroAttack'},
+    heroSpeed:     {varName: 'speed',     setter: 'setHeroSpeed'},
+    heroShield:    {varName: 'shielded',  setter: 'setHeroShield'},
+    heroTransform: {varName: 'hero',      setter: 'setHeroTransform'},
+    heroFinal:     {varName: 'intro',     setter: 'setHeroFinalIntro'}
+  };
+
   for(const step of SEL_MISSION.steps || []){
     const pass = MISSION_STEP_PASS[step.id];
     if(!pass?.passed || !step.unlocks) continue;
 
     try {
+      // ── 타입 헌터 hook ──
+      if(isTypeHunter && TYPEHUNTER_HOOKS[step.unlocks]){
+        const conf = TYPEHUNTER_HOOKS[step.unlocks];
+        try {
+          _resetNamespaceMission(py);
+          await py.runPythonAsync(pass.code);
+          const v = py.globals.get(conf.varName);
+          const jsv = v?.toJs ? v.toJs() : v;
+          if(typeof _missionGame[conf.setter] === 'function'){
+            _missionGame[conf.setter](jsv);
+          }
+          // hook 활성 플래그 (스폰 모드 결정용)
+          if(typeof _missionGame.setHook === 'function'){
+            _missionGame.setHook(step.unlocks);
+          }
+        } catch(e){ console.warn(`${step.unlocks} 적용 실패:`, e); }
+        continue;  // typehunter hook 처리 끝, 아래 flappybird 분기 건너뜀
+      }
+
       if(step.unlocks === 'gameStartScore'){
         // 변수 스타일: 시작 점수. hook 호출 시 학생 코드 재실행 후 score 읽음
         const code = pass.code;
@@ -195,7 +225,13 @@ async function initMissionGame(){
   const canvas = document.getElementById('mi-game-canvas');
   if(!canvas) return;
   if(_missionGame){ _missionGame.stop(); _missionGame.destroy(); _missionGame = null; }
-  _missionGame = new FlappyBird(canvas);
+  // 미션의 gameType에 따라 다른 엔진 사용
+  const gt = SEL_MISSION?.gameType || 'flappybird';
+  if(gt === 'typehunter' && typeof TypeHunter === 'function'){
+    _missionGame = new TypeHunter(canvas);
+  } else {
+    _missionGame = new FlappyBird(canvas);
+  }
   _missionGame.start();
   // 통과한 단계 코드 재실행 + hooks 적용
   await reloadPassedCode();
@@ -363,6 +399,17 @@ document.addEventListener('click', async e => {
     await saveMission(cid, newId, sample);
     await loadMissions(cid);
     toast('예제 미션이 등록됐습니다.', 'ok');
+    render();
+    return;
+  }
+  if(act.action === 'mission-load-typehunter'){
+    if(!confirm('타입 헌터 예제 미션(1차시 변수/자료형 학습용)을 이 반에 등록할까요?')) return;
+    const cid = TC_CLS?.id; if(!cid) return;
+    const sample = getTypeHunterSampleMission();
+    const newId = genId();
+    await saveMission(cid, newId, sample);
+    await loadMissions(cid);
+    toast('타입 헌터 예제 미션이 등록됐습니다.', 'ok');
     render();
     return;
   }
