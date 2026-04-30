@@ -105,13 +105,31 @@ async function runMissionTests(code, tests, userStdin){
         actual = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
         ok = approxEqual(actual, t.expected);
       } else if(t.type === 'exists'){
-        const v = py.globals.get(t.name);
+        // 변수 읽기: globals.get 이 실패하면 runPython(name) 으로 폴백
+        let v;
+        try { v = py.globals.get(t.name); } catch(_e){ v = undefined; }
+        if(v === undefined || v === null){
+          try { v = py.runPython(t.name); } catch(_e){ v = undefined; }
+        }
         actual = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
         const exists = actual !== undefined && actual !== null;
         const typeOk = !t.typeOf || typeof actual === t.typeOf;
         const rangeOk = (t.min === undefined || actual >= t.min) &&
                         (t.max === undefined || actual <= t.max);
         ok = exists && typeOk && rangeOk;
+        // 진단 로그 (실패 시): 현재 globals 키 / 실제 값 / 코드 일부
+        if(!ok){
+          let globalsKeys = '?';
+          try {
+            const g = py.runPython(`[k for k in globals().keys() if not k.startswith('_') and k not in ('sys','io','builtins','traceback')]`);
+            globalsKeys = g?.toJs ? g.toJs() : g;
+          } catch(_e){}
+          console.warn('[mission-exists fail]', {
+            wantName: t.name, wantType: t.typeOf,
+            actual, actualJsType: typeof actual,
+            globalsKeys, codePreview: (code || '').slice(0, 200)
+          });
+        }
       } else if(t.type === 'function' || t.type === 'expr'){
         const r = py.runPython(t.call);
         actual = r?.toJs ? r.toJs({dict_converter: Object.fromEntries}) : r;
