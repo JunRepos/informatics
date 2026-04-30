@@ -373,7 +373,7 @@ function getFlappyBirdSampleMission(){
         description: '## 🎯 목표\n\n게임에 점수판이 보이지 않네요! **`score`** 라는 변수를 만들어 **시작 점수**를 저장해봅시다.\n\n```python\nscore = 0       # 0점으로 시작\nscore = 100     # 100점으로 시작도 가능!\n```\n\n👉 코드를 저장하고 실행하면 왼쪽 게임 화면에 **내가 정한 숫자가 딱 나타납니다** ✨\n\n### 💡 개념: 변수\n- **변수**란? 값을 담는 "상자". 이름을 붙여서 저장하고 꺼낼 수 있어요\n- **`=`** 기호는 "오른쪽 값을 왼쪽 변수에 넣어라" 는 뜻\n- 수학의 등호(=)와 달라요! `score = 0` 은 **"score에 0을 저장"** 입니다',
         experiment: '어떤 숫자를 넣든 OK. 여러 가지로 시도해봐요!\n\n- `score = 9999` — 무한대 느낌\n- `score = -100` — 음수로 시작! 점수가 마이너스부터 시작돼요\n- `score = 2025` — 올해 연도\n\n**실행 & 테스트**를 누르면 게임이 리셋되면서 새 점수로 시작합니다.',
         hint: '변수 만드는 법: `변수이름 = 값`\n\n```python\nscore = 0\n```',
-        starterCode: '# score 변수에 원하는 숫자를 저장해보세요\n# 예) score = 0    /    score = 100\n\n',
+        starterCode: '# score 변수에 원하는 숫자를 저장해보세요\n# (예시) score = 0    또는    score = 100\n\n# ↓ 여기에 직접 작성하세요\n',
         tests: [
           {type: 'exists', name: 'score', typeOf: 'number'}
         ],
@@ -501,7 +501,7 @@ function getTypeHunterSampleMission(){
         description: '## 🎯 미션\n\n전장에 영웅이 없네요! `hero_name` 이라는 **변수**에 본인 이름(또는 멋진 이름)을 **문자열**로 저장해서 영웅을 소환하세요.\n\n```python\nhero_name = \'홍길동\'\n```\n\n👉 코드를 실행하면 화면 하단에 **빨간색 STR 영웅**이 등장합니다. 이름표도 머리 위에 떠요. ✨\n\n### 💡 개념: 변수 + 문자열(str)\n- **변수** = 값을 담는 상자. `=` 는 \"오른쪽 값을 왼쪽에 넣어라\"\n- **문자열** = 글자들의 묶음. **반드시 따옴표로 감싸기** (`\'홍길동\'` 또는 `"홍길동"`)\n- 영웅은 **str(빨강)** 모드로 시작 → 빨강 슬라임만 잡을 수 있어요\n- 조작: **←/→** 로 이동, **SPACE** 또는 **클릭**으로 공격',
         experiment: '여러 가지 이름으로 시도해보세요!\n\n- `hero_name = \'전설의 헌터\'`\n- `hero_name = \'김초보\'` — 친근하게\n- `hero_name = \'☠️ 어둠의 군주 ☠️\'` — 이모지도 OK\n\n📌 따옴표 안에 어떤 글자든 자유롭게! 단, **따옴표는 꼭** 있어야 해요.',
         hint: '따옴표를 빼먹지 마세요!\n\n```python\nhero_name = \'홍길동\'\n```',
-        starterCode: '# 영웅 이름을 문자열로 저장하세요\n# hero_name = \'???\'\n\n',
+        starterCode: '# 영웅 이름을 문자열로 저장하세요. 따옴표 꼭!\n# (예시) hero_name = \'홍길동\'\n\n# ↓ 여기에 직접 작성하세요\n',
         hookStyle: 'variable',
         unlocks: 'heroSummon',
         tests: [
@@ -516,7 +516,7 @@ function getTypeHunterSampleMission(){
         description: '## 🎯 미션\n\n영웅이 약해 보여요! `attack` 변수에 **정수**로 공격력을 저장해주세요. 영웅이 **파란색 INT 모드**로 변신하고 공격력이 적용됩니다.\n\n```python\nattack = 10\n```\n\n👉 영웅이 **파란색**으로 바뀌고, 파란 골렘 몬스터들이 등장합니다. 같은 파란 광선으로 처치 가능! 💥\n\n### 💡 개념: 정수(int)\n- **정수** = 소수점이 없는 숫자: `0, 1, -5, 100, 9999`\n- 따옴표 ❌ — 따옴표가 있으면 문자열이 됨!\n- `attack = 10` (정수) ✅  vs  `attack = \'10\'` (문자열) ❌\n- 공격력이 클수록 몬스터가 한 방에 죽어요',
         experiment: '공격력을 다양하게:\n\n- `attack = 1` — 약한 공격, 한 마리에 여러 발 필요\n- `attack = 5` — 평범\n- `attack = 100` — 한 방 컷! 💀\n- `attack = -5` — 음수도 정수입니다 (효과는...?)\n\n💡 **실험**: `attack = 10.5` 처럼 소수점을 넣어보세요. 정수가 아니라 실수(float)라서 INT 변신이 안 될 거예요!',
         hint: '따옴표 없이 숫자만 적으세요.\n\n```python\nattack = 10\n```',
-        starterCode: '# 공격력을 정수로 저장하세요 (따옴표 없이!)\n# attack = ???\n\n',
+        starterCode: '# 공격력을 정수(int)로 저장하세요. 따옴표 없이!\n# (예시) attack = 10\n\n# ↓ 여기에 직접 작성하세요\n',
         hookStyle: 'variable',
         unlocks: 'heroAttack',
         tests: [
@@ -531,7 +531,7 @@ function getTypeHunterSampleMission(){
         description: '## 🎯 미션\n\n좀 빨라져 봅시다! `speed` 변수에 **실수(소수점이 있는 숫자)** 로 이동 속도를 저장하세요. 영웅이 **보라색 FLOAT 모드**로 변신합니다.\n\n```python\nspeed = 1.5\n```\n\n👉 영웅이 **보라색**으로 변신하고 이동 속도가 변수 값에 비례. 보라 유령 몬스터들이 등장합니다 👻\n\n### 💡 개념: 실수(float)\n- **실수** = **소수점이 있는** 숫자: `1.5, 3.14, -0.5, 0.001`\n- `1.0` 도 float! `1` 은 int, `1.0` 은 float — 점 하나 차이가 자료형을 바꿉니다\n- 게임에서 `speed = 0.5` 면 슬로우, `speed = 3` 이면 빠름',
         experiment: '속도를 바꿔가며 체감해보세요:\n\n- `speed = 0.5` — 🐢 느릿느릿\n- `speed = 1.0` — 평범\n- `speed = 2.5` — 🚀 빠름\n- `speed = 4` — 광속!\n\n💡 **재미있는 사실**: 빠를수록 발사 속도(연사)도 빨라져서 더 많이 쏠 수 있어요.',
         hint: '소수점을 꼭 넣으세요!\n\n```python\nspeed = 1.5\n```',
-        starterCode: '# 이동 속도를 실수로 저장하세요 (소수점!)\n# speed = ???\n\n',
+        starterCode: '# 이동 속도를 실수(float)로 저장하세요. 소수점 꼭!\n# (예시) speed = 1.5\n\n# ↓ 여기에 직접 작성하세요\n',
         hookStyle: 'variable',
         unlocks: 'heroSpeed',
         tests: [
@@ -546,7 +546,7 @@ function getTypeHunterSampleMission(){
         description: '## 🎯 미션\n\n위험한 적들이 점점 강해지네요! `shielded` 변수에 **`True`** 를 저장해서 황금 방어막을 활성화하세요. 영웅이 **황금색 BOOL 모드**로 변신!\n\n```python\nshielded = True\n```\n\n👉 영웅이 **황금색**으로 빛나며 방어막 발동. 적 공격을 무시하고 황금 결정 몬스터들을 처치할 수 있어요. 🛡️✨\n\n### 💡 개념: 불리언(bool)\n- **불리언** = 단 두 가지 값: **`True`(참)** 또는 **`False`(거짓)**\n- ⚠️ **첫 글자 반드시 대문자** — `true`, `false` 로 쓰면 에러!\n- 따옴표 ❌ — `\'True\'` 는 문자열이지 불리언이 아님\n- 게임 안에서는 \"방어막 켤까?\" 같은 yes/no 결정에 사용',
         experiment: '두 가지 값만 시도해보세요:\n\n- `shielded = True` — 🛡️ 무적!\n- `shielded = False` — 방어막 OFF (기본 상태)\n\n💡 **실험**: `shielded = \'True\'` 라고 따옴표를 붙이면 어떻게 될까요? (문자열이라 BOOL 변신이 안 됨!)',
         hint: 'True의 T는 대문자, 따옴표 없이!\n\n```python\nshielded = True\n```',
-        starterCode: '# 방어막 활성화 — True 또는 False\n# shielded = ???\n\n',
+        starterCode: '# 방어막 활성화 — 불리언(bool): True 또는 False\n# (예시) shielded = True\n\n# ↓ 여기에 직접 작성하세요\n',
         hookStyle: 'variable',
         unlocks: 'heroShield',
         tests: [
@@ -561,7 +561,7 @@ function getTypeHunterSampleMission(){
         description: '## 🎯 미션\n\n이제 진짜 헌터가 될 시간! `hero` 변수의 **자료형**이 영웅의 색을 결정합니다. **형변환** 함수로 자유롭게 변신하세요.\n\n```python\nhero = \'전사\'         # str → 빨강\nhero = int(\'100\')     # int → 파랑 (문자열을 정수로 변환!)\nhero = float(99)      # float → 보라 (정수를 실수로!)\nhero = bool(1)        # bool → 황금 (1은 True, 0은 False)\n```\n\n👉 이번엔 **4종 몬스터가 모두 등장**합니다! 한 가지 자료형만으론 못 잡아요. 코드를 실행하면 hero의 마지막 자료형으로 영웅 변신.\n\n### 💡 개념: 형변환 함수\n| 함수 | 역할 | 예시 |\n|---|---|---|\n| `int(값)` | 정수로 변환 | `int(\'100\')` → `100` |\n| `float(값)` | 실수로 변환 | `float(\'3.14\')` → `3.14` |\n| `str(값)` | 문자열로 변환 | `str(99)` → `\'99\'` |\n| `bool(값)` | 불리언으로 변환 | `bool(1)` → `True`, `bool(0)` → `False` |',
         experiment: '여러 형변환 시도해보세요:\n\n```python\n# 문자열을 숫자로\nhero = int(\'500\')\n\n# 정수를 실수로\nhero = float(42)\n\n# 숫자를 문자열로\nhero = str(2026)\n\n# 0이 아닌 모든 숫자는 True\nhero = bool(7)\n```\n\n💡 **재미있는 사실**: `bool(0)` 은 False, 하지만 **0이 아닌 모든 숫자**는 True예요! `bool(-1)`, `bool(0.001)` 도 True.\n\n⚠️ **주의**: `int(\'hello\')` 는 에러 — 숫자가 아닌 문자열은 int로 못 바꿔요.',
         hint: '`hero = ` 다음에 형변환 함수를 사용하세요.\n\n```python\nhero = int(\'100\')   # str → int\n```\n\n이러면 변수 hero의 값은 100, 자료형은 int (영웅 = 파랑 모드)',
-        starterCode: '# 형변환을 사용해 영웅을 변신시키세요\n# hero = int(\'100\')   ← 예시\n# hero = float(...)\n# hero = str(...)\n# hero = bool(...)\n\n',
+        starterCode: '# 형변환을 사용해 영웅을 변신시키세요\n# (예시) hero = int(\'100\')   → 영웅이 INT(파랑) 모드로 변신\n#       hero = float(99)\n#       hero = str(2026)\n#       hero = bool(1)\n\n# ↓ 여기에 직접 작성하세요\n',
         hookStyle: 'variable',
         unlocks: 'heroTransform',
         tests: [
