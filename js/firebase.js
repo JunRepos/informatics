@@ -244,6 +244,40 @@ async function saveCurriculum(data){
   });
 }
 
+// ── 코드 읽기 (Code Reading) ──
+async function loadCodeReadings(cid){
+  const s = await db.ref(`codeReadings/${cid}`).get();
+  if(!s.exists()){ CR_READINGS = []; return; }
+  CR_READINGS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+}
+
+async function saveCodeReading(cid, rdId, data){
+  await db.ref(`codeReadings/${cid}/${rdId}`).set(data);
+}
+
+async function deleteCodeReading(cid, rdId){
+  await db.ref(`codeReadings/${cid}/${rdId}`).remove();
+  await db.ref(`codeReadingProgress/${cid}/${rdId}`).remove().catch(() => {});
+}
+
+async function loadCodeReadingProgress(cid, rdId, studentNum){
+  const s = await db.ref(`codeReadingProgress/${cid}/${rdId}/${studentNum}`).get();
+  return s.exists() ? s.val() : null;
+}
+
+async function saveCodeReadingProgress(cid, rdId, studentNum, data){
+  await db.ref(`codeReadingProgress/${cid}/${rdId}/${studentNum}`).set({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function loadAllCodeReadingProgress(cid, rdId){
+  const s = await db.ref(`codeReadingProgress/${cid}/${rdId}`).get();
+  return s.exists() ? s.val() : {};
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -254,7 +288,8 @@ async function loadAllClassData(cid){
     loadStudents(cid),
     loadOJProblems(cid),
     loadNotebooks(cid),
-    loadMissions(cid)
+    loadMissions(cid),
+    loadCodeReadings(cid)
   ]);
 }
 

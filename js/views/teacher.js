@@ -29,6 +29,7 @@ function vTeacher(){
     ${tcIsInfo ? tab('📓 노트북','notebook',TC_TAB,"setTC('notebook')") : ''}
     ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
+    ${tcIsInfo ? tab('🧠 코드 읽기','coderead',TC_TAB,"setTC('coderead')") : ''}
     ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -47,6 +48,7 @@ function vTeacher(){
   else if(TC_TAB === 'oj')         body = vTcOJ();
   else if(TC_TAB === 'notebook')   body = vTcNotebook();
   else if(TC_TAB === 'mission')    body = vTcMission();
+  else if(TC_TAB === 'coderead')   body = vTcCodeRead();
   else if(TC_TAB === 'curriculum') body = vTcCurriculum();
   else if(TC_TAB === 'settings')   body = vTcSettings();
 
@@ -60,6 +62,19 @@ function setTC(t){
   } else if(t === 'curriculum'){
     // 진도 계획은 전역 하나, 최초 진입 시 로드
     loadCurriculum().then(render);
+  } else if(t === 'coderead' && TC_CLS){
+    CR_VIEW = 'list';
+    CR_SEL = null;
+    CR_EDITING = null;
+    loadCodeReadings(TC_CLS.id).then(async () => {
+      // 선생님 목록에서 통과 인원 표시용으로 모든 학생 진도 로드
+      CR_PROGRESS = {};
+      for(const r of CR_READINGS){
+        const all = await loadAllCodeReadingProgress(TC_CLS.id, r.id);
+        CR_PROGRESS[r.id] = all || {};
+      }
+      render();
+    });
   } else {
     render();
   }

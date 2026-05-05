@@ -33,10 +33,11 @@ function applyWrapWidth(){
     cls = 'full';
   } else if(VIEW === 'teacher'){
     if(TC_TAB === 'notebook' || TC_TAB === 'mission') cls = 'full';
-    else if(TC_TAB === 'oj' || TC_TAB === 'curriculum') cls = 'wide';
+    else if(TC_TAB === 'oj' || TC_TAB === 'curriculum' || TC_TAB === 'coderead') cls = 'wide';
   } else if(VIEW === 'student'){
     if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
     else if(ST_TAB === 'oj') cls = 'wide';
+    else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
 }

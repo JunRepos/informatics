@@ -855,3 +855,57 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 [data-theme="dark"] .me-radio code{background:rgba(255,255,255,.08)}
 .me-radio input[type="radio"]{width:auto;margin:0}
 
+/* ═══════════════════════════════════════
+   코드 읽기 (Code Reading) — 학생이 코드 해석하는 메뉴
+═══════════════════════════════════════ */
+.cr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+
+.cr-type-chip{display:inline-block;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.cr-type-predict{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+.cr-type-trace{background:#DBEAFE;color:#1E3A8A;border:1px solid #BFDBFE}
+[data-theme="dark"] .cr-type-predict{background:#3a2900;color:#FCD34D;border-color:#7c5008}
+[data-theme="dark"] .cr-type-trace{background:#1a2747;color:#93C5FD;border-color:#1e3a5f}
+
+.cr-solve-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:10px;box-shadow:var(--sh)}
+.cr-solve-bar > div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.cr-desc-box{background:var(--info-bg);border:1px solid var(--info-bd);color:var(--info-txt);padding:10px 14px;border-radius:var(--r-md);font-size:13px;margin-bottom:10px}
+
+.cr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:900px){.cr-split{grid-template-columns:1fr}}
+
+.cr-code-pane,.cr-q-pane{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;box-shadow:var(--sh)}
+.cr-pane-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+
+.cr-code-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 0;overflow-x:auto;font-family:'Consolas','Monaco',monospace;font-size:13px;line-height:1.7}
+.cr-code-line{display:flex;padding:0 0;align-items:flex-start}
+.cr-line-no{flex-shrink:0;width:42px;text-align:right;padding-right:12px;color:var(--text3);user-select:none;border-right:1px solid var(--border);font-size:12px}
+.cr-line-src{flex:1;padding-left:12px;white-space:pre;color:var(--text)}
+
+.cr-q-title{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.cr-q-title code{background:rgba(99,102,241,.12);color:var(--accent);padding:1px 6px;border-radius:4px;font-size:13px}
+.cr-q-desc{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.55}
+.cr-q-form{display:flex;flex-direction:column;gap:10px}
+.cr-answer-box{min-height:90px;font-family:'Consolas',monospace;font-size:13px}
+.cr-answer-input{font-family:'Consolas',monospace;font-size:14px;padding:10px 12px}
+.cr-hint-row{font-size:11px;color:var(--text3);padding:4px 0}
+.cr-hint-row code{background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;font-family:'Consolas',monospace}
+[data-theme="dark"] .cr-hint-row code{background:rgba(255,255,255,.06)}
+
+.cr-step-bar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cr-step-dots{display:flex;gap:5px}
+.cr-dot{width:10px;height:10px;border-radius:50%;background:var(--border2);transition:background .15s}
+.cr-dot.done{background:var(--ok)}
+.cr-dot.active{background:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.2)}
+
+.cr-result{padding:11px 14px;border-radius:var(--r-md);margin-top:6px;animation:cr-pop .25s ease-out}
+.cr-result-pass{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok-txt)}
+.cr-result-fail{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn-txt)}
+.cr-result-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.cr-result-body{font-size:13px;line-height:1.55}
+.cr-result-body code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'Consolas',monospace}
+[data-theme="dark"] .cr-result-body code{background:rgba(255,255,255,.08)}
+@keyframes cr-pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+.cr-code-textarea{font-family:'Consolas',monospace}
+

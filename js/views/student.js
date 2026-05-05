@@ -19,6 +19,7 @@ function vStudent(){
     ${isInfo ? tab('📓 노트북','notebook',ST_TAB,"setST('notebook')") : ''}
     ${isInfo ? tab('🎮 미션','mission',ST_TAB,"setST('mission')") : ''}
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
+    ${isInfo ? tab('🧠 코드 읽기','coderead',ST_TAB,"setST('coderead')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -31,6 +32,7 @@ function vStudent(){
   else if(ST_TAB === 'notebook')body = vStNotebook();
   else if(ST_TAB === 'mission') body = vStMission();
   else if(ST_TAB === 'oj')      body = vStOJ();
+  else if(ST_TAB === 'coderead')body = vStCodeRead();
   else if(ST_TAB === 'mine')    body = vStMine();
   return tabs + body;
 }
@@ -40,6 +42,23 @@ function setST(t){
   if(t === 'attend' && SEL_CLS){
     const ym = new Date().toISOString().slice(0, 7);
     loadAttendanceMonth(SEL_CLS.id, ym).then(render);
+  } else if(t === 'coderead' && SEL_CLS && ST_USER){
+    // 학생 본인 진도만 한꺼번에 로드
+    CR_VIEW = 'list';
+    CR_SEL = null;
+    CR_LAST_RESULT = null;
+    loadCodeReadings(SEL_CLS.id).then(async () => {
+      // 학생 진도 일괄 로드 (목록 표시용)
+      CR_PROGRESS = {};
+      for(const r of CR_READINGS){
+        const p = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
+        if(p){
+          if(!CR_PROGRESS[r.id]) CR_PROGRESS[r.id] = {};
+          CR_PROGRESS[r.id][ST_USER.number] = p;
+        }
+      }
+      render();
+    });
   } else {
     render();
   }

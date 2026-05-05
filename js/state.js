@@ -82,6 +82,17 @@ let CURRICULUM = null; // {startDate, endDate, classDays, topics, sessions, upda
 let CUR_VIEW_CLS = 'info-2A';  // 사이드바에서 선택된 반
 let CUR_SETTINGS_OPEN = null;  // 학기 설정 펼침 상태 (null=자동)
 
+// 코드 읽기 (Code Reading) — 학생이 코드를 읽고 해석하는 메뉴
+let CR_READINGS    = [];     // 현재 반의 코드 읽기 문제 목록
+let CR_SEL         = null;   // 선택된 문제 객체
+let CR_VIEW        = 'list'; // 'list' | 'solve' | 'edit' (선생님은 'edit' 사용)
+let CR_PROGRESS    = {};     // { [readingId]: { [studentNum]: progress } } — 선생님: 모든 학생 / 학생: 본인 것만
+let CR_STEP_IDX    = 0;      // 트레이스 문제에서 현재 단계
+let CR_ANSWER      = '';     // 학생이 입력 중인 답
+let CR_LAST_RESULT = null;   // {pass, correct, given, expected, msg} — 직전 채점 결과
+let CR_EDITING     = null;   // 선생님: 편집 중인 문제 (null=신규)
+let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

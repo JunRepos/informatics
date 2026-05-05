@@ -278,6 +278,44 @@
       }
     },
 
+    // ── 코드 읽기 (Code Reading) — 코드 한 덩어리 + 자동 추출된 정답 ──
+    "codeReadings": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$rdId": {
+          ".validate": "newData.hasChildren(['title', 'code', 'type', 'createdAt'])",
+          "id":             { ".validate": "newData.isString()" },
+          "title":          { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+          "description":    { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "code":           { ".validate": "newData.isString() && newData.val().length <= 10000" },
+          "stdin":          { ".validate": "newData.isString() && newData.val().length <= 5000" },
+          "type":           { ".validate": "newData.isString() && (newData.val() === 'predict' || newData.val() === 'trace')" },
+          "expectedOutput": { ".validate": "newData.isString() && newData.val().length <= 10000" },
+          "traces":         { ".validate": true },
+          "createdAt":      { ".validate": "newData.isString()" },
+          "$other":         { ".validate": false }
+        }
+      }
+    },
+
+    // ── 코드 읽기 학생 진도 ──
+    "codeReadingProgress": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        "$rdId": {
+          "$studentNum": {
+            "passed":      { ".validate": "newData.isBoolean()" },
+            "attempts":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000" },
+            "lastAttempt": { ".validate": "newData.isString()" },
+            "updatedAt":   { ".validate": "newData.isString()" },
+            "$other":      { ".validate": false }
+          }
+        }
+      }
+    },
+
     // ── 진도 계획 (선생님 전역) ──
     "curriculum": {
       "plan": {
