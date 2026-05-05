@@ -245,11 +245,18 @@ async function saveCurriculum(data){
 }
 
 // ── 코드 읽기 (Code Reading) ──
+//   ⚠️ 새 기능이므로 Firebase 규칙이 아직 게시 안 된 환경에선
+//   PERMISSION_DENIED 가 날 수 있음. 다른 기능 막히지 않도록 안전 처리.
 async function loadCodeReadings(cid){
-  const s = await db.ref(`codeReadings/${cid}`).get();
-  if(!s.exists()){ CR_READINGS = []; return; }
-  CR_READINGS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
-    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  try {
+    const s = await db.ref(`codeReadings/${cid}`).get();
+    if(!s.exists()){ CR_READINGS = []; return; }
+    CR_READINGS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  } catch(err){
+    console.warn('[코드 읽기] 데이터 로드 실패 (Firebase 규칙 미게시일 수 있음):', err.message || err);
+    CR_READINGS = [];
+  }
 }
 
 async function saveCodeReading(cid, rdId, data){
@@ -262,8 +269,13 @@ async function deleteCodeReading(cid, rdId){
 }
 
 async function loadCodeReadingProgress(cid, rdId, studentNum){
-  const s = await db.ref(`codeReadingProgress/${cid}/${rdId}/${studentNum}`).get();
-  return s.exists() ? s.val() : null;
+  try {
+    const s = await db.ref(`codeReadingProgress/${cid}/${rdId}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[코드 읽기 진도] 로드 실패:', err.message || err);
+    return null;
+  }
 }
 
 async function saveCodeReadingProgress(cid, rdId, studentNum, data){
@@ -274,8 +286,13 @@ async function saveCodeReadingProgress(cid, rdId, studentNum, data){
 }
 
 async function loadAllCodeReadingProgress(cid, rdId){
-  const s = await db.ref(`codeReadingProgress/${cid}/${rdId}`).get();
-  return s.exists() ? s.val() : {};
+  try {
+    const s = await db.ref(`codeReadingProgress/${cid}/${rdId}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[코드 읽기 진도] 전체 로드 실패:', err.message || err);
+    return {};
+  }
 }
 
 // ── 반 전체 데이터 로드 ──
