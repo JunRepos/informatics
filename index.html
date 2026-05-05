@@ -8,7 +8,9 @@
      (노트북 input() 실시간 입력에 필요. 첫 방문 시 1회 자동 새로고침 발생) -->
 <script>window.coi = { quiet: true };</script>
 <script src="coi-serviceworker.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Pretendard 폰트 (Google Fonts에는 없음 — 공식 JSDelivr CDN 사용)
+     Variable font 버전이라 가볍고 모든 굵기 지원 + JSDelivr는 적절한 CORP 헤더 보냄(coi-serviceworker 환경 호환) -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <link rel="stylesheet" href="css/styles.css">
 
 <!-- Firebase SDK -->
