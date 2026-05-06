@@ -55,13 +55,18 @@ function setNBSaveStatus(state){
   el.style.color = color;
 }
 
+// 워커 코드 변경 시 이 버전을 올려 브라우저 캐시 무효화 (GitHub Pages 캐시 우회)
+const NB_WORKER_VER = '20260506-input-prompt';
+
 function getNBWorker(){
   if(!_nbWorker){
-    _nbWorker = new Worker('js/notebook-worker.js');
+    _nbWorker = new Worker('js/notebook-worker.js?v=' + NB_WORKER_VER);
     _nbWorker.onmessage = (e) => {
       const data = e.data;
       // 입력 요청 (Python input() 호출)
       if(data.type === 'request-input'){
+        // 진단 로그 (prompt 가 메인까지 잘 도달하는지 확인용)
+        console.log('[notebook] request-input received, prompt =', JSON.stringify(data.prompt), 'type=', typeof data.prompt);
         handleInputRequest(data.cellId, data.prompt);
         return;
       }
