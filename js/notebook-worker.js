@@ -63,22 +63,29 @@ async function initPyodide(){
   if(initialized) return;
   pyodide = await loadPyodide();
 
-  // Pyodide stdin 콜백 등록 (input() 호출될 때마다 호출됨)
+  // ── input() 처리 (Colab 방식) ──
+  //   Pyodide setStdin 콜백은 prompt 인자를 안 받으므로
+  //   builtins.input 을 직접 파이썬에서 오버라이드해서 prompt 를
+  //   JS 로 그대로 넘김 → 메인 스레드가 노란 박스에 prompt 표시.
+  //
+  //   (setStdin 도 함께 등록해두면 sys.stdin.readline() 같은 API 도 동작)
+  pyodide.globals.set('_nb_js_request_input', (prompt) => syncStdinReadLine(prompt));
   if(typeof pyodide.setStdin === 'function'){
     pyodide.setStdin({
-      stdin: () => syncStdinReadLine(),
+      stdin: () => syncStdinReadLine(''),
       isatty: false
     });
-  } else {
-    // 구형 Pyodide fallback: __builtins__.input 직접 오버라이드
-    pyodide.runPython(`
-import builtins
+  }
+  pyodide.runPython(`
+import builtins, sys
 def __nb_input(prompt=''):
-    if prompt: print(prompt, end='')
-    return ''
+    # 이전 print 출력이 입력 박스보다 먼저 보이도록 flush
+    try: sys.stdout.flush()
+    except Exception: pass
+    p = '' if prompt is None else str(prompt)
+    return _nb_js_request_input(p)
 builtins.input = __nb_input
 `);
-  }
 
   pyodide.runPython(`
 import sys, io, base64, traceback
