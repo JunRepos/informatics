@@ -343,42 +343,42 @@ async function _recordCRAttempt(pass){
 // ══════════════════════════════════════
 const CR_SAMPLE_PACKS = [
 
-  // ── 📥 1차시: 표준입출력 · 자료형 · 산술연산자 ──
+  // ── 📥 표준입출력 · 자료형 · 산술연산자 ──
   //    print/input, type 확인, int/float/str 형변환, +-*/ //% **
   //    "input은 항상 문자열이라 형변환이 필요하다" 가 핵심 메시지
   {
-    id: 'lesson1-io-types-arith',
-    title: '1차시: 표준입출력 · 자료형 · 산술연산자',
+    id: 'io-types-arith',
+    title: '표준입출력 · 자료형 · 산술연산자',
     description: 'print, input, type, int/float/str 형변환, +-*/ //% **',
     icon: '📥',
     samples: [
       {
-        title: '1-1. 자료형이 뭔지 확인해보기',
+        title: '자료형 확인 — 7과 "7"의 차이',
         description: 'type() 함수로 7과 "7"의 자료형을 비교해 봐요. 같아 보여도 컴퓨터는 다르게 봐요.',
         type: 'predict',
         code: 'a = 7\nb = "7"\nprint(type(a))\nprint(type(b))\nprint(a + a)\nprint(b + b)\n'
       },
       {
-        title: '1-2. input()으로 두 수 더하기',
+        title: 'input()으로 두 수 더하기',
         description: 'input()은 항상 문자열을 돌려줍니다. int()로 형변환해야 진짜 덧셈이 돼요.',
         type: 'predict',
         stdin: '3\n5',
         code: 'a = int(input())\nb = int(input())\nprint(a + b)\n'
       },
       {
-        title: '1-3. 산술 연산자 5형제 — / // % **',
+        title: '산술 연산자 5형제 — / // % **',
         description: '나누기(/), 정수나누기(//), 나머지(%), 거듭제곱(**) 의 차이를 한 번에.',
         type: 'predict',
         code: 'a = 17\nb = 5\nprint(a + b)\nprint(a / b)\nprint(a // b)\nprint(a % b)\nprint(a ** 2)\n'
       },
       {
-        title: '1-4. 형변환 따라가기',
+        title: '형변환 따라가기',
         description: '문자열 "10"을 int로 바꾸고, 더하고, 곱하면 어떻게 될까요? 변수가 어떻게 변하는지 추적해 봐요.',
         type: 'trace',
         code: 's = "10"\nn = int(s)\ntotal = n + 5\nresult = total * 2\n'
       },
       {
-        title: '1-5. 섭씨를 화씨로 — input + float + 산술',
+        title: '섭씨를 화씨로',
         description: '실수 입력을 받아 공식에 넣어 결과를 출력해요. 100°C는 화씨 몇 도일까요?',
         type: 'predict',
         stdin: '100',
@@ -387,70 +387,41 @@ const CR_SAMPLE_PACKS = [
     ]
   },
 
-  // ── 🎁 기초 묶음: 변수 / 조건 / 반복 / 리스트 / 함수 ──
+  // ── 📋 리스트 ──
+  //    인덱싱·슬라이싱·append·반복·연산
   {
-    id: 'basics',
-    title: '기초 10문제 — 변수·조건·반복·리스트·함수',
-    description: '코드 읽기에 처음 도전하는 학생용 워밍업.',
-    icon: '🎁',
+    id: 'lists',
+    title: '리스트',
+    description: '인덱싱, 슬라이싱, append, for 반복, 리스트 연산',
+    icon: '📋',
     samples: [
       {
-        title: '1. 변수와 산술',
-        description: '변수에 숫자를 담아 더하기·곱하기 결과를 예측해 봐요.',
+        title: '리스트 인덱싱',
+        description: '리스트의 첫 원소(0번)와 마지막 원소(-1번)를 꺼내 봐요. len()으로 길이도 함께.',
         type: 'predict',
-        code: 'a = 3\nb = 4\nprint(a + b)\nprint(a * b)\n'
+        code: 'nums = [10, 20, 30, 40, 50]\nprint(nums[0])\nprint(nums[2])\nprint(nums[-1])\nprint(len(nums))\n'
       },
       {
-        title: '2. 변수 다시 대입하기',
-        description: '같은 이름의 변수에 새 값을 넣으면 어떻게 될까요?',
-        type: 'trace',
-        code: 'x = 10\nx = x + 5\nx = x * 2\n'
-      },
-      {
-        title: '3. 문자열 합치기',
-        description: '+ 연산자로 문자열을 이어 붙이기.',
-        type: 'predict',
-        code: 'name = "지민"\nhello = "안녕, " + name + "!"\nprint(hello)\n'
-      },
-      {
-        title: '4. 조건문 — if/else',
-        description: '점수가 60점 이상이면 합격이에요.',
-        type: 'predict',
-        code: 'score = 75\nif score >= 60:\n    print("합격")\nelse:\n    print("불합격")\n'
-      },
-      {
-        title: '5. for 반복 — 누적합',
-        description: '1부터 5까지 더하면 얼마일까요?',
-        type: 'trace',
-        code: 'total = 0\nfor i in range(1, 6):\n    total = total + i\n'
-      },
-      {
-        title: '6. while 반복 — 카운트다운',
-        description: 'n이 0이 될 때까지 줄어드는 모습을 추적해요.',
-        type: 'trace',
-        code: 'n = 4\nwhile n > 0:\n    n = n - 1\n'
-      },
-      {
-        title: '7. 리스트와 인덱싱',
-        description: '리스트의 0번째, 마지막 원소를 꺼내 보세요.',
-        type: 'predict',
-        code: 'nums = [10, 20, 30, 40]\nprint(nums[0])\nprint(nums[-1])\nprint(len(nums))\n'
-      },
-      {
-        title: '8. 리스트에 값 추가하기',
-        description: 'append로 리스트를 키워가요.',
+        title: 'append로 리스트 키우기',
+        description: '빈 리스트에 append로 값을 차례차례 넣으면 어떻게 변할까요? 변수를 추적해 봐요.',
         type: 'trace',
         code: 'fruits = []\nfruits.append("사과")\nfruits.append("바나나")\nfruits.append("귤")\n'
       },
       {
-        title: '9. 함수와 반환값',
-        description: '함수가 돌려주는 값을 변수에 받기.',
+        title: '리스트 슬라이싱',
+        description: '[start:end] 로 일부만 잘라내기. 음수 인덱스, ::-1(뒤집기)까지 한 번에.',
         type: 'predict',
-        code: 'def square(n):\n    return n * n\n\na = square(3)\nb = square(5)\nprint(a + b)\n'
+        code: 'arr = [1, 2, 3, 4, 5, 6, 7]\nprint(arr[2:5])\nprint(arr[:3])\nprint(arr[3:])\nprint(arr[::-1])\n'
       },
       {
-        title: '10. 짝수만 모으기',
-        description: '반복문 + 조건문 종합 — 짝수만 새 리스트에 담기.',
+        title: '리스트 합 구하기 — for 반복',
+        description: 'for n in nums: 로 모든 원소를 돌면서 total 에 더해요. total 변화를 추적해 봐요.',
+        type: 'trace',
+        code: 'nums = [10, 20, 30, 40]\ntotal = 0\nfor n in nums:\n    total = total + n\n'
+      },
+      {
+        title: '짝수만 모으기',
+        description: 'for + if + append 종합. 짝수(2의 배수)만 새 리스트에 담기. evens 가 어떻게 자라는지 봐요.',
         type: 'trace',
         code: 'nums = [1, 2, 3, 4, 5, 6]\nevens = []\nfor n in nums:\n    if n % 2 == 0:\n        evens.append(n)\n'
       }
