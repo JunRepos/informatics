@@ -20,7 +20,7 @@ function vStCodeRead(){
 
 function vStCRList(){
   if(!CR_READINGS.length){
-    return emptyBox('🧠','등록된 코드 읽기 문제가 없습니다.');
+    return emptyBox('🔍','등록된 코드 읽기 문제가 없습니다.');
   }
   const myProg = CR_PROGRESS || {};
   const rows = CR_READINGS.map(r => {
@@ -28,7 +28,7 @@ function vStCRList(){
     const passed = p && p.passed;
     const typeLabel = r.type === 'predict' ? '🔮 출력 예측' : '🔍 변수 추적';
     return `<div class="list-row click" data-action="cr-pick" data-rid="${r.id}">
-      <div class="row-icon">🧠</div>
+      <div class="row-icon">🔍</div>
       <div class="row-info">
         <div class="row-title">${esc(r.title)}</div>
         <div class="row-meta">${typeLabel}${r.description ? ' · ' + esc((r.description||'').slice(0, 60)) : ''}</div>
@@ -167,16 +167,34 @@ function vTcCodeRead(){
 }
 
 function vTcCRList(){
-  const newBtn = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <div style="font-size:13px;color:var(--text2)">학생들이 코드를 읽고 결과를 예측하거나 변수 값을 추적하게 만드는 문제예요. 코드만 등록하면 정답은 자동으로 분석됩니다.</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn-sm" data-action="cr-load-samples">🎁 예제 10문제 한방 등록</button>
-      <button class="btn-p btn-sm" data-action="cr-new">+ 새 문제 만들기</button>
+  // 묶음별 등록 카드 — 차시 추가될수록 카드만 늘어남
+  const packCards = (typeof CR_SAMPLE_PACKS !== 'undefined' ? CR_SAMPLE_PACKS : []).map(p => `
+    <button class="cr-pack-card" data-action="cr-load-pack" data-pack-id="${esc(p.id)}">
+      <div class="cr-pack-icon">${p.icon || '📦'}</div>
+      <div class="cr-pack-body">
+        <div class="cr-pack-title">${esc(p.title)}</div>
+        <div class="cr-pack-meta">${p.samples.length}문제 · ${esc(p.description)}</div>
+      </div>
+      <div class="cr-pack-arrow">＋</div>
+    </button>
+  `).join('');
+
+  const header = `<div class="cr-header-row">
+    <div style="font-size:13px;color:var(--text2);flex:1;min-width:240px">
+      학생들이 코드를 읽고 결과를 예측하거나 변수 값을 추적하게 만드는 문제예요.
+      코드만 등록하면 정답은 자동으로 분석됩니다.
     </div>
+    <button class="btn-p" data-action="cr-new">+ 새 문제 만들기</button>
   </div>`;
 
+  const packsSection = packCards ? `
+    <div class="cr-pack-section">
+      <div class="cr-pack-section-title">📦 예제 묶음 한방 등록 <span style="font-weight:400;color:var(--text3);font-size:11px">— 카드를 클릭하면 해당 차시 문제가 모두 등록됩니다</span></div>
+      <div class="cr-pack-grid">${packCards}</div>
+    </div>` : '';
+
   if(!CR_READINGS.length){
-    return newBtn + emptyBox('🧠','아직 등록된 코드 읽기 문제가 없습니다.');
+    return header + packsSection + emptyBox('🔍','아직 등록된 코드 읽기 문제가 없습니다.');
   }
 
   const rows = CR_READINGS.map(r => {
@@ -186,7 +204,7 @@ function vTcCRList(){
     const typeLabel = r.type === 'predict' ? '🔮 출력 예측' : '🔍 변수 추적';
     const stepCount = r.type === 'trace' ? (r.traces || []).length : 1;
     return `<div class="list-row">
-      <div class="row-icon">🧠</div>
+      <div class="row-icon">🔍</div>
       <div class="row-info">
         <div class="row-title">${esc(r.title)}</div>
         <div class="row-meta">${typeLabel} · ${stepCount}단계 · ${passedCount}/${totalSt}명 통과 · ${fmtDt(r.createdAt)}</div>
@@ -198,7 +216,7 @@ function vTcCRList(){
     </div>`;
   }).join('');
 
-  return newBtn + `<div class="sec-title" style="margin-top:4px">등록된 문제 (${CR_READINGS.length}개)</div>` + rows;
+  return header + packsSection + `<div class="sec-title" style="margin-top:4px">등록된 문제 (${CR_READINGS.length}개)</div>` + rows;
 }
 
 function vTcCREdit(){
