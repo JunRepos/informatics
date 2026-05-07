@@ -23,6 +23,17 @@ const GAME_TYPES = [
     {id:'heroTransform', label:'heroTransform', desc:'변신술 — 변수 hero 의 자료형이 영웅 색을 결정 (str/int/float/bool)'},
     {id:'heroFinal',     label:'heroFinal',     desc:'최종: 변수 intro (str) 를 카드로 표시 + 자유 능력 종합'}
   ]},
+  {id:'lockerdrop', label:'🗄️ 떨어지는 사물함', hooks:[
+    // 액션 게임 — 떨어지는 이모지를 lockers에 정의된 종류만 받음
+    // 단계별 unlock 메타: 게임에서 동작은 동일 (applyState로 lockers/grades 통째 전달)
+    {id:'dropCreate', label:'dropCreate', desc:'lockers 변수 만들기'},
+    {id:'dropAdd',    label:'dropAdd',    desc:'append/insert 로 칸 추가'},
+    {id:'dropModify', label:'dropModify', desc:'lockers[i] = ...로 종류 교체'},
+    {id:'dropRemove', label:'dropRemove', desc:'pop/remove 로 위험 제거'},
+    {id:'dropSlice',  label:'dropSlice',  desc:'슬라이싱으로 리스트 일부만 활성화'},
+    {id:'dropSort',   label:'dropSort',   desc:'sort + 통계'},
+    {id:'dropGrid',   label:'dropGrid',   desc:'2차원 grades — 다층 사물함'}
+  ]},
   {id:'lockermaster', label:'🗄️ 사물함 마스터', hooks:[
     // 사물함 마스터는 단계별로 학생이 lockers/picked/sliced/total 등 변수를 만들고
     // 게임이 모든 변수를 통째로 읽어 시각화하는 방식.
@@ -59,7 +70,8 @@ function vMissionList(isTeacher){
       <button class="btn-p btn-sm" data-action="mission-new">+ 미션 만들기</button>
       <button class="btn-sm" data-action="mission-load-sample" title="플래피 버드 7단계: 변수→문자열→덧셈→곱셈→입력→몫→자유창작">🐦 플래피버드 예제</button>
       <button class="btn-sm" data-action="mission-load-typehunter" title="1차시(변수/자료형/형변환/print) 학습용 슈팅 미션 6단계">⚔️ 타입헌터 예제</button>
-      <button class="btn-sm" data-action="mission-load-lockermaster" title="3차시(리스트) 학습용 퍼즐 미션 8단계 — 인덱싱/슬라이싱/메소드/2차원">🗄️ 사물함 마스터 예제</button>
+      <button class="btn-sm" data-action="mission-load-lockerdrop" title="3차시(리스트) 액션 게임 — 떨어지는 이모지를 lockers에 정의한 종류만 받기">🗄️ 떨어지는 사물함 (액션)</button>
+      <button class="btn-sm" data-action="mission-load-lockermaster" title="3차시(리스트) 학습용 퍼즐 미션 8단계 — 인덱싱/슬라이싱/메소드/2차원 (시각화)">🗄️ 사물함 마스터 (시각화)</button>
     </div>
   </div>` : '';
 
@@ -149,6 +161,7 @@ function vMissionPlay(isTeacher){
 
           ${step.hint ? `<details class="mi-hint"><summary>💡 힌트</summary><div>${typeof marked !== 'undefined' ? marked.parse(step.hint) : esc(step.hint)}</div></details>` : ''}
 
+          ${vMiEmojiPalette(step)}
           <div class="mi-code-label">✏️ 여기에 코드를 작성하세요:</div>
           <textarea class="mi-code-area" id="mi-code-area" spellcheck="false">${esc(curCode)}</textarea>
 
@@ -163,6 +176,28 @@ function vMissionPlay(isTeacher){
         </div>
       </div>
     </div>`;
+}
+
+// 이모지 팔레트 (클릭 → 클립보드 복사). 단계의 emojiPool 만 표시.
+function vMiEmojiPalette(step){
+  const pool = step?.emojiPool;
+  if(!Array.isArray(pool) || !pool.length) return '';
+  // safe / danger 분류 (config 기반)
+  const cfg = step.config || {};
+  const safeSet = new Set(cfg.allowed || []);
+  const dangerSet = new Set(cfg.danger || []);
+  const items = pool.map(e => {
+    const cls = dangerSet.has(e) ? 'mi-emoji-danger' :
+                safeSet.has(e) ? 'mi-emoji-safe' : '';
+    const tag = dangerSet.has(e) ? '⚠️ 위험' :
+                safeSet.has(e) ? '✓ 안전' : '';
+    return `<button class="mi-emoji-btn ${cls}" data-action="copy-emoji" data-emoji="${esc(e)}" title="${tag} — 클릭해서 복사">${e}</button>`;
+  }).join('');
+  return `<div class="mi-emoji-palette">
+    <div class="mi-emoji-label">📋 이번 단계 이모지 (클릭 → 복사)</div>
+    <div class="mi-emoji-row">${items}</div>
+    <div class="mi-emoji-hint">💡 코드에 붙여넣을 땐 <code>'</code> 따옴표로 감싸 주세요</div>
+  </div>`;
 }
 
 function vMiTestResults(results, allPassed){
@@ -595,6 +630,196 @@ function getTypeHunterSampleMission(){
         unlocks: 'heroFinal',
         tests: [
           {type: 'exists', name: 'intro', typeOf: 'string'}
+        ]
+      }
+    ]
+  };
+}
+
+// ── 예제 미션 템플릿 (떨어지는 사물함) — 3차시 리스트 액션 게임 ──
+function getLockerDropSampleMission(){
+  return {
+    title: '떨어지는 사물함 — 받을 수 있는 종류만 받자!',
+    gameType: 'lockerdrop',
+    description: '하늘에서 이모지가 떨어져요! lockers 리스트에 정의한 종류만 자동으로 받아냅니다. 위험한 건 받지 않게 잘 골라야 해요. 8단계로 리스트 모든 기능을 연마합니다.',
+    createdAt: new Date().toISOString(),
+    steps: [
+      // ═══ 1단계: 리스트 만들기 ═══
+      {
+        id: 'ld_create',
+        title: '1️⃣ 첫 사물함 만들기 — 사과 받기',
+        description: '## 🎯 미션\n\n하늘에서 🍎 사과만 떨어집니다. `lockers` 리스트에 사과를 넣어서 **5점**을 모으세요!\n\n```python\nlockers = [\'🍎\']\n```\n\n👉 ▶ 실행을 누르면 게임이 시작되고 사과가 자동으로 받아져요!\n\n### 💡 개념: 리스트 만들기\n- **리스트** = 여러 값을 묶은 것. 대괄호 `[ ]` 사용\n- 게임은 `lockers` 안에 있는 이모지만 받아냅니다\n- 이번엔 종류가 1개라 한 칸짜리 리스트',
+        hint: '대괄호 안에 사과 이모지를 따옴표로 감싸서 넣으세요.\n\n```python\nlockers = [\'🍎\']\n```',
+        starterCode: '# 사과만 받아내는 사물함을 만드세요\n# 🍎 이모지는 우측 팔레트에서 클릭하면 복사돼요!\n\nlockers = \n',
+        hookStyle: 'variable',
+        unlocks: 'dropCreate',
+        // 게임 설정
+        config: {
+          allowed: ['🍎'],
+          danger: [],
+          targetScore: 5,
+          timeLimit: 25,
+          maxHp: 3
+        },
+        // 학생용 이모지 팔레트
+        emojiPool: ['🍎'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 2단계: append 추가 ═══
+      {
+        id: 'ld_append',
+        title: '2️⃣ 칸 추가하기 — append',
+        description: '## 🎯 미션\n\n이번엔 🍎 사과와 📚 책 두 종류가 떨어져요! 사과 사물함에 **append로 책 칸을 추가**하세요. 목표는 **8점**.\n\n```python\nlockers = [\'🍎\']\nlockers.append(\'📚\')\n```\n\n👉 사과와 책 둘 다 받게 됩니다.\n\n### 💡 개념: append\n- `리스트.append(값)` → 리스트 **맨 뒤에 새 값** 추가\n- 원본 리스트가 바뀜 (새 리스트 X)\n- 처음부터 `lockers = [\'🍎\', \'📚\']` 처럼 만들어도 결과는 같지만, append를 써서 `이미 있는 리스트에 추가하는 법`을 익혀봐요!',
+        hint: '먼저 사과로 lockers 만든 뒤 .append() 로 책 추가:\n\n```python\nlockers = [\'🍎\']\nlockers.append(\'📚\')\n```',
+        starterCode: '# 사과 사물함을 만들고 append 로 책을 추가하세요\n# 우측 팔레트에서 🍎 와 📚 클릭하면 복사돼요\n\nlockers = [\'🍎\']\n# 여기에 lockers.append(...) 한 줄 추가\n',
+        hookStyle: 'variable',
+        unlocks: 'dropAdd',
+        config: {
+          allowed: ['🍎', '📚'],
+          danger: [],
+          targetScore: 8,
+          timeLimit: 25,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '📚'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 3단계: insert + 위험 등장 ═══
+      {
+        id: 'ld_insert',
+        title: '3️⃣ 끼워넣기 — insert + 폭탄 피하기',
+        description: '## 🎯 미션\n\n💣 폭탄이 등장했어요! 폭탄을 받으면 ❤️ -1. **별만 받고 폭탄은 무시**하세요.\n\nlockers에 폭탄을 **넣지 않으면 자동으로 통과**시켜요. 별을 0번 자리에 끼워넣어 시작!\n\n```python\nlockers = [\'🍎\', \'📚\']\nlockers.insert(0, \'⭐\')   # 0번에 별 끼우기\n```\n\n👉 lockers는 `[\'⭐\', \'🍎\', \'📚\']` 가 되어 별/사과/책 다 받음. 폭탄은 lockers에 없으니 알아서 통과!\n\n### 💡 개념: insert vs append\n- `.append(값)` → **맨 뒤** 추가\n- `.insert(i, 값)` → **i번 위치** 에 끼워넣기 (기존 i번 이후는 한 칸씩 뒤로)\n- ⚠️ **위험 이모지를 lockers에 넣으면 받아버려서 ❤️ 깎임!**',
+        hint: 'insert 의 첫 인자는 인덱스, 둘째 인자는 값:\n\n```python\nlockers.insert(0, \'⭐\')\n```',
+        starterCode: '# 폭탄(💣)은 절대 lockers에 넣지 마세요!\n# 별(⭐) 을 0번에 끼워 넣고 사과/책도 유지\n\nlockers = [\'🍎\', \'📚\']\n# 여기에 insert 한 줄\n',
+        hookStyle: 'variable',
+        unlocks: 'dropAdd',
+        config: {
+          allowed: ['🍎', '📚', '⭐'],
+          danger: ['💣'],
+          targetScore: 10,
+          timeLimit: 30,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '📚', '⭐', '💣'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 4단계: 인덱싱으로 수정 ═══
+      {
+        id: 'ld_modify',
+        title: '4️⃣ 칸 바꾸기 — 인덱스로 수정',
+        description: '## 🎯 미션\n\n별이 사라지고 💎 보석이 등장! lockers의 **0번 칸을 보석으로 바꾸세요**.\n\n```python\nlockers = [\'⭐\', \'🍎\', \'📚\']\nlockers[0] = \'💎\'\n```\n\n👉 결과: `[\'💎\', \'🍎\', \'📚\']` — 별 받기 X, 보석 받기 O\n\n### 💡 개념: 인덱스로 값 수정\n- `리스트[i] = 새값` → i번 칸의 값을 **덮어씀**\n- 길이는 그대로, 값만 바뀜\n- `append` (길이 +1) 와 다름!\n\n### ⚠️ 폭탄 주의\n폭탄(💣)이 계속 떨어져요. lockers에 넣지 마세요!',
+        hint: '인덱스로 자리를 콕 집어서 새 값 대입:\n\n```python\nlockers[0] = \'💎\'\n```',
+        starterCode: '# 별 → 보석으로 0번 칸 바꾸세요. 폭탄은 절대 X!\n\nlockers = [\'⭐\', \'🍎\', \'📚\']\n# lockers[0] = ...\n',
+        hookStyle: 'variable',
+        unlocks: 'dropModify',
+        config: {
+          allowed: ['💎', '🍎', '📚'],
+          danger: ['💣'],
+          targetScore: 12,
+          timeLimit: 30,
+          maxHp: 3
+        },
+        emojiPool: ['💎', '🍎', '📚', '⭐', '💣'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 5단계: pop / remove ═══
+      {
+        id: 'ld_remove',
+        title: '5️⃣ 위험 빼내기 — pop / remove',
+        description: '## 🎯 미션\n\n실수로 lockers에 폭탄(💣) 이 들어가 있어요! **pop과 remove로 폭탄을 빼내세요**.\n\n```python\nlockers = [\'🍎\', \'💣\', \'📚\', \'🌋\']\n# 마지막 자리(🌋) 빼기\nlockers.pop()\n# 값으로 폭탄 찾아서 빼기\nlockers.remove(\'💣\')\n```\n\n👉 결과: `[\'🍎\', \'📚\']` — 안전한 것만!\n\n### 💡 개념: pop vs remove\n| 메소드 | 뺄 것 | 기준 |\n|---|---|---|\n| `.pop()` | 맨 뒤 한 개 | **위치** |\n| `.remove(값)` | 그 값과 같은 첫 요소 | **값** |\n\n### 응용\n둘 다 원본 리스트를 직접 수정해요.',
+        hint: '두 메소드를 한 줄씩:\n```python\nlockers.pop()           # 맨 뒤\nlockers.remove(\'💣\')    # 값으로\n```',
+        starterCode: '# 위험한 것들을 빼내세요!\n# 1) pop() 으로 마지막 (🌋) 제거\n# 2) remove(\'💣\') 로 폭탄 제거\n\nlockers = [\'🍎\', \'💣\', \'📚\', \'🌋\']\n',
+        hookStyle: 'variable',
+        unlocks: 'dropRemove',
+        config: {
+          allowed: ['🍎', '📚'],
+          danger: ['💣', '🌋'],
+          targetScore: 10,
+          timeLimit: 25,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '📚', '💣', '🌋'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 6단계: 슬라이싱 ═══
+      {
+        id: 'ld_slice',
+        title: '6️⃣ 슬라이싱 — 일부만 활성화',
+        description: '## 🎯 미션\n\n이번엔 *모든 종류 후보*가 적혀 있는 큰 리스트가 주어져요. 그 중 **앞 3개만** 받도록 lockers를 슬라이싱으로 잘라내세요.\n\n```python\nall_items = [\'🍎\', \'📚\', \'⭐\', \'💣\', \'🌋\']\nlockers = all_items[:3]   # 처음 3개만\n```\n\n👉 lockers = `[\'🍎\', \'📚\', \'⭐\']` — 안전한 것 3종만 받음. 폭탄은 자동 무시!\n\n### 💡 개념: 슬라이싱\n- `리스트[a:b]` → a번부터 **b번 직전**까지 잘라낸 새 리스트\n- 끝은 미포함! `[:3]` = 0,1,2번 (3은 X)\n- `[a:]` 는 a번부터 끝, `[:b]` 는 처음부터 b 직전, `[-3:]` 는 마지막 3개\n\n### 응용\n슬라이싱은 **새 리스트**를 만들어요 — 원본은 그대로.',
+        hint: '대괄호 안에 콜론:\n```python\nlockers = all_items[:3]\n```',
+        starterCode: '# 앞 3개만 잘라서 lockers 에 담으세요\n\nall_items = [\'🍎\', \'📚\', \'⭐\', \'💣\', \'🌋\']\nlockers = \n',
+        hookStyle: 'variable',
+        unlocks: 'dropSlice',
+        config: {
+          allowed: ['🍎', '📚', '⭐'],
+          danger: ['💣', '🌋'],
+          targetScore: 12,
+          timeLimit: 30,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '📚', '⭐', '💣', '🌋'],
+        tests: [
+          {type: 'exists', name: 'lockers'}
+        ]
+      },
+
+      // ═══ 7단계: sort + 통계 ═══
+      {
+        id: 'ld_sort',
+        title: '7️⃣ 정렬과 통계 — sort, len',
+        description: '## 🎯 미션\n\n섞여 있는 리스트를 **정렬**해서 사용해보세요. 정렬해도 게임 동작은 같지만 코드를 깔끔하게 만드는 법을 익힙니다.\n\n```python\nlockers = [\'⭐\', \'🍎\', \'💎\', \'📚\']\nlockers.sort()           # 가나다/유니코드 순\ntotal = len(lockers)     # 총 칸 수\n```\n\n👉 정렬된 사물함으로 게임 진행. total 변수로 칸 수 표시!\n\n### 💡 개념: sort + len\n- `.sort()` — 원본을 오름차순 정렬 (이모지는 유니코드 순)\n- `len(리스트)` — 값의 개수\n- `sum(리스트)` — 합 (숫자 리스트만)\n- `max(리스트)`, `min(리스트)` — 최댓값/최솟값',
+        hint: '정렬하고 길이 구하기:\n```python\nlockers.sort()\ntotal = len(lockers)\n```',
+        starterCode: '# 정렬하고 칸 수도 구해보세요\n\nlockers = [\'⭐\', \'🍎\', \'💎\', \'📚\']\n# lockers.sort()\n# total = len(lockers)\n',
+        hookStyle: 'variable',
+        unlocks: 'dropSort',
+        config: {
+          allowed: ['🍎', '⭐', '💎', '📚'],
+          danger: ['💣'],
+          targetScore: 12,
+          timeLimit: 30,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '⭐', '💎', '📚', '💣'],
+        tests: [
+          {type: 'exists', name: 'lockers'},
+          {type: 'exists', name: 'total', typeOf: 'number'}
+        ]
+      },
+
+      // ═══ 8단계: 2차원 ═══
+      {
+        id: 'ld_grid',
+        title: '8️⃣ 다층 사물함 — 2차원 grades',
+        description: '## 🎯 최종 미션\n\n사물함을 **2층 구조**로! 위층/아래층에 다른 종류를 배치해요.\n\n2차원 리스트 `grades` 를 만들면 게임이 그리드로 표시되고, **모든 칸의 종류를 받습니다**.\n\n```python\ngrades = [\n    [\'🍎\', \'📚\'],     # 0번 행\n    [\'⭐\', \'💎\']      # 1번 행\n]\n```\n\n👉 4종류 모두 받게 됩니다!\n\n### 💡 개념: 2차원 리스트\n- 리스트 안에 리스트를 넣음\n- `grades[행][열]` 로 한 칸 접근 (둘 다 0부터)\n- `grades[0]` 은 0번 행 전체 (1차원 리스트)\n- 표·체스판·미로 등 **2D 데이터** 표현용\n\n### 도전\n행을 더 추가하거나, `grades[1][0] = ...` 로 특정 칸 수정도 시도!',
+        hint: '리스트 안에 리스트:\n```python\ngrades = [\n    [\'🍎\', \'📚\'],\n    [\'⭐\', \'💎\']\n]\n```',
+        starterCode: '# 2층 사물함 만들기 — 행마다 다른 종류\n# 4종 모두 받을 수 있어야 클리어!\n\ngrades = [\n    [\'🍎\', \'📚\'],\n    [\'⭐\', \'💎\']\n]\n',
+        hookStyle: 'variable',
+        unlocks: 'dropGrid',
+        config: {
+          allowed: ['🍎', '📚', '⭐', '💎'],
+          danger: ['💣'],
+          targetScore: 15,
+          timeLimit: 35,
+          maxHp: 3
+        },
+        emojiPool: ['🍎', '📚', '⭐', '💎', '💣'],
+        tests: [
+          {type: 'exists', name: 'grades'}
         ]
       }
     ]

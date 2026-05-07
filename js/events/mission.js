@@ -67,11 +67,8 @@ async function applyPassedHooks(){
 
   const py = await ensureMissionPyodide();
 
-  // ── 사물함 마스터: 통합 처리 (단계마다 lockers/picked/sliced/...등 변수를 게임에 전달) ──
-  // 다른 게임처럼 단계별 hook 가 게임 동작을 바꾸는 게 아니라,
-  // 각 단계의 통과 코드를 단독 실행하고 결과 변수들을 applyState 로 한 번에 넘김.
-  // 현재 보고 있는 단계의 코드를 우선 (학생이 단계 이동 시 그 단계의 시각화)
-  if(SEL_MISSION?.gameType === 'lockermaster'){
+  // ── 사물함 마스터 / 떨어지는 사물함: 둘 다 같은 applyState 패턴 ──
+  if(SEL_MISSION?.gameType === 'lockermaster' || SEL_MISSION?.gameType === 'lockerdrop'){
     await _applyLockerMasterState(py);
     return;
   }
@@ -175,7 +172,7 @@ async function applyPassedHooks(){
 async function _applyLockerMasterState(py){
   if(!_missionGame || typeof _missionGame.applyState !== 'function') return;
 
-  // 현재 단계 정보를 게임 헤더에 반영
+  // 현재 단계 정보를 게임 헤더에 반영 (lockerdrop은 config도 함께 전달)
   const curIdx = MISSION_STEP_IDX || 0;
   const curStep = SEL_MISSION.steps[curIdx];
   if(curStep && typeof _missionGame.setStep === 'function'){
@@ -183,7 +180,8 @@ async function _applyLockerMasterState(py){
       idx: curIdx,
       total: SEL_MISSION.steps.length,
       title: curStep.title || '',
-      focus: curStep.unlocks || ''
+      focus: curStep.unlocks || '',
+      config: curStep.config || null
     });
   }
 
@@ -301,6 +299,8 @@ async function initMissionGame(){
     _missionGame = new TypeHunter(canvas);
   } else if(gt === 'lockermaster' && typeof LockerMaster === 'function'){
     _missionGame = new LockerMaster(canvas);
+  } else if(gt === 'lockerdrop' && typeof LockerDrop === 'function'){
+    _missionGame = new LockerDrop(canvas);
   } else {
     _missionGame = new FlappyBird(canvas);
   }
@@ -483,6 +483,40 @@ document.addEventListener('click', async e => {
     await loadMissions(cid);
     toast('타입 헌터 예제 미션이 등록됐습니다.', 'ok');
     render();
+    return;
+  }
+  if(act.action === 'mission-load-lockerdrop'){
+    if(!confirm('떨어지는 사물함 액션 게임(3차시 리스트, 8단계)을 이 반에 등록할까요?')) return;
+    const cid = TC_CLS?.id; if(!cid) return;
+    const sample = getLockerDropSampleMission();
+    const newId = genId();
+    await saveMission(cid, newId, sample);
+    await loadMissions(cid);
+    toast('떨어지는 사물함 미션이 등록됐습니다.', 'ok');
+    render();
+    return;
+  }
+  if(act.action === 'copy-emoji'){
+    const emoji = act.emoji || '';
+    if(!emoji) return;
+    try {
+      await navigator.clipboard.writeText(emoji);
+      toast(`${emoji} 복사됨! 코드에 붙여넣기 (Ctrl+V)`, 'ok');
+      // 살짝 강조 효과
+      el.classList.add('mi-emoji-flash');
+      setTimeout(() => el.classList.remove('mi-emoji-flash'), 400);
+    } catch(err){
+      // 폴백: 임시 textarea로 복사
+      const ta = document.createElement('textarea');
+      ta.value = emoji;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast(`${emoji} 복사됨!`, 'ok'); }
+      catch(_e){ toast('복사 실패 — 수동으로 입력해주세요', 'err'); }
+      document.body.removeChild(ta);
+    }
     return;
   }
   if(act.action === 'mission-load-lockermaster'){

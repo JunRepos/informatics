@@ -856,6 +856,27 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .me-radio input[type="radio"]{width:auto;margin:0}
 
 /* ═══════════════════════════════════════
+   미션 — 이모지 팔레트 (떨어지는 사물함 등)
+═══════════════════════════════════════ */
+.mi-emoji-palette{background:#fef9e7;border:1.5px solid #fde68a;border-radius:var(--r-md);padding:8px 10px;margin:8px 0 6px;display:flex;flex-direction:column;gap:5px}
+[data-theme="dark"] .mi-emoji-palette{background:#2d2300;border-color:#7c5008}
+.mi-emoji-label{font-size:11px;font-weight:700;color:#92400e;letter-spacing:.02em}
+[data-theme="dark"] .mi-emoji-label{color:#fcd34d}
+.mi-emoji-row{display:flex;flex-wrap:wrap;gap:5px}
+.mi-emoji-btn{font-size:22px;line-height:1;padding:5px 9px;border:1.5px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;transition:transform .1s,box-shadow .12s,background .12s}
+[data-theme="dark"] .mi-emoji-btn{background:var(--surface)}
+.mi-emoji-btn:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.12);background:#fff8e7}
+[data-theme="dark"] .mi-emoji-btn:hover{background:#3a2e1a}
+.mi-emoji-btn.mi-emoji-safe{border-color:#86efac}
+.mi-emoji-btn.mi-emoji-danger{border-color:#fca5a5;background:#fef2f2}
+[data-theme="dark"] .mi-emoji-btn.mi-emoji-danger{background:#2d1010}
+.mi-emoji-btn.mi-emoji-flash{transform:scale(1.2);background:#fde047!important;box-shadow:0 0 12px rgba(251, 191, 36, 0.7)}
+.mi-emoji-hint{font-size:10px;color:#a16207;font-style:italic}
+[data-theme="dark"] .mi-emoji-hint{color:#a89764}
+.mi-emoji-hint code{background:rgba(0,0,0,.06);padding:0 4px;border-radius:3px;font-family:'Consolas',monospace;font-size:10px}
+[data-theme="dark"] .mi-emoji-hint code{background:rgba(255,255,255,.08)}
+
+/* ═══════════════════════════════════════
    코드 읽기 (Code Reading) — 학생이 코드 해석하는 메뉴
 ═══════════════════════════════════════ */
 .cr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
