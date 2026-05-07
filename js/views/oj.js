@@ -11,12 +11,9 @@
 
 // 선생님 OJ 탭 메인
 function vTcOJ(){
-  const samplesBar = `<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-    <button class="btn-sm" data-action="oj-load-list-pack" title="3차시 리스트 학습용 OJ 3문제 (인덱싱·슬라이싱·append) 한 번에 등록">📦 리스트 실습 3문제 한방 등록</button>
-  </div>`;
   const form = vTcOJForm();
   const list = vTcOJList();
-  return samplesBar + form + list;
+  return form + list;
 }
 
 // 문제 출제/수정 폼

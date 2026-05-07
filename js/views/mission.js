@@ -33,19 +33,6 @@ const GAME_TYPES = [
     {id:'dropSlice',  label:'dropSlice',  desc:'슬라이싱으로 리스트 일부만 활성화'},
     {id:'dropSort',   label:'dropSort',   desc:'sort + 통계'},
     {id:'dropGrid',   label:'dropGrid',   desc:'2차원 grades — 다층 사물함'}
-  ]},
-  {id:'lockermaster', label:'🗄️ 사물함 마스터', hooks:[
-    // 사물함 마스터는 단계별로 학생이 lockers/picked/sliced/total 등 변수를 만들고
-    // 게임이 모든 변수를 통째로 읽어 시각화하는 방식.
-    // unlocks 이름은 단계 진행 메타용 — 실제로 같은 applyState 가 호출됨.
-    {id:'lockerCreate', label:'lockerCreate', desc:'리스트 만들기 — lockers 변수에 [...] 대입'},
-    {id:'lockerPick',   label:'lockerPick',   desc:'인덱싱 — picked = lockers[i] 형태'},
-    {id:'lockerModify', label:'lockerModify', desc:'값 수정 — lockers[i] = ...'},
-    {id:'lockerSlice',  label:'lockerSlice',  desc:'슬라이싱 — sliced = lockers[a:b]'},
-    {id:'lockerAdd',    label:'lockerAdd',    desc:'추가 — append, insert'},
-    {id:'lockerRemove', label:'lockerRemove', desc:'삭제 — pop, remove'},
-    {id:'lockerSort',   label:'lockerSort',   desc:'정렬 + 통계 — sort, len, sum, max, min'},
-    {id:'lockerGrid',   label:'lockerGrid',   desc:'2차원 — grades 변수 (행 × 열)'}
   ]}
 ];
 
@@ -70,8 +57,7 @@ function vMissionList(isTeacher){
       <button class="btn-p btn-sm" data-action="mission-new">+ 미션 만들기</button>
       <button class="btn-sm" data-action="mission-load-sample" title="플래피 버드 7단계: 변수→문자열→덧셈→곱셈→입력→몫→자유창작">🐦 플래피버드 예제</button>
       <button class="btn-sm" data-action="mission-load-typehunter" title="1차시(변수/자료형/형변환/print) 학습용 슈팅 미션 6단계">⚔️ 타입헌터 예제</button>
-      <button class="btn-sm" data-action="mission-load-lockerdrop" title="3차시(리스트) 액션 게임 — 떨어지는 이모지를 lockers에 정의한 종류만 받기">🗄️ 떨어지는 사물함 (액션)</button>
-      <button class="btn-sm" data-action="mission-load-lockermaster" title="3차시(리스트) 학습용 퍼즐 미션 8단계 — 인덱싱/슬라이싱/메소드/2차원 (시각화)">🗄️ 사물함 마스터 (시각화)</button>
+      <button class="btn-sm" data-action="mission-load-lockerdrop" title="3차시(리스트) 액션 게임 — 떨어지는 이모지를 lockers에 정의한 종류만 받기">🗄️ 떨어지는 사물함 예제</button>
     </div>
   </div>` : '';
 
@@ -826,136 +812,3 @@ function getLockerDropSampleMission(){
   };
 }
 
-// ── 예제 미션 템플릿 (사물함 마스터) — 3차시: 1차원 리스트 + 2차원 ──
-function getLockerMasterSampleMission(){
-  return {
-    title: '사물함 마스터 — 리스트로 사물함 정리하기',
-    gameType: 'lockermaster',
-    description: '리스트는 사물함과 비슷해요. 인덱스(=칸 번호)로 값을 꺼내고, 슬라이싱으로 일부만 잘라보고, 메소드로 추가·삭제·정렬해봅니다. 마지막엔 2차원 리스트로 표를 다뤄요!',
-    createdAt: new Date().toISOString(),
-    steps: [
-      // ═══ 1단계: 리스트 만들기 ═══
-      {
-        id: 'lm_create',
-        title: '1️⃣ 사물함을 만들어 봐요',
-        description: '## 🎯 미션\n\n빈 복도에 **사물함을 새로 설치**해봅시다. `lockers` 변수에 **3개 이상의 값**을 담은 리스트를 만들어보세요.\n\n```python\nlockers = [\'🍎\', \'🍌\', \'🍇\']\n```\n\n👉 코드를 실행하면 사물함 칸들이 화면에 나타납니다! 각 칸 위에 인덱스 번호 (0, 1, 2, ...) 가 붙어요.\n\n### 💡 개념: 리스트 만들기\n- **리스트** = 여러 값을 한 변수에 묶어 저장. 대괄호 `[ ]` 사용\n- 값들 사이엔 **쉼표 `,`** 로 구분\n- 자료형이 섞여도 OK: `[1, \'안녕\', 3.14, True]`\n- 빈 리스트도 가능: `lockers = []`',
-        experiment: '뭐든 담아보세요!\n\n- `lockers = [\'📕\', \'📗\', \'📘\', \'📙\']` — 책장\n- `lockers = [85, 90, 78, 92, 88]` — 점수\n- `lockers = [\'국어\', \'영어\', \'수학\', \'과학\']` — 과목\n- `lockers = [True, False, True, True]` — bool 리스트\n- `lockers = [1, \'mix\', 3.14, True]` — 자료형 섞기',
-        hint: '대괄호와 쉼표만 기억하세요!\n\n```python\nlockers = [\'사과\', \'바나나\', \'딸기\']\n```',
-        starterCode: '# lockers 변수에 3개 이상의 값을 담은 리스트를 만들어보세요\n# (예시) lockers = [\'🍎\', \'🍌\', \'🍇\']\n\n# ↓ 여기에 직접 작성하세요\n',
-        hookStyle: 'variable',
-        unlocks: 'lockerCreate',
-        tests: [
-          {type: 'exists', name: 'lockers'}
-        ]
-      },
-
-      // ═══ 2단계: 인덱싱 ═══
-      {
-        id: 'lm_pick',
-        title: '2️⃣ 인덱스로 콕 집기',
-        description: '## 🎯 미션\n\n사물함의 **0번 칸**과 **마지막 칸**의 물건을 꺼내봅시다.\n\n주어진 사물함:\n```python\nlockers = [\'🥕\', \'🥦\', \'🍅\', \'🌽\', \'🍆\']\n```\n\n해야 할 일:\n```python\nfirst  = lockers[0]    # 0번 칸\nlast   = lockers[-1]   # 마지막 칸 (음수 인덱스!)\n```\n\n👉 게임 화면에 **first / last** 변수가 카드로 표시되고, 해당 칸이 노란색으로 깜빡여요!\n\n### 💡 개념: 인덱싱 + 음수 인덱스\n- **인덱스는 0부터** 시작합니다 (1이 아니에요!)\n- `lockers[0]` → 첫 번째, `lockers[2]` → 세 번째\n- **음수 인덱스**: `-1` 은 **마지막**, `-2` 는 뒤에서 두 번째\n- `len(lockers)` 가 5면, 인덱스는 0~4까지 (또는 -1~-5)',
-        experiment: '여러 인덱스를 꺼내보세요:\n\n- `first = lockers[1]` — 1번 칸\n- `first = lockers[3]` — 4번째\n- `last = lockers[-2]` — 뒤에서 두 번째\n- `first = lockers[len(lockers) // 2]` — 중간 칸 (몫 활용!)\n\n⚠️ **주의**: `lockers[10]` 처럼 없는 인덱스는 에러 — IndexError!',
-        hint: '대괄호 안에 인덱스 숫자를 넣으면 그 칸의 값이 나옵니다.\n\n```python\nfirst = lockers[0]\nlast = lockers[-1]\n```',
-        starterCode: 'lockers = [\'🥕\', \'🥦\', \'🍅\', \'🌽\', \'🍆\']\n\n# 0번 칸을 first 변수에, 마지막 칸을 last 변수에\nfirst = \nlast = \n',
-        hookStyle: 'variable',
-        unlocks: 'lockerPick',
-        tests: [
-          {type: 'exists', name: 'first'},
-          {type: 'exists', name: 'last'}
-        ]
-      },
-
-      // ═══ 3단계: 값 수정 ═══
-      {
-        id: 'lm_modify',
-        title: '3️⃣ 사물함 바꾸기 — 값 수정',
-        description: '## 🎯 미션\n\n사물함의 **1번 칸**을 새 물건으로 바꿔주세요.\n\n주어진 사물함:\n```python\nlockers = [\'🍎\', \'🍌\', \'🍇\', \'🥝\']\n```\n\n해야 할 일:\n```python\nlockers[1] = \'🥕\'\n```\n\n👉 1번 칸 내용이 즉시 바뀌어요!\n\n### 💡 개념: 값 수정\n- `lockers[i] = 새값` → i번 칸에 **새 값을 덮어씀**\n- 인덱스로 자리를 콕 집어서 **= 으로 새 값 대입**\n- 길이는 그대로, 값만 바뀜\n\n### ⚠️ append 와 헷갈리기 쉬워요\n- `lockers[0] = 100` — 있는 자리 값을 바꿈 (길이 그대로)\n- `lockers.append(100)` — 맨 뒤에 새 칸 추가 (길이 +1)',
-        experiment: '여러 칸을 바꿔보세요:\n\n```python\nlockers[0] = \'🌟\'\nlockers[2] = \'🎁\'\nlockers[-1] = \'🎉\'   # 음수 인덱스도 수정 OK\n```\n\n💡 **재미있는 사실**: `lockers[0] = lockers[1]` 처럼 다른 칸 값을 가져와 덮어쓸 수도 있어요.',
-        hint: '`인덱스로 자리 → = 으로 새 값` 순서.\n\n```python\nlockers[1] = \'🥕\'\n```',
-        starterCode: 'lockers = [\'🍎\', \'🍌\', \'🍇\', \'🥝\']\n\n# 1번 칸을 원하는 값으로 바꿔보세요\nlockers[1] = \n',
-        hookStyle: 'variable',
-        unlocks: 'lockerModify',
-        tests: [
-          {type: 'exists', name: 'lockers'}
-        ]
-      },
-
-      // ═══ 4단계: 슬라이싱 ═══
-      {
-        id: 'lm_slice',
-        title: '4️⃣ 일부만 잘라보기 — 슬라이싱',
-        description: '## 🎯 미션\n\n사물함의 **1번부터 4번 직전까지** (1, 2, 3번) 잘라서 새 변수에 담아보세요.\n\n주어진 사물함:\n```python\nlockers = [85, 90, 78, 92, 88, 95, 70]\n```\n\n해야 할 일:\n```python\nsliced = lockers[1:4]\n```\n\n👉 게임 화면에서 **잘라낸 범위가 푸른 박스**로 묶이고, sliced 변수가 카드로 표시돼요!\n\n### 💡 개념: 슬라이싱\n- `리스트[시작:끝]` — 시작 인덱스부터 **끝 인덱스 직전**까지 잘라냄\n- ⚠️ **끝 인덱스는 포함 안 됨!** `[1:4]` 는 1, 2, 3번 (4번은 X)\n- 시작 생략: `[:3]` → 처음~2번\n- 끝 생략: `[3:]` → 3번~끝\n- 전체 복사: `[:]`\n- 음수도 OK: `[-3:]` → 마지막 3개\n\n### 핵심: 슬라이싱 결과는 **새 리스트** — 원본은 안 바뀝니다',
-        experiment: '여러 슬라이싱을 시도해보세요:\n\n- `sliced = lockers[:3]` — 처음 3개\n- `sliced = lockers[3:]` — 3번부터 끝까지\n- `sliced = lockers[-3:]` — 마지막 3개\n- `sliced = lockers[2:5]` — 2, 3, 4번\n- `sliced = lockers[::-1]` — 통째로 거꾸로!\n- `sliced = lockers[:]` — 전체 복사',
-        hint: '대괄호 안에 `시작:끝` 형태로 적습니다.\n\n```python\nsliced = lockers[1:4]\n```',
-        starterCode: 'lockers = [85, 90, 78, 92, 88, 95, 70]\n\n# 1번~3번까지 잘라서 sliced 변수에\nsliced = \n',
-        hookStyle: 'variable',
-        unlocks: 'lockerSlice',
-        tests: [
-          {type: 'exists', name: 'sliced'}
-        ]
-      },
-
-      // ═══ 5단계: append + insert ═══
-      {
-        id: 'lm_add',
-        title: '5️⃣ 사물함에 칸 추가 — append, insert',
-        description: '## 🎯 미션\n\n시작 사물함에 **칸을 두 개 추가**해주세요. 하나는 맨 뒤에, 하나는 원하는 위치에 끼워 넣어요.\n\n주어진 사물함:\n```python\nlockers = [\'📚\', \'📓\']\n```\n\n해야 할 일:\n```python\nlockers.append(\'📕\')         # 맨 뒤에 추가\nlockers.insert(1, \'📔\')      # 1번 자리에 끼워 넣기\n```\n\n👉 사물함이 **4칸**으로 자라나요!\n\n### 💡 개념: append vs insert\n| 메소드 | 역할 |\n|---|---|\n| `.append(값)` | 맨 뒤에 추가 |\n| `.insert(i, 값)` | i번 위치에 끼워 넣기 (기존은 한 칸씩 뒤로) |\n\n둘 다 **원본 리스트를 직접 변경**합니다 (새 리스트 X).',
-        experiment: '여러 가지로 사물함을 키워보세요:\n\n```python\nlockers.append(\'📓\')\nlockers.append(\'✏️\')\nlockers.insert(0, \'🌟\')   # 맨 앞에 끼워 넣기\nlockers.insert(2, \'⭐\')   # 중간에 끼우기\n```\n\n💡 **insert vs append**: `insert(0, x)` 는 맨 앞, `insert(len(lockers), x)` 는 맨 뒤(=append와 같음).',
-        hint: '메소드는 점(`.`)으로 호출:\n\n```python\nlockers.append(\'📕\')\nlockers.insert(1, \'📔\')\n```',
-        starterCode: 'lockers = [\'📚\', \'📓\']\n\n# 1) 맨 뒤에 한 개 추가 (append)\n# 2) 1번 자리에 한 개 끼워 넣기 (insert)\n\n',
-        hookStyle: 'variable',
-        unlocks: 'lockerAdd',
-        tests: [
-          {type: 'exists', name: 'lockers'}
-        ]
-      },
-
-      // ═══ 6단계: pop + remove ═══
-      {
-        id: 'lm_remove',
-        title: '6️⃣ 사물함 비우기 — pop, remove',
-        description: '## 🎯 미션\n\n사물함에서 **두 개 빼주세요**. 한 개는 맨 뒤에서, 한 개는 값으로 지정해서.\n\n주어진 사물함:\n```python\nlockers = [\'🍎\', \'🍌\', \'🍇\', \'🥝\', \'🍒\']\n```\n\n해야 할 일:\n```python\nlockers.pop()                # 맨 뒤 한 개 삭제\nlockers.remove(\'🍌\')         # 값이 \'🍌\' 인 첫 요소 삭제\n```\n\n👉 사물함이 줄어듭니다!\n\n### 💡 개념: pop vs remove\n| 메소드 | 역할 | 기준 |\n|---|---|---|\n| `.pop()` | 맨 뒤 요소 삭제 | **위치** (맨 뒤) |\n| `.remove(값)` | 그 값과 일치하는 첫 요소 삭제 | **값** |\n\n### ⚠️ remove 는 첫 번째만!\n```python\nlockers = [\'🍎\', \'🍌\', \'🍎\', \'🍇\']\nlockers.remove(\'🍎\')\n# → [\'🍌\', \'🍎\', \'🍇\']  (첫 번째 🍎만 삭제)\n```',
-        experiment: '여러 가지로 비워보세요:\n\n```python\nlockers.pop()                  # 맨 뒤\nlockers.pop()                  # 또 맨 뒤\nlockers.remove(\'🍇\')            # 값으로 삭제\n```\n\n⚠️ **주의**: `lockers.remove(\'🍕\')` 처럼 **없는 값** 을 지우려면 ValueError 에러!',
-        hint: '두 메소드의 차이:\n```python\nlockers.pop()           # 맨 뒤 무조건\nlockers.remove(\'🍌\')    # 그 값을 찾아서\n```',
-        starterCode: 'lockers = [\'🍎\', \'🍌\', \'🍇\', \'🥝\', \'🍒\']\n\n# 1) pop()으로 맨 뒤 빼기\n# 2) remove() 로 \'🍌\' 빼기\n\n',
-        hookStyle: 'variable',
-        unlocks: 'lockerRemove',
-        tests: [
-          {type: 'exists', name: 'lockers'}
-        ]
-      },
-
-      // ═══ 7단계: sort + sum/len/max/min ═══
-      {
-        id: 'lm_sort',
-        title: '7️⃣ 정렬 + 통계 — sort, sum, len, max, min',
-        description: '## 🎯 미션\n\n점수 사물함을 **정렬**하고 **합계·평균** 도 구해봅시다.\n\n주어진 사물함:\n```python\nlockers = [85, 92, 78, 65, 88, 73]\n```\n\n해야 할 일:\n```python\nlockers.sort()              # 오름차순 정렬\ntotal = sum(lockers)        # 합계\nmax_score = max(lockers)    # 최댓값\nmin_score = min(lockers)    # 최솟값\navg = total / len(lockers)  # 평균\n```\n\n👉 사물함이 작은 값부터 정렬되고, 통계 변수들이 카드로 표시돼요!\n\n### 💡 개념: 정렬 메소드와 내장 함수\n| 사용법 | 역할 |\n|---|---|\n| `리스트.sort()` | **원본을 직접** 오름차순 정렬 |\n| `len(리스트)` | 값의 개수 |\n| `sum(리스트)` | 모든 값의 합 |\n| `max(리스트)` | 최댓값 |\n| `min(리스트)` | 최솟값 |\n\n💡 **평균** = `sum / len` (합 ÷ 개수)',
-        experiment: '문자열 리스트도 정렬됩니다:\n\n```python\nfruits = [\'바나나\', \'사과\', \'딸기\']\nfruits.sort()   # 가나다순\n```\n\n슬라이싱과 합치면 더 강력해요:\n\n```python\ntop3 = sum(lockers[-3:])   # 정렬 후 가장 높은 3개의 합!\n```',
-        hint: '정렬은 메소드, 통계는 내장 함수:\n```python\nlockers.sort()\ntotal = sum(lockers)\navg = total / len(lockers)\n```',
-        starterCode: 'lockers = [85, 92, 78, 65, 88, 73]\n\n# 1) 정렬\n# 2) total, max_score, min_score, avg 변수 만들기\n\n',
-        hookStyle: 'variable',
-        unlocks: 'lockerSort',
-        tests: [
-          {type: 'exists', name: 'lockers'},
-          {type: 'exists', name: 'total', typeOf: 'number'}
-        ]
-      },
-
-      // ═══ 8단계: 2차원 리스트 ═══
-      {
-        id: 'lm_grid',
-        title: '8️⃣ 표 만들기 — 2차원 리스트',
-        description: '## 🎯 최종 미션\n\n학생 3명의 국·영·수 점수를 **표(2차원 리스트)** 로 만들고, 특정 학생의 점수를 꺼내봅시다.\n\n```python\ngrades = [\n    [85, 90, 78],   # 0번 학생: 국어, 영어, 수학\n    [92, 88, 75],   # 1번 학생\n    [70, 80, 95]    # 2번 학생\n]\n\nstudent_score = grades[1][1]   # 1번 학생의 영어 → 88\n```\n\n👉 화면이 사물함에서 **3×3 그리드** 로 변환! 각 셀은 [행][열]로 접근.\n\n### 💡 개념: 2차원 리스트\n- **리스트 안에 리스트**를 넣는 것\n- `grades[행][열]` 순서로 접근 (둘 다 0부터)\n- `grades[0]` → 0번 행 전체 (1차원 리스트)\n- `grades[0][2]` → 0번 행의 2번 열 (개별 값)\n\n### 응용\n```python\ntotal_0 = sum(grades[0])           # 0번 학생 총점\navg_0 = total_0 / len(grades[0])   # 평균\n```',
-        experiment: '여러 학생/과목 다뤄보세요:\n\n```python\n# 더 많은 학생 추가\ngrades.append([88, 92, 85])\n\n# 1번 학생의 수학을 100으로 수정\ngrades[1][2] = 100\n\n# 2번 학생 총점\nstudent_score = sum(grades[2])\n```\n\n💡 **격자 게임 응용**: 2차원 리스트로 지뢰찾기, 오목판, 미로 같은 것도 만들 수 있어요!',
-        hint: '리스트 안에 리스트를 콤마로 구분:\n```python\ngrades = [\n    [85, 90, 78],\n    [92, 88, 75],\n    [70, 80, 95]\n]\nstudent_score = grades[1][1]\n```',
-        starterCode: '# 3명의 국·영·수 점수표를 만들고\n# 1번 학생의 영어 점수를 student_score 에 담아보세요\n\ngrades = [\n    [85, 90, 78],\n    [92, 88, 75],\n    [70, 80, 95]\n]\n\nstudent_score = \n',
-        hookStyle: 'variable',
-        unlocks: 'lockerGrid',
-        tests: [
-          {type: 'exists', name: 'grades'},
-          {type: 'exists', name: 'student_score', typeOf: 'number'}
-        ]
-      }
-    ]
-  };
-}

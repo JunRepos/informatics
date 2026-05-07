@@ -67,9 +67,12 @@ async function applyPassedHooks(){
 
   const py = await ensureMissionPyodide();
 
-  // ── 사물함 마스터 / 떨어지는 사물함: 둘 다 같은 applyState 패턴 ──
-  if(SEL_MISSION?.gameType === 'lockermaster' || SEL_MISSION?.gameType === 'lockerdrop'){
-    await _applyLockerMasterState(py);
+  // ── 떨어지는 사물함: applyState 패턴 ──
+  // 단계마다 lockers/picked/sliced/...등 변수를 게임에 통째로 전달.
+  // 다른 게임처럼 단계별 hook 가 게임 동작을 바꾸는 게 아니라,
+  // 현재 단계 (또는 마지막 통과 단계) 코드를 단독 실행하고 결과 변수들을 한 번에 넘김.
+  if(SEL_MISSION?.gameType === 'lockerdrop'){
+    await _applyLockerDropState(py);
     return;
   }
 
@@ -167,9 +170,9 @@ async function applyPassedHooks(){
   }
 }
 
-// 사물함 마스터: 현재 보고 있는 단계 (또는 마지막 통과 단계) 코드를 실행해
-// lockers/picked/sliced/... 변수들을 한 번에 게임에 적용
-async function _applyLockerMasterState(py){
+// 떨어지는 사물함: 현재 보고 있는 단계 (또는 마지막 통과 단계) 코드를 실행해
+// lockers/grades 등 변수들을 한 번에 게임에 적용 (LockerDrop.applyState)
+async function _applyLockerDropState(py){
   if(!_missionGame || typeof _missionGame.applyState !== 'function') return;
 
   // 현재 단계 정보를 게임 헤더에 반영 (lockerdrop은 config도 함께 전달)
@@ -297,8 +300,6 @@ async function initMissionGame(){
   const gt = SEL_MISSION?.gameType || 'flappybird';
   if(gt === 'typehunter' && typeof TypeHunter === 'function'){
     _missionGame = new TypeHunter(canvas);
-  } else if(gt === 'lockermaster' && typeof LockerMaster === 'function'){
-    _missionGame = new LockerMaster(canvas);
   } else if(gt === 'lockerdrop' && typeof LockerDrop === 'function'){
     _missionGame = new LockerDrop(canvas);
   } else {
@@ -517,17 +518,6 @@ document.addEventListener('click', async e => {
       catch(_e){ toast('복사 실패 — 수동으로 입력해주세요', 'err'); }
       document.body.removeChild(ta);
     }
-    return;
-  }
-  if(act.action === 'mission-load-lockermaster'){
-    if(!confirm('사물함 마스터 예제 미션(3차시 리스트 학습용 8단계)을 이 반에 등록할까요?')) return;
-    const cid = TC_CLS?.id; if(!cid) return;
-    const sample = getLockerMasterSampleMission();
-    const newId = genId();
-    await saveMission(cid, newId, sample);
-    await loadMissions(cid);
-    toast('사물함 마스터 예제 미션이 등록됐습니다.', 'ok');
-    render();
     return;
   }
 
