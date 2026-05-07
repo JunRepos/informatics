@@ -67,6 +67,15 @@ async function applyPassedHooks(){
 
   const py = await ensureMissionPyodide();
 
+  // ── 사물함 마스터: 통합 처리 (단계마다 lockers/picked/sliced/...등 변수를 게임에 전달) ──
+  // 다른 게임처럼 단계별 hook 가 게임 동작을 바꾸는 게 아니라,
+  // 각 단계의 통과 코드를 단독 실행하고 결과 변수들을 applyState 로 한 번에 넘김.
+  // 현재 보고 있는 단계의 코드를 우선 (학생이 단계 이동 시 그 단계의 시각화)
+  if(SEL_MISSION?.gameType === 'lockermaster'){
+    await _applyLockerMasterState(py);
+    return;
+  }
+
   // 타입 헌터 hook 처리 (변수 읽어 게임 setter 호출)
   const isTypeHunter = SEL_MISSION?.gameType === 'typehunter';
   const TYPEHUNTER_HOOKS = {
@@ -161,6 +170,67 @@ async function applyPassedHooks(){
   }
 }
 
+// 사물함 마스터: 현재 보고 있는 단계 (또는 마지막 통과 단계) 코드를 실행해
+// lockers/picked/sliced/... 변수들을 한 번에 게임에 적용
+async function _applyLockerMasterState(py){
+  if(!_missionGame || typeof _missionGame.applyState !== 'function') return;
+
+  // 현재 단계 정보를 게임 헤더에 반영
+  const curIdx = MISSION_STEP_IDX || 0;
+  const curStep = SEL_MISSION.steps[curIdx];
+  if(curStep && typeof _missionGame.setStep === 'function'){
+    _missionGame.setStep({
+      idx: curIdx,
+      total: SEL_MISSION.steps.length,
+      title: curStep.title || '',
+      focus: curStep.unlocks || ''
+    });
+  }
+
+  // 어떤 코드를 실행할까:
+  //   현재 단계가 통과됐으면 → 그 단계 코드
+  //   아니면 → 마지막 통과 단계 코드 (없으면 빈 코드)
+  let codeToRun = '';
+  const curPass = curStep && MISSION_STEP_PASS[curStep.id];
+  if(curPass?.passed && curPass.code){
+    codeToRun = curPass.code;
+  } else {
+    // 가장 최근 통과 단계 찾기
+    for(let i = curIdx; i >= 0; i--){
+      const s = SEL_MISSION.steps[i];
+      const p = MISSION_STEP_PASS[s.id];
+      if(p?.passed && p.code){ codeToRun = p.code; break; }
+    }
+  }
+
+  if(!codeToRun){
+    // 아직 통과한 단계가 없으면 게임은 빈 상태
+    _missionGame.applyState({lockers: [], grades: null});
+    return;
+  }
+
+  try {
+    _resetNamespaceMission(py);
+    await py.runPythonAsync(codeToRun);
+    // 게임이 관심 있는 변수들 모두 시도
+    const wanted = ['lockers', 'grades', 'picked', 'last', 'first', 'sliced',
+                    'total', 'avg', 'max_score', 'min_score', 'count',
+                    'score', 'student_score'];
+    const state = {};
+    for(const name of wanted){
+      try {
+        const v = py.globals.get(name);
+        if(v === undefined || v === null) continue;
+        const jsv = v?.toJs ? v.toJs({dict_converter: Object.fromEntries}) : v;
+        state[name] = jsv;
+      } catch(_e){}
+    }
+    _missionGame.applyState(state);
+  } catch(e){
+    _missionGame.applyState({error: (e?.message || String(e)).slice(0, 200)});
+  }
+}
+
 // 헬퍼: 네임스페이스 / stdin (mission-runner.js 내부 함수를 다시 불러씀)
 function _resetNamespaceMission(py){
   try { py.runPython(`
@@ -229,6 +299,8 @@ async function initMissionGame(){
   const gt = SEL_MISSION?.gameType || 'flappybird';
   if(gt === 'typehunter' && typeof TypeHunter === 'function'){
     _missionGame = new TypeHunter(canvas);
+  } else if(gt === 'lockermaster' && typeof LockerMaster === 'function'){
+    _missionGame = new LockerMaster(canvas);
   } else {
     _missionGame = new FlappyBird(canvas);
   }
@@ -410,6 +482,17 @@ document.addEventListener('click', async e => {
     await saveMission(cid, newId, sample);
     await loadMissions(cid);
     toast('타입 헌터 예제 미션이 등록됐습니다.', 'ok');
+    render();
+    return;
+  }
+  if(act.action === 'mission-load-lockermaster'){
+    if(!confirm('사물함 마스터 예제 미션(3차시 리스트 학습용 8단계)을 이 반에 등록할까요?')) return;
+    const cid = TC_CLS?.id; if(!cid) return;
+    const sample = getLockerMasterSampleMission();
+    const newId = genId();
+    await saveMission(cid, newId, sample);
+    await loadMissions(cid);
+    toast('사물함 마스터 예제 미션이 등록됐습니다.', 'ok');
     render();
     return;
   }
