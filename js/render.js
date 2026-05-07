@@ -202,6 +202,17 @@ function afterRender(){
     afterRenderMission();
   }
 
+  // 비주얼 OJ — 첫 렌더링 시 시각화 위젯에 첫 공개 TC 입력 그림 (output 없이)
+  const visualCanvas = document.getElementById('oj-visual-canvas');
+  if(visualCanvas && OJ_SEL_PROB?.visualType && typeof renderVisualWidget === 'function'){
+    const firstTc = (OJ_SEL_PROB.testCases || []).find(t => !t.isHidden);
+    renderVisualWidget(visualCanvas, OJ_SEL_PROB.visualType, {
+      input: firstTc?.input || '',
+      output: null,
+      expected: firstTc?.expectedOutput || ''
+    });
+  }
+
   // CodeMirror 초기화 (OJ 풀이 화면)
   const cmEl = document.getElementById('oj-code-editor');
   if(cmEl && !cmEl._cm && typeof CodeMirror !== 'undefined'){

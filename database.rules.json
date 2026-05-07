@@ -163,6 +163,8 @@
           "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
           "description": { ".validate": "newData.isString() && newData.val().length <= 10000" },
           "createdAt":   { ".validate": "newData.isString()" },
+          "visualType":  { ".validate": "newData.isString() && newData.val().length <= 50" },
+          "visualConfig":{ ".validate": true },
           "testCases": {
             "$tcId": {
               ".validate": "newData.hasChildren(['input', 'expectedOutput'])",

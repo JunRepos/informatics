@@ -11,9 +11,12 @@
 
 // 선생님 OJ 탭 메인
 function vTcOJ(){
+  const samplesBar = `<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+    <button class="btn-sm" data-action="oj-load-visual-playlist" title="비주얼 OJ — 재생목록에서 가장 긴 노래 찾기 (왼쪽에 막대 그래프 시각화)">🎨 비주얼 OJ — 재생목록</button>
+  </div>`;
   const form = vTcOJForm();
   const list = vTcOJList();
-  return form + list;
+  return samplesBar + form + list;
 }
 
 // 문제 출제/수정 폼
@@ -181,8 +184,17 @@ function vStOJSolve(){
     ? `<div class="oj-desc oj-desc-md">${marked.parse(p.description)}</div>`
     : `<div class="oj-desc">${esc(p.description || '')}</div>`;
 
+  // 비주얼 OJ — visualType 필드가 있으면 좌측 상단에 시각화 캔버스 표시
+  const visualHtml = p.visualType
+    ? `<div class="oj-visual-wrap">
+        <div class="oj-visual-label">🎨 문제 상황 — 코드를 실행하면 결과가 시각적으로 보여요</div>
+        <canvas id="oj-visual-canvas" class="oj-visual-canvas" width="480" height="340"></canvas>
+      </div>`
+    : '';
+
   const left = `<div class="oj-left">
     <div style="font-size:18px;font-weight:700;margin-bottom:16px">${esc(p.title)}</div>
+    ${visualHtml}
     ${descHtml}
     ${visibleTcs.length ? `<div class="divider"></div>
       <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px">입출력 예</div>

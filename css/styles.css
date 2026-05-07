@@ -856,6 +856,14 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .me-radio input[type="radio"]{width:auto;margin:0}
 
 /* ═══════════════════════════════════════
+   비주얼 OJ — 시각화 캔버스
+═══════════════════════════════════════ */
+.oj-visual-wrap{margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px;box-shadow:var(--sh)}
+.oj-visual-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.oj-visual-canvas{display:block;width:100%;max-width:480px;height:auto;border-radius:var(--r-sm);background:#fdf6e3;border:1px solid #e6d9b3}
+[data-theme="dark"] .oj-visual-canvas{border-color:#3e3e3c}
+
+/* ═══════════════════════════════════════
    미션 — 이모지 팔레트 (떨어지는 사물함 등)
 ═══════════════════════════════════════ */
 .mi-emoji-palette{background:#fef9e7;border:1.5px solid #fde68a;border-radius:var(--r-md);padding:8px 10px;margin:8px 0 6px;display:flex;flex-direction:column;gap:5px}

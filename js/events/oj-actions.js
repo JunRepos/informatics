@@ -72,6 +72,22 @@ function runPython(code, stdin){
   });
 }
 
+// 비주얼 OJ — 시각화 캔버스 업데이트
+function _updateOJVisual(input, output, error){
+  if(!OJ_SEL_PROB?.visualType) return;
+  const canvas = document.getElementById('oj-visual-canvas');
+  if(!canvas || typeof renderVisualWidget !== 'function') return;
+  // 첫 공개 TC 의 expectedOutput 을 정답 비교용으로 사용
+  const firstTc = (OJ_SEL_PROB.testCases || []).find(t => !t.isHidden);
+  const expected = firstTc?.expectedOutput || '';
+  // 에러가 있으면 output 무효 처리
+  renderVisualWidget(canvas, OJ_SEL_PROB.visualType, {
+    input: input || firstTc?.input || '',
+    output: error ? null : (output || ''),
+    expected
+  });
+}
+
 // 출력 정규화 (채점용)
 function normalizeOutput(s){
   return (s || '').replace(/\r\n/g, '\n').split('\n').map(l => l.trimEnd()).join('\n').trim();
@@ -355,6 +371,8 @@ document.addEventListener('click', async e => {
     OJ_RUNNING = false;
     el.textContent = '▶ 코드 실행'; el.disabled = false;
     if(body) body.innerHTML = vOJRunTab();
+    // 비주얼 OJ — 학생 stdin 으로 실행한 결과를 시각화에 반영
+    _updateOJVisual(OJ_CUSTOM_STDIN, resp.output, resp.error);
     return;
   }
 
@@ -411,6 +429,49 @@ document.addEventListener('click', async e => {
     el.textContent = '제출 후 채점하기'; el.disabled = false;
     if(runBtn) runBtn.disabled = false;
     if(body2) body2.innerHTML = vOJTestTab();
+    // 비주얼 OJ — 첫 공개 TC 결과를 시각화에 반영 (정답이면 자동으로 트로피)
+    const firstVisible = results.find((r, i) => !allTcs[i].isHidden) || results[0];
+    if(firstVisible){
+      _updateOJVisual(firstVisible.input, firstVisible.actual, firstVisible.error);
+    }
+    return;
+  }
+
+  // 선생님: 비주얼 OJ 한방 등록 — 재생목록 가장 긴 노래
+  if(act.action === 'oj-load-visual-playlist'){
+    const cid = TC_CLS?.id;
+    if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
+    if(!confirm(`${TC_CLS.label} 에 비주얼 OJ "재생목록 — 가장 긴 노래 찾기" 문제를 등록할까요?\n\n좌측에 막대 그래프 시각화가 나오고, 정답을 맞히면 🏆 트로피가 표시돼요!`)) return;
+    el.disabled = true;
+    const orig = el.textContent;
+    el.textContent = '⏳ 등록 중...';
+    try {
+      const id = genId();
+      const tcMap = {};
+      OJ_VISUAL_PLAYLIST.testCases.forEach((tc, idx) => {
+        tcMap[genId()] = {
+          input: tc.input,
+          expectedOutput: tc.expectedOutput,
+          isHidden: !!tc.isHidden,
+          order: idx
+        };
+      });
+      await db.ref(`problems/${cid}/${id}`).set({
+        title: OJ_VISUAL_PLAYLIST.title,
+        description: OJ_VISUAL_PLAYLIST.description,
+        createdAt: new Date().toISOString(),
+        testCases: tcMap,
+        visualType: OJ_VISUAL_PLAYLIST.visualType
+      });
+      await loadOJProblems(cid);
+      toast('✓ 비주얼 OJ 문제가 등록됐습니다!', 'ok');
+      render();
+    } catch(err){
+      toast('등록 실패: ' + err.message, 'err');
+    } finally {
+      el.disabled = false;
+      el.textContent = orig;
+    }
     return;
   }
 
@@ -453,3 +514,65 @@ document.addEventListener('click', async e => {
     document.getElementById('oj-status-' + act.pid)?.remove(); return;
   }
 });
+
+// ══════════════════════════════════════
+//  비주얼 OJ 문제 데이터 — 재생목록 (가장 긴 노래)
+//  좌측 시각화: 📊 막대 그래프 (visual-widgets.js의 playlist-bars)
+//  학습: 변수, input, list, max, 인덱싱 — 1·2·3차시 종합
+// ══════════════════════════════════════
+const OJ_VISUAL_PLAYLIST = {
+  title: '🎵 재생목록 — 가장 긴 노래는?',
+  visualType: 'playlist-bars',
+  description: `## 🎬 상황
+
+내 음악 재생목록에 \`N\`개의 노래가 있어요.
+각 노래의 **재생 시간(초)** 이 차례로 주어집니다.
+
+**가장 긴 노래** 의 *인덱스* (0부터 시작) 와 *재생 시간(초)* 을 출력하세요!
+
+> 💡 왼쪽 그래프에 막대로 표시돼요. 코드를 실행하면 결과가 시각적으로 보여요!
+
+## 입력
+
+- 첫 줄: 정수 \`N\` (1 ≤ N ≤ 10) — 노래 개수
+- 둘째 줄: \`N\`개의 정수 (각 노래 재생 시간, 공백 구분)
+
+## 출력
+
+- 첫 줄: 가장 긴 노래의 **인덱스**
+- 둘째 줄: 그 노래의 **재생 시간**
+
+## 예시
+
+**입력**
+\`\`\`
+5
+180 240 195 320 210
+\`\`\`
+
+**출력**
+\`\`\`
+3
+320
+\`\`\`
+
+→ 인덱스 \`3\` 의 노래가 \`320\` 초로 가장 김 → 출력!
+
+## 💡 힌트
+
+- 두 번째 줄을 split해서 정수 리스트로:
+  \`times = list(map(int, input().split()))\`
+- 가장 큰 값: \`max(times)\`
+- 그 값이 몇 번째인지: \`times.index(max(times))\`
+- 두 줄로 출력하려면 \`print()\` 두 번`,
+  testCases: [
+    // 공개 (시각화에 첫 번째 사용됨)
+    {input: '5\n180 240 195 320 210', expectedOutput: '3\n320', isHidden: false},
+    {input: '4\n100 100 250 100', expectedOutput: '2\n250', isHidden: false},
+    {input: '6\n50 60 70 80 90 100', expectedOutput: '5\n100', isHidden: false},
+    // 숨김
+    {input: '1\n42', expectedOutput: '0\n42', isHidden: true},
+    {input: '3\n300 200 100', expectedOutput: '0\n300', isHidden: true},
+    {input: '7\n11 22 33 44 55 44 33', expectedOutput: '4\n55', isHidden: true}
+  ]
+};
