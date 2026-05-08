@@ -456,12 +456,14 @@ document.addEventListener('click', async e => {
           order: idx
         };
       });
+      // 비주얼 OJ 메타는 description 첫 줄에 HTML 주석으로 인코딩
+      // (DB 규칙 추가 게시 없이 동작; loadOJProblems가 자동으로 visualType 추출)
+      const descWithVisual = `<!-- visual:${OJ_VISUAL_PLAYLIST.visualType} -->\n` + OJ_VISUAL_PLAYLIST.description;
       await db.ref(`problems/${cid}/${id}`).set({
         title: OJ_VISUAL_PLAYLIST.title,
-        description: OJ_VISUAL_PLAYLIST.description,
+        description: descWithVisual,
         createdAt: new Date().toISOString(),
-        testCases: tcMap,
-        visualType: OJ_VISUAL_PLAYLIST.visualType
+        testCases: tcMap
       });
       await loadOJProblems(cid);
       toast('✓ 비주얼 OJ 문제가 등록됐습니다!', 'ok');

@@ -133,7 +133,18 @@ async function loadOJProblems(cid){
   OJ_PROBLEMS = Object.entries(s.val()).map(([id, v]) => {
     const tcs = v.testCases ? Object.entries(v.testCases).map(([tid, tc]) => ({id: tid, ...tc}))
       .sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
-    return {id, ...v, testCases: tcs};
+    const obj = {id, ...v, testCases: tcs};
+    // 비주얼 OJ — description 첫 줄에 <!-- visual:위젯ID --> 주석이 있으면
+    // visualType 필드로 끌어올리고 주석은 description 에서 제거
+    // (DB 스키마 변경 없이 동작 — Firebase 규칙 재게시 불필요)
+    if(typeof obj.description === 'string'){
+      const m = obj.description.match(/^\s*<!--\s*visual:([\w-]+)\s*-->\s*\n?/);
+      if(m){
+        obj.visualType = m[1];
+        obj.description = obj.description.slice(m[0].length);
+      }
+    }
+    return obj;
   }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
