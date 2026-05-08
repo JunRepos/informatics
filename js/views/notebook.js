@@ -26,13 +26,15 @@ function vTcNotebook(){
   if(SEL_NOTEBOOK) return vNotebookDetail(true);
 
   const list = !NOTEBOOKS.length ? emptyBox('📓','등록된 노트북이 없습니다.') : NOTEBOOKS.map(nb => `
-    <div class="list-row click" data-action="open-notebook" data-nid="${nb.id}">
-      <div class="row-icon">📓</div>
-      <div class="row-info">
+    <div class="list-row">
+      <div class="row-icon" data-action="open-notebook" data-nid="${nb.id}" style="cursor:pointer">📓</div>
+      <div class="row-info" data-action="open-notebook" data-nid="${nb.id}" style="cursor:pointer">
         <div class="row-title">${esc(nb.title)}</div>
         <div class="row-meta">${nb.cells?.length || 0}개 셀 · ${fmtDt(nb.createdAt)}</div>
       </div>
       <div class="row-right">
+        <button class="btn-xs" data-action="notebook-move-up" data-nid="${nb.id}" title="위로">▲</button>
+        <button class="btn-xs" data-action="notebook-move-down" data-nid="${nb.id}" title="아래로">▼</button>
         <button class="btn-xs btn-danger" data-action="del-notebook" data-nid="${nb.id}" data-ntitle="${esc(nb.title)}">삭제</button>
       </div>
     </div>`).join('');

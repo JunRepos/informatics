@@ -84,6 +84,8 @@ function noticeCard(n, isTeacher = false){
 
   const tcBtns = isTeacher ? `
     <div style="display:flex;gap:5px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn-xs" data-action="notice-move-up" data-nid="${n.id}" title="위로">▲</button>
+      <button class="btn-xs" data-action="notice-move-down" data-nid="${n.id}" title="아래로">▼</button>
       <button class="btn-xs" data-action="edit-notice" data-nid="${n.id}"
         data-ntitle="${esc(n.title)}" data-ncontent="${esc(n.content)}" data-npin="${n.isPinned}">✏️ 수정</button>
       <button class="btn-xs" data-action="toggle-pin" data-nid="${n.id}" data-pinned="${n.isPinned}">${n.isPinned ? '📌 고정해제' : '📌 고정'}</button>

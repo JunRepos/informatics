@@ -223,13 +223,17 @@ function vTcBoard(){
   if(!POSTS.length) return emptyBox('📋','학생이 올린 게시물이 없습니다.');
   return `<div class="box-ok">🔓 선생님은 모든 게시물을 비밀번호 없이 열람할 수 있습니다.</div>`
     + POSTS.map(p => `
-      <div class="list-row click" data-action="pick-post" data-pid="${p.id}">
-        <div class="row-icon">${fIcon(p.fileName)}</div>
-        <div class="row-info">
+      <div class="list-row">
+        <div class="row-icon" data-action="pick-post" data-pid="${p.id}" style="cursor:pointer">${fIcon(p.fileName)}</div>
+        <div class="row-info" data-action="pick-post" data-pid="${p.id}" style="cursor:pointer">
           <div class="row-title">${esc(p.title)}</div>
           <div class="row-meta">${esc(p.authorName)} (${esc(p.authorId)}) · ${fmtDt(p.uploadedAt)} · ${fmtSz(p.fileSize)}</div>
         </div>
-        <div class="row-right"><span style="font-size:14px;color:var(--ok)">🔓</span></div>
+        <div class="row-right">
+          <button class="btn-xs" data-action="post-move-up" data-pid="${p.id}" title="위로">▲</button>
+          <button class="btn-xs" data-action="post-move-down" data-pid="${p.id}" title="아래로">▼</button>
+          <span style="font-size:14px;color:var(--ok)">🔓</span>
+        </div>
       </div>`).join('');
 }
 

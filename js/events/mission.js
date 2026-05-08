@@ -453,6 +453,15 @@ document.addEventListener('click', async e => {
     MISSION_EDITING = JSON.parse(JSON.stringify(m)); // deep clone
     MISSION_VIEW = 'edit'; render(); return;
   }
+  if(act.action === 'mission-move-up' || act.action === 'mission-move-down'){
+    if(!TC_CLS) return;
+    el.disabled = true;
+    const dir = act.action === 'mission-move-up' ? 'up' : 'down';
+    const ok = await _moveItemBy(`missions/${TC_CLS.id}`, MISSIONS, act.mid, dir);
+    if(ok){ await loadMissions(TC_CLS.id); render(); }
+    else { el.disabled = false; }
+    return;
+  }
   if(act.action === 'mission-editor-cancel'){
     MISSION_EDITING = null; MISSION_VIEW = 'list'; render(); return;
   }

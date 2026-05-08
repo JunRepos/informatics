@@ -197,19 +197,21 @@ function vTcCRList(){
     return header + packsSection + emptyBox('🔍','아직 등록된 코드 읽기 문제가 없습니다.');
   }
 
-  const rows = CR_READINGS.map(r => {
+  const rows = CR_READINGS.map((r, i) => {
     const allProg = CR_PROGRESS[r.id] || {};
     const passedCount = Object.values(allProg).filter(p => p && p.passed).length;
     const totalSt = STUDENTS.length || 0;
     const typeLabel = r.type === 'predict' ? '🔮 출력 예측' : '🔍 변수 추적';
     const stepCount = r.type === 'trace' ? (r.traces || []).length : 1;
     return `<div class="list-row">
-      <div class="row-icon">🔍</div>
+      <div class="row-icon">${i + 1}</div>
       <div class="row-info">
         <div class="row-title">${esc(r.title)}</div>
         <div class="row-meta">${typeLabel} · ${stepCount}단계 · ${passedCount}/${totalSt}명 통과 · ${fmtDt(r.createdAt)}</div>
       </div>
       <div class="row-right">
+        <button class="btn-xs" data-action="cr-move-up" data-rid="${r.id}" title="위로">▲</button>
+        <button class="btn-xs" data-action="cr-move-down" data-rid="${r.id}" title="아래로">▼</button>
         <button class="btn-xs" data-action="cr-edit" data-rid="${r.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="cr-del" data-rid="${r.id}" data-rtitle="${esc(r.title)}">삭제</button>
       </div>

@@ -347,6 +347,29 @@ async function loadLegacyPosts(){
   return out.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 }
 
+// ── 일반 순서 변경 헬퍼 (▲▼ 버튼용) ──
+//   인접한 두 아이템의 정렬 키(createdAt 또는 uploadedAt) 만 swap
+//   DB 스키마 변경 없이 모든 탭에서 재사용
+//   items: 정렬된 배열 (loadXxx 결과), id: 이동시킬 아이템의 id
+//   direction: 'up' | 'down'
+async function _moveItemBy(dbPath, items, id, direction){
+  const idx = items.findIndex(it => it.id === id);
+  if(idx < 0) return false;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if(swapIdx < 0 || swapIdx >= items.length) return false;
+  const a = items[idx], b = items[swapIdx];
+  // 정렬 키 자동 감지: createdAt 우선, 없으면 uploadedAt
+  const keyName = a.createdAt !== undefined ? 'createdAt'
+                : a.uploadedAt !== undefined ? 'uploadedAt'
+                : null;
+  if(!keyName || !a[keyName] || !b[keyName]) return false;
+  await Promise.all([
+    db.ref(`${dbPath}/${a.id}/${keyName}`).set(b[keyName]),
+    db.ref(`${dbPath}/${b.id}/${keyName}`).set(a[keyName])
+  ]);
+  return true;
+}
+
 // ── 파일 업로드 (진행률 표시 지원) ──
 async function uploadFile(file, path, progFill, progPct){
   const ref = storage.ref(path);

@@ -21,6 +21,37 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // 선생님: 공지 순서 변경 ▲▼
+  if(act.action === 'notice-move-up' || act.action === 'notice-move-down'){
+    if(!IS_TC || !TC_CLS) return;
+    el.disabled = true;
+    const dir = act.action === 'notice-move-up' ? 'up' : 'down';
+    const ok = await _moveItemBy(`notices/${TC_CLS.id}`, NOTICES, act.nid, dir);
+    if(ok){ await loadNotices(TC_CLS.id); render(); }
+    else { el.disabled = false; }
+    return;
+  }
+  // 선생님: 게시판 순서 변경 ▲▼
+  if(act.action === 'post-move-up' || act.action === 'post-move-down'){
+    if(!IS_TC || !TC_CLS) return;
+    el.disabled = true;
+    const dir = act.action === 'post-move-up' ? 'up' : 'down';
+    const ok = await _moveItemBy(`posts/${TC_CLS.id}`, POSTS, act.pid, dir);
+    if(ok){ await loadPosts(TC_CLS.id); render(); }
+    else { el.disabled = false; }
+    return;
+  }
+  // 선생님: 노트북 순서 변경 ▲▼
+  if(act.action === 'notebook-move-up' || act.action === 'notebook-move-down'){
+    if(!IS_TC || !TC_CLS) return;
+    el.disabled = true;
+    const dir = act.action === 'notebook-move-up' ? 'up' : 'down';
+    const ok = await _moveItemBy(`notebooks/${TC_CLS.id}`, NOTEBOOKS, act.nid, dir);
+    if(ok){ await loadNotebooks(TC_CLS.id); render(); }
+    else { el.disabled = false; }
+    return;
+  }
+
   // 공지 파일 다운로드
   if(act.action === 'dl-notice-file'){ dlFile(act.name, act.url); return; }
 

@@ -68,18 +68,28 @@ function vMissionList(isTeacher){
   const list = MISSIONS.map(m => {
     const steps = m.steps?.length || 0;
     const gt = GAME_TYPES.find(g => g.id === m.gameType);
+    if(isTeacher){
+      return `<div class="list-row">
+        <div class="row-icon" data-action="mission-play" data-mid="${m.id}" style="cursor:pointer">${gt?.label?.split(' ')[0] || '🎮'}</div>
+        <div class="row-info" data-action="mission-play" data-mid="${m.id}" style="cursor:pointer">
+          <div class="row-title">${esc(m.title)}</div>
+          <div class="row-meta">${gt?.label || m.gameType} · ${steps}개 미션 단계${m.description ? ' · ' + esc(m.description).slice(0,40) : ''}</div>
+        </div>
+        <div class="row-right">
+          <button class="btn-xs" data-action="mission-move-up" data-mid="${m.id}" title="위로">▲</button>
+          <button class="btn-xs" data-action="mission-move-down" data-mid="${m.id}" title="아래로">▼</button>
+          <button class="btn-xs" data-action="mission-edit" data-mid="${m.id}">✏️ 편집</button>
+          <button class="btn-xs btn-danger" data-action="mission-delete" data-mid="${m.id}" data-mtitle="${esc(m.title)}">삭제</button>
+        </div>
+      </div>`;
+    }
     return `<div class="list-row click" data-action="mission-play" data-mid="${m.id}">
       <div class="row-icon">${gt?.label?.split(' ')[0] || '🎮'}</div>
       <div class="row-info">
         <div class="row-title">${esc(m.title)}</div>
         <div class="row-meta">${gt?.label || m.gameType} · ${steps}개 미션 단계${m.description ? ' · ' + esc(m.description).slice(0,40) : ''}</div>
       </div>
-      <div class="row-right">
-        ${isTeacher ? `
-          <button class="btn-xs" data-action="mission-edit" data-mid="${m.id}">✏️ 편집</button>
-          <button class="btn-xs btn-danger" data-action="mission-delete" data-mid="${m.id}" data-mtitle="${esc(m.title)}">삭제</button>
-        ` : `<span class="chip chip-purple">시작 →</span>`}
-      </div>
+      <div class="row-right"><span class="chip chip-purple">시작 →</span></div>
     </div>`;
   }).join('');
 

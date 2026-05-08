@@ -247,6 +247,17 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // 순서 변경 ▲▼
+  if(act.action === 'cr-move-up' || act.action === 'cr-move-down'){
+    if(!TC_CLS) return;
+    el.disabled = true;
+    const dir = act.action === 'cr-move-up' ? 'up' : 'down';
+    const ok = await _moveItemBy(`codeReadings/${TC_CLS.id}`, CR_READINGS, act.rid, dir);
+    if(ok){ await loadCodeReadings(TC_CLS.id); render(); }
+    else { el.disabled = false; }
+    return;
+  }
+
   // 삭제
   if(act.action === 'cr-del'){
     if(!confirm(`"${act.rtitle}" 문제를 삭제할까요? (학생 진도도 모두 삭제됩니다)`)) return;
