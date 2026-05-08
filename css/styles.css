@@ -856,6 +856,23 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .me-radio input[type="radio"]{width:auto;margin:0}
 
 /* ═══════════════════════════════════════
+   OJ 실시간 input() — 결과 패널 안에 뜨는 노란 입력 박스
+═══════════════════════════════════════ */
+.oj-live-input{background:#fef9e7;border:1.5px solid #fde68a;border-radius:var(--r-md);padding:10px 12px;margin:8px 12px;animation:oj-pop .2s ease-out}
+[data-theme="dark"] .oj-live-input{background:#2d2300;border-color:#7c5008}
+.oj-live-prompt{font-size:13px;margin-bottom:6px;font-family:'Consolas',monospace}
+.oj-live-prompt span{color:#92400e}
+[data-theme="dark"] .oj-live-prompt span{color:#fcd34d}
+.oj-live-row{display:flex;gap:6px}
+.oj-live-field{flex:1;font-family:'Consolas',monospace;font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);background:var(--surface);color:var(--text)}
+.oj-live-field:focus{border-color:var(--accent);outline:none}
+.oj-live-submit{flex-shrink:0}
+.oj-live-hint{font-size:10px;color:#a16207;margin-top:5px;font-style:italic}
+[data-theme="dark"] .oj-live-hint{color:#a89764}
+.oj-live-echo{font-family:'Consolas',monospace;font-size:13px;padding:6px 12px;color:var(--text);background:var(--surface2);border-left:3px solid var(--accent);margin:4px 12px}
+@keyframes oj-pop{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════
    비주얼 OJ — 시각화 캔버스
 ═══════════════════════════════════════ */
 .oj-visual-wrap{margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px;box-shadow:var(--sh)}

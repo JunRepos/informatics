@@ -40,35 +40,149 @@ function setOJDraftStatus(state){
   el.dataset.state = state;
 }
 
+// 워커 코드 변경 시 이 버전을 올려 브라우저 캐시 무효화
+const OJ_WORKER_VER = '20260507-live-input';
+
+// SAB 공유 메모리 (실시간 input() 용)
+const OJ_STDIN_BUF_SIZE = 4096;
+let _ojStdinSAB = null;
+let _ojStdinCtrl = null;   // Int32Array(2) — [status, length]
+let _ojStdinData = null;   // Uint8Array
+let _ojStdinReady = false; // 워커가 SAB 활성화 완료
+let _ojSABSupported = (typeof SharedArrayBuffer !== 'undefined' && typeof Atomics !== 'undefined' && self.crossOriginIsolated !== false);
+
 function getOJWorker(){
   if(!_ojWorker){
-    _ojWorker = new Worker('js/oj-worker.js');
+    _ojWorker = new Worker('js/oj-worker.js?v=' + OJ_WORKER_VER);
     _ojWorker.onmessage = (e) => {
-      const cb = _ojCallbacks[e.data.id];
-      if(cb){ delete _ojCallbacks[e.data.id]; cb(e.data); }
+      const data = e.data;
+      // 입력 요청 (Python input() 호출)
+      if(data.type === 'request-input'){
+        _handleOJInputRequest(data.prompt);
+        return;
+      }
+      if(data.type === 'init-stdin-done'){
+        _ojStdinReady = !!data.supported;
+        return;
+      }
+      const cb = _ojCallbacks[data.id];
+      if(cb){ delete _ojCallbacks[data.id]; cb(data); }
     };
     _ojWorker.onerror = (err) => {
       console.error('OJ Worker error:', err);
     };
+    // SAB 초기화 — 워커에 공유 버퍼 전달
+    try {
+      if(_ojSABSupported){
+        _ojStdinSAB = new SharedArrayBuffer(8 + OJ_STDIN_BUF_SIZE);
+        _ojStdinCtrl = new Int32Array(_ojStdinSAB, 0, 2);
+        _ojStdinData = new Uint8Array(_ojStdinSAB, 8, OJ_STDIN_BUF_SIZE);
+        _ojWorker.postMessage({type: 'init-stdin', buffer: _ojStdinSAB});
+      } else {
+        _ojWorker.postMessage({type: 'init-stdin'});
+      }
+    } catch(e){
+      console.warn('OJ SAB init failed:', e);
+      _ojWorker.postMessage({type: 'init-stdin'});
+    }
   }
   return _ojWorker;
 }
 
-// 5초 타임아웃 (무한루프 방지). 학생 수업용으로는 충분 — 진짜 알고리즘 문제도 5초면 끝남.
-const OJ_TIMEOUT_MS = 5000;
+// 워커가 input() 요청 시 호출 — 결과 패널에 인라인 입력 박스 표시 후
+// 사용자 입력을 SAB 에 써서 워커 깨움 (Atomics.notify)
+async function _handleOJInputRequest(prompt){
+  const value = await _showOJInlineInput(prompt);
+  if(!_ojStdinSAB || !_ojStdinCtrl || !_ojStdinData) return;
+  if(value === null){
+    Atomics.store(_ojStdinCtrl, 0, 2); // 취소
+    Atomics.notify(_ojStdinCtrl, 0);
+    return;
+  }
+  const enc = new TextEncoder();
+  const bytes = enc.encode(value);
+  const len = Math.min(bytes.length, OJ_STDIN_BUF_SIZE);
+  for(let i = 0; i < len; i++) _ojStdinData[i] = bytes[i];
+  Atomics.store(_ojStdinCtrl, 1, len);
+  Atomics.store(_ojStdinCtrl, 0, 1); // 데이터 준비됨
+  Atomics.notify(_ojStdinCtrl, 0);
+}
 
-function runPython(code, stdin){
+// 결과 패널에 노란 입력 박스 띄우고 Promise 로 값 받기
+function _showOJInlineInput(prompt){
+  return new Promise(resolve => {
+    const body = document.getElementById('oj-results-body');
+    if(!body){ resolve(''); return; }
+    // 기존 입력 박스 제거
+    body.querySelectorAll('.oj-live-input').forEach(el => el.remove());
+    const div = document.createElement('div');
+    div.className = 'oj-live-input';
+    const label = prompt
+      ? `<span style="color:var(--text);font-weight:500">${esc(prompt)}</span>`
+      : `<span style="color:var(--text2)">📝 input() — 값을 입력하세요</span>`;
+    div.innerHTML = `
+      <div class="oj-live-prompt">${label}</div>
+      <div class="oj-live-row">
+        <input class="oj-live-field" type="text" placeholder="값을 입력하고 Enter" spellcheck="false" autocomplete="off"/>
+        <button class="btn-sm btn-p oj-live-submit">↵ 입력</button>
+      </div>
+      <div class="oj-live-hint">Enter로 제출 · Esc로 취소</div>`;
+    body.appendChild(div);
+    div.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    const input = div.querySelector('.oj-live-field');
+    const btn = div.querySelector('.oj-live-submit');
+    setTimeout(() => input?.focus(), 30);
+    let done = false;
+    const submit = () => {
+      if(done) return;
+      done = true;
+      const val = input?.value || '';
+      // echo 출력으로 변환
+      const echo = document.createElement('div');
+      echo.className = 'oj-live-echo';
+      echo.textContent = (prompt ? prompt : '') + val;
+      div.replaceWith(echo);
+      resolve(val);
+    };
+    const cancel = () => {
+      if(done) return;
+      done = true;
+      div.remove();
+      resolve(null);
+    };
+    btn?.addEventListener('click', submit);
+    input?.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); submit(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
+    });
+  });
+}
+
+// 5초 타임아웃 (무한루프 방지). 단, 실시간 input 모드에선 길게 (학생 입력 대기 가능)
+const OJ_TIMEOUT_MS = 5000;
+const OJ_TIMEOUT_RUN_MS = 5 * 60 * 1000; // 실시간 모드: 5분
+
+function runPython(code, stdin, opts){
+  const mode = opts?.mode || 'grade';
   return new Promise((resolve) => {
     const id = ++_ojMsgId;
+    const limit = mode === 'run' ? OJ_TIMEOUT_RUN_MS : OJ_TIMEOUT_MS;
     const timer = setTimeout(() => {
       delete _ojCallbacks[id];
       // 워커 폐기 후 재생성 (무한루프로 멈춰있을 수 있음)
       try { _ojWorker?.terminate(); } catch(e){}
       _ojWorker = null;
-      resolve({success: false, output: '', error: 'TimeoutError: 시간 초과 (5초). 무한 루프이거나 너무 느린 알고리즘일 수 있어요.', timedOut: true});
-    }, OJ_TIMEOUT_MS);
+      _ojStdinReady = false;
+      // 인라인 입력 박스 정리
+      document.querySelectorAll('.oj-live-input').forEach(el => el.remove());
+      resolve({
+        success: false, output: '',
+        error: mode === 'run' ? 'TimeoutError: 5분 동안 응답이 없어 종료했어요.' : 'TimeoutError: 시간 초과 (5초). 무한 루프이거나 너무 느린 알고리즘일 수 있어요.',
+        timedOut: true
+      });
+    }, limit);
     _ojCallbacks[id] = (data) => { clearTimeout(timer); resolve(data); };
-    getOJWorker().postMessage({id, code, stdin});
+    getOJWorker().postMessage({id, code, stdin, mode});
   });
 }
 
@@ -180,10 +294,23 @@ function renderOJDiff(expected, actual){
   </div>`;
 }
 
+// description 앞에 메타 주석 추가 (visualType + starterCode)
+function _encodeOJMeta(desc, opts){
+  let prefix = '';
+  if(opts && opts.visualType) prefix += `<!-- visual:${opts.visualType} -->\n`;
+  if(opts && opts.starterCode){
+    // 멀티라인 안전을 위해 base64. UTF-8 안전 인코딩.
+    const b64 = btoa(unescape(encodeURIComponent(opts.starterCode)));
+    prefix += `<!-- starter:${b64} -->\n`;
+  }
+  return prefix + (desc || '');
+}
+
 // ── 선생님: 문제 저장/수정 ──
 async function _ojSaveProblem(btn){
   const title = document.getElementById('oj-title')?.value?.trim();
   const desc = document.getElementById('oj-desc')?.value?.trim();
+  const starterCode = document.getElementById('oj-starter')?.value || '';
   const err = document.getElementById('oj-form-err');
   const cid = TC_CLS?.id; if(!cid) return;
   if(!title){ err.textContent = '제목을 입력하세요.'; return; }
@@ -205,8 +332,31 @@ async function _ojSaveProblem(btn){
   btn.disabled = true; err.textContent = '';
   try {
     const editId = btn.dataset.editId;
+    // 수정 시 기존 visualType 보존 (다른 메타와 함께)
+    const existing = editId ? OJ_PROBLEMS.find(p => p.id === editId) : null;
+    const visualType = existing?.visualType || '';
+    const fullDesc = _encodeOJMeta(desc, {visualType, starterCode: starterCode.trim() ? starterCode : null});
+
     if(editId){
-      await db.ref(`problems/${cid}/${editId}`).update({title, description: desc || '', testCases});
+      await db.ref(`problems/${cid}/${editId}`).update({title, description: fullDesc, testCases});
+      // 수정 모드에서 "다른 반에 복사" 체크된 반들에 새 문제로 등록
+      const copyTargets = Array.from(document.querySelectorAll('.oj-copy-cls-chk:checked')).map(c => c.value);
+      if(copyTargets.length){
+        const now = new Date().toISOString();
+        for(const targetCid of copyTargets){
+          const id = genId();
+          // 새로 등록되는 testCases는 ID 새로 부여 (기존 ID 충돌 방지)
+          const newTcs = {};
+          let order = 0;
+          Object.values(testCases).forEach(tc => {
+            newTcs[genId()] = {...tc, order: order++};
+          });
+          await db.ref(`problems/${targetCid}/${id}`).set({title, description: fullDesc, createdAt: now, testCases: newTcs});
+        }
+        toast(`수정 완료 + ${copyTargets.length}개 반에 복사 등록!`, 'ok');
+      } else {
+        toast('수정 완료', 'ok');
+      }
       window._ojEditId = null;
     } else {
       const targetClasses = getSelectedClasses('oj');
@@ -214,7 +364,7 @@ async function _ojSaveProblem(btn){
       const now = new Date().toISOString();
       for(const targetCid of targetClasses){
         const id = genId();
-        await db.ref(`problems/${targetCid}/${id}`).set({title, description: desc || '', createdAt: now, testCases});
+        await db.ref(`problems/${targetCid}/${id}`).set({title, description: fullDesc, createdAt: now, testCases});
       }
       if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 문제가 등록됐습니다.`, 'ok');
     }
@@ -289,7 +439,25 @@ document.addEventListener('click', async e => {
       const prev = OJ_SUBMISSIONS[p.id]?.[ST_USER?.number];
       if(prev?.code) OJ_CODE = prev.code;
     }
+    // 가장 마지막 폴백: 선생님이 등록한 사전 코드 (starter code)
+    if(!OJ_CODE && p.starterCode){
+      OJ_CODE = p.starterCode;
+    }
     go('oj-solve');
+    return;
+  }
+
+  // 학생: 코드 초기화 시 사전 코드가 있으면 그걸로 되돌림
+  if(act.action === 'oj-reset-code'){
+    if(!confirm('작성 중인 코드를 초기화할까요?')) return;
+    const starter = OJ_SEL_PROB?.starterCode || '';
+    OJ_CODE = starter;
+    const cm = document.getElementById('oj-code-editor')?._cm;
+    if(cm){ cm.setValue(starter); cm.focus(); }
+    else {
+      const ta = document.getElementById('oj-code-editor');
+      if(ta) ta.value = starter;
+    }
     return;
   }
 
@@ -349,29 +517,32 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: 코드 실행 (커스텀 stdin)
+  // 학생: 코드 실행 — 실시간 input() 모드 (input() 호출마다 인라인 박스로 직접 입력)
   if(act.action === 'oj-run-code'){
     const cm = document.getElementById('oj-code-editor')?._cm;
     if(cm) OJ_CODE = cm.getValue();
     if(!OJ_CODE.trim()){ toast('코드를 입력하세요.', 'err'); return; }
 
-    // stdin 값 읽기
+    // stdin 영역(미리 입력값) — 비어 있으면 실시간 입력으로 동작
     const stdinEl = document.getElementById('oj-custom-stdin');
     if(stdinEl) OJ_CUSTOM_STDIN = stdinEl.value;
 
     OJ_RUNNING = true; OJ_RESULT_TAB = 'exec';
     el.textContent = '⏳ 실행 중...'; el.disabled = true;
-    // 탭 활성화
     document.querySelectorAll('.oj-rtab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'exec'));
     const body = document.getElementById('oj-results-body');
-    if(body) body.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:12px">⏳ Python 실행 중...</div>`;
+    if(body){
+      body.innerHTML = `
+        <div class="oj-run-header" style="color:var(--text3);font-size:13px;padding:8px 12px;border-bottom:1px solid var(--border)">⏳ Python 실행 중... <span style="color:var(--text2)">input() 만나면 여기에 입력 박스가 떠요</span></div>
+        <div class="oj-run-stream" id="oj-run-stream"></div>`;
+    }
 
-    const resp = await runPython(OJ_CODE, OJ_CUSTOM_STDIN);
+    // mode: 'run' — 실시간 input 활성. stdin이 비어 있으면 input() 호출 시 직접 입력.
+    const resp = await runPython(OJ_CODE, OJ_CUSTOM_STDIN, {mode: 'run'});
     OJ_CUSTOM_OUTPUT = resp;
     OJ_RUNNING = false;
     el.textContent = '▶ 코드 실행'; el.disabled = false;
     if(body) body.innerHTML = vOJRunTab();
-    // 비주얼 OJ — 학생 stdin 으로 실행한 결과를 시각화에 반영
     _updateOJVisual(OJ_CUSTOM_STDIN, resp.output, resp.error);
     return;
   }
@@ -473,6 +644,29 @@ document.addEventListener('click', async e => {
     } finally {
       el.disabled = false;
       el.textContent = orig;
+    }
+    return;
+  }
+
+  // 선생님: 문제 순서 위/아래로 (인접 두 문제의 createdAt swap)
+  if(act.action === 'oj-move-up' || act.action === 'oj-move-down'){
+    const cid = TC_CLS?.id; if(!cid) return;
+    const idx = OJ_PROBLEMS.findIndex(p => p.id === act.pid);
+    if(idx < 0) return;
+    const swapIdx = act.action === 'oj-move-up' ? idx - 1 : idx + 1;
+    if(swapIdx < 0 || swapIdx >= OJ_PROBLEMS.length) return;
+    const a = OJ_PROBLEMS[idx];
+    const b = OJ_PROBLEMS[swapIdx];
+    el.disabled = true;
+    try {
+      // createdAt 만 swap — DB 스키마 변경 없음, 정렬은 자동 반영
+      await db.ref(`problems/${cid}/${a.id}/createdAt`).set(b.createdAt);
+      await db.ref(`problems/${cid}/${b.id}/createdAt`).set(a.createdAt);
+      await loadOJProblems(cid);
+      render();
+    } catch(err){
+      toast('순서 변경 실패: ' + err.message, 'err');
+      el.disabled = false;
     }
     return;
   }

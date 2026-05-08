@@ -52,12 +52,25 @@ function vTcOJForm(){
     <div class="form">
       <div class="field"><label>문제 제목</label><input id="oj-title" type="text" placeholder="예: 두 수의 합" value="${editData ? esc(editData.title) : ''}"/></div>
       <div class="field"><label>문제 설명 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(마크다운 지원: <code>#</code> 제목, <code>**굵게**</code>, <code>\`코드\`</code>, <code>\`\`\`python ... \`\`\`</code>)</span></label><textarea id="oj-desc" placeholder="문제 설명을 입력하세요. 마크다운 사용 가능!&#10;&#10;## 문제&#10;두 정수 A, B를 입력받아 **A+B** 를 출력하시오.&#10;&#10;### 입력&#10;첫 줄에 두 정수 A, B (1 ≤ A, B ≤ 1000)&#10;&#10;### 출력&#10;A+B를 출력" style="min-height:200px">${editData ? esc(editData.description || '') : ''}</textarea></div>
+      <div class="field"><label>사전 코드 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(선택 — 학생 에디터에 처음에 채워질 코드 / 주석·뼈대 등)</span></label><textarea id="oj-starter" placeholder="# 입력 받기&#10;n = int(input())&#10;&#10;# 여기에 코드를 작성하세요&#10;" style="min-height:80px;font-family:monospace;font-size:13px">${editData ? esc(editData.starterCode || '') : ''}</textarea></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
         <div style="font-size:13px;font-weight:600;color:var(--text2)">테스트 케이스</div>
         <button type="button" class="btn-xs btn-p" data-action="oj-add-tc">+ 추가</button>
       </div>
       <div id="oj-tc-list">${tcRows}</div>
-      ${!editData ? multiClassPicker('oj', TC_CLS?.id) : ''}
+      ${editData
+        ? `<div class="field" style="margin-top:14px;border-top:1px dashed var(--border);padding-top:14px">
+            <label style="color:var(--accent)">📋 다른 반에도 복사 등록 (선택)</label>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">체크한 반들에 이 문제(현재 입력값 기준)를 새 ID로 복사 등록합니다.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:4px 0">
+              ${CLASSES.filter(c => c.id !== TC_CLS?.id).map(c => `
+                <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--text2);font-weight:500;text-transform:none;letter-spacing:0">
+                  <input type="checkbox" class="oj-copy-cls-chk" value="${c.id}" style="width:auto"/>
+                  ${c.emoji} ${c.label}
+                </label>`).join('')}
+            </div>
+          </div>`
+        : multiClassPicker('oj', TC_CLS?.id)}
       <div id="oj-form-err" class="err"></div>
       <div style="display:flex;gap:7px">
         <button id="oj-save-btn" class="btn-p" data-edit-id="${editData?.id || ''}">${editData ? '수정 완료' : '문제 등록'}</button>
@@ -71,17 +84,20 @@ function vTcOJForm(){
 function vTcOJList(){
   if(!OJ_PROBLEMS.length) return `<div class="sec-title" style="margin-top:4px">등록된 문제</div>` + emptyBox('💻','등록된 문제가 없습니다.');
 
-  const rows = OJ_PROBLEMS.map(p => {
+  const total = OJ_PROBLEMS.length;
+  const rows = OJ_PROBLEMS.map((p, i) => {
     const totalTc = p.testCases?.length || 0;
     const hiddenTc = p.testCases?.filter(t => t.isHidden).length || 0;
     const subCount = OJ_SUBMISSIONS[p.id] ? Object.keys(OJ_SUBMISSIONS[p.id]).length : 0;
     return `<div class="list-row">
-      <div class="row-icon">💻</div>
+      <div class="row-icon">${i + 1}</div>
       <div class="row-info">
         <div class="row-title">${esc(p.title)}</div>
         <div class="row-meta">${fmtDt(p.createdAt)} · TC ${totalTc}개 (숨김 ${hiddenTc}개) · 제출 ${subCount}명</div>
       </div>
       <div class="row-right">
+        <button class="btn-xs" data-action="oj-move-up" data-pid="${p.id}" ${i === 0 ? 'disabled' : ''} title="위로">▲</button>
+        <button class="btn-xs" data-action="oj-move-down" data-pid="${p.id}" ${i === total - 1 ? 'disabled' : ''} title="아래로">▼</button>
         <button class="btn-sm btn-p" data-action="oj-view-subs" data-pid="${p.id}">현황</button>
         <button class="btn-xs" data-action="oj-edit-prob" data-pid="${p.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="oj-del-prob" data-pid="${p.id}" data-ptitle="${esc(p.title)}">삭제</button>
@@ -271,9 +287,9 @@ function vOJRunTab(){
     outputHtml = `<div class="oj-output-box">${esc(OJ_CUSTOM_OUTPUT.output || '(출력 없음)')}</div>`;
   }
 
-  return `<div class="oj-stdin-label">입력값</div>
+  return `<div class="oj-stdin-label">미리 입력값 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(선택 — 비우면 input() 호출 시 그 자리에서 직접 입력)</span></div>
     <div class="oj-stdin-area">
-      <textarea id="oj-custom-stdin" placeholder="실행 시 사용할 입력값을 입력하세요">${esc(OJ_CUSTOM_STDIN)}</textarea>
+      <textarea id="oj-custom-stdin" placeholder="비워두세요! 실행 중 input() 만나면 직접 입력하게 됩니다.&#10;&#10;(여러 줄 미리 채우면 그 값으로 자동 입력 — 빠른 테스트용)">${esc(OJ_CUSTOM_STDIN)}</textarea>
     </div>
     <div class="oj-output-label">실행 결과</div>
     ${outputHtml}`;

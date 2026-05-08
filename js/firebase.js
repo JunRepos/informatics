@@ -134,18 +134,33 @@ async function loadOJProblems(cid){
     const tcs = v.testCases ? Object.entries(v.testCases).map(([tid, tc]) => ({id: tid, ...tc}))
       .sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
     const obj = {id, ...v, testCases: tcs};
-    // 비주얼 OJ — description 첫 줄에 <!-- visual:위젯ID --> 주석이 있으면
-    // visualType 필드로 끌어올리고 주석은 description 에서 제거
+    // 메타 인코딩 디코드 — description 앞쪽의 HTML 주석들을 떼어내 필드로 복원
     // (DB 스키마 변경 없이 동작 — Firebase 규칙 재게시 불필요)
+    //   <!-- visual:위젯ID -->        → obj.visualType
+    //   <!-- starter:base64인코딩 -->  → obj.starterCode (멀티라인 코드)
     if(typeof obj.description === 'string'){
-      const m = obj.description.match(/^\s*<!--\s*visual:([\w-]+)\s*-->\s*\n?/);
-      if(m){
-        obj.visualType = m[1];
-        obj.description = obj.description.slice(m[0].length);
+      let s = obj.description;
+      while(true){
+        let m;
+        if((m = s.match(/^\s*<!--\s*visual:([\w-]+)\s*-->\s*\n?/))){
+          obj.visualType = m[1];
+          s = s.slice(m[0].length);
+          continue;
+        }
+        if((m = s.match(/^\s*<!--\s*starter:([A-Za-z0-9+/=]+)\s*-->\s*\n?/))){
+          try { obj.starterCode = decodeURIComponent(escape(atob(m[1]))); }
+          catch(e){ obj.starterCode = ''; }
+          s = s.slice(m[0].length);
+          continue;
+        }
+        break;
       }
+      obj.description = s;
     }
     return obj;
-  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  // 정렬: createdAt 오름차순 — 등록한 순서대로 학생에게 보임 (Problem 1, 2, 3...)
+  // 선생님이 ↑↓ 버튼으로 순서 바꾸면 두 문제의 createdAt 을 swap (DB 스키마 그대로)
 }
 
 // ── OJ 제출 현황 ──
