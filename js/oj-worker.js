@@ -27,26 +27,36 @@ let preFedStdinQueue = [];
 let useSAB = false;
 
 // 메인 스레드에 입력 요청 → Atomics.wait 로 동기 대기
+//   반환:
+//     문자열       — 정상 입력값
+//     undefined    — 실시간 모드인데 SAB 미지원 (브라우저 환경 문제)
+//                    Python 측이 None 으로 받아 친절한 RuntimeError 를 던짐
+//     ''           — 채점 모드(큐 비었음) — 무한 대기 방지
 function syncStdinReadLine(prompt){
-  // 1) 미리 받은 stdin 라인이 있으면 먼저 사용
+  // 1) 미리 받은 stdin 라인이 있으면 먼저 사용 (채점 모드, 또는 학생이 미리 채운 값)
   if(preFedStdinQueue.length > 0){
     return preFedStdinQueue.shift();
   }
 
-  // 2) 채점 모드 (SAB 비활성)이면 빈 문자열 — 무한 대기 방지
-  if(!useSAB || !stdinSupported){
+  // 2) 실시간 모드인데 SAB 미지원 → undefined (Python None) 으로 명확히 알림
+  if(useSAB && !stdinSupported){
+    return undefined;
+  }
+
+  // 3) 채점 모드 (큐 비었음) → 빈 문자열로 무한대기 방지
+  if(!useSAB){
     return '';
   }
 
-  // 3) 메인 스레드에 입력 요청
+  // 4) SAB 가능 — 메인 스레드에 입력 요청
   Atomics.store(stdinCtrl, 0, 0);
   Atomics.store(stdinCtrl, 1, 0);
   self.postMessage({type: 'request-input', prompt: prompt || ''});
 
-  // 4) 응답 대기 (블로킹)
+  // 5) 응답 대기 (블로킹)
   Atomics.wait(stdinCtrl, 0, 0);
 
-  // 5) 결과 읽기
+  // 6) 결과 읽기
   const status = Atomics.load(stdinCtrl, 0);
   if(status === 2){
     throw new Error('KeyboardInterrupt: 입력 취소');
@@ -76,7 +86,12 @@ def __oj_input(prompt=''):
     try: sys.stdout.flush()
     except Exception: pass
     p = '' if prompt is None else str(prompt)
-    return _oj_js_request_input(p)
+    v = _oj_js_request_input(p)
+    # JS 측이 undefined 반환 → 실시간 입력 모드를 쓸 수 없는 환경
+    # (SharedArrayBuffer 미지원 — 보통 첫 방문 시 발생, 새로고침 한 번 더 하면 해결)
+    if v is None:
+        raise RuntimeError("실시간 input() 모드를 쓸 수 없어요. 페이지를 한 번 더 새로고침(Ctrl+Shift+R) 하거나, '미리 입력값' 칸에 줄별로 값을 채워주세요.")
+    return v
 builtins.input = __oj_input
 `);
   initialized = true;

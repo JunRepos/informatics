@@ -41,7 +41,7 @@ function setOJDraftStatus(state){
 }
 
 // 워커 코드 변경 시 이 버전을 올려 브라우저 캐시 무효화
-const OJ_WORKER_VER = '20260507-live-input';
+const OJ_WORKER_VER = '20260516-input-fallback';
 
 // SAB 공유 메모리 (실시간 input() 용)
 const OJ_STDIN_BUF_SIZE = 4096;
@@ -221,6 +221,7 @@ function friendlyOJError(rawError){
   const errorLine = lines.length ? lines[lines.length - 1] : '';
 
   const patterns = [
+    {re: /RuntimeError: 실시간 input/, msg: () => '실시간 입력 모드가 활성화되지 않았어요. <b>페이지를 한 번 더 새로고침(Ctrl+Shift+R)</b> 하거나, 결과 패널의 <b>"미리 입력값"</b> 칸에 줄별로 값을 채우고 ▶ 실행해주세요.'},
     {re: /^TimeoutError/, msg: () => '실행이 5초를 넘어 중단됐어요. <b>무한 루프</b>이거나(while True 같은 거 종료조건 확인), 알고리즘이 너무 느릴 수 있어요.'},
     {re: /NameError: name '(\w+)' is not defined/, msg: m => `<code>${m[1]}</code> 라는 이름을 사용했는데 <b>아직 정의되지 않았습니다</b>. 변수/함수 이름 오타가 없는지 확인해주세요.`},
     {re: /IndentationError/, msg: () => '<b>들여쓰기</b>가 맞지 않습니다. 같은 블록은 모두 같은 칸 수(보통 4칸 또는 탭)로 통일해주세요.'},
@@ -241,7 +242,8 @@ function friendlyOJError(rawError){
     {re: /IndexError: string index out of range/, msg: () => '문자열의 <b>범위를 벗어나</b> 접근했습니다.'},
     {re: /IndexError: tuple index out of range/, msg: () => '튜플의 <b>범위를 벗어나</b> 접근했습니다.'},
     {re: /KeyError: ['"]?(.+?)['"]?$/m, msg: m => `딕셔너리에 <code>${m[1]}</code> 키가 <b>없습니다</b>.`},
-    {re: /ValueError: invalid literal for int\(\)/, msg: () => '<code>int()</code> 로 정수 변환을 시도했지만 <b>숫자가 아닌 값</b>이 들어왔습니다. 입력값에 공백·문자가 섞여있나 확인하세요.'},
+    {re: /ValueError: invalid literal for int\(\) with base \d+: ['"]['"]/, msg: () => '<code>int(input())</code> 에 <b>빈 값</b>이 들어왔어요. <br>📝 ▶ 실행 후 결과 패널 아래에 <b>노란 입력 박스</b>가 떴는지 확인하고, 값을 입력 후 Enter 눌러주세요. <br>📝 또는 <b>"미리 입력값"</b> 칸에 값을 한 줄씩 채우고 다시 ▶ 실행해도 됩니다.'},
+    {re: /ValueError: invalid literal for int\(\)/, msg: () => '<code>int()</code> 로 정수 변환을 시도했지만 <b>숫자가 아닌 값</b>이 들어왔어요. 입력값에 공백·문자가 섞여있나 확인하세요. (예: <code>17</code> 은 되지만 <code>17세</code> 는 안 됨)'},
     {re: /ValueError: could not convert string to float/, msg: () => '<code>float()</code> 로 변환할 수 없는 값입니다.'},
     {re: /ValueError: not enough values to unpack \(expected (\d+), got (\d+)\)/, msg: m => `값을 <b>${m[1]}개</b>로 받으려 했는데 <b>${m[2]}개</b>만 있어요. <code>a, b = ...</code> 같은 코드에서 오른쪽 값 개수를 확인하세요.`},
     {re: /ValueError: too many values to unpack/, msg: () => '값의 개수가 너무 많습니다. <code>a, b = ...</code> 같은 코드에서 받는 변수 수가 충분한지 확인하세요.'},
