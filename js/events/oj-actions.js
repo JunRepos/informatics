@@ -610,6 +610,59 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // 선생님: 23문제 한방 등록 (1~6차시 종합 문제집)
+  if(act.action === 'oj-load-23-pack'){
+    const cid = TC_CLS?.id;
+    if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
+    if(typeof OJ_23_PROBLEMS === 'undefined' || !OJ_23_PROBLEMS.length){
+      toast('문제 데이터를 찾을 수 없어요.', 'err');
+      return;
+    }
+    const count = OJ_23_PROBLEMS.length;
+    if(!confirm(`${TC_CLS.label} 에 OJ 문제 ${count}개를 한 번에 등록할까요?\n\n(1~6차시 학습 내용 + 현실 맥락 종합 문제 포함)`)) return;
+    el.disabled = true;
+    const orig = el.textContent;
+    el.textContent = `⏳ 등록 중 0/${count}...`;
+    try {
+      const baseTime = Date.now();
+      let registered = 0;
+      for(let i = 0; i < OJ_23_PROBLEMS.length; i++){
+        const prob = OJ_23_PROBLEMS[i];
+        // 사전 코드를 description 메타로 인코딩
+        const fullDesc = _encodeOJMeta(prob.description, {
+          starterCode: prob.starterCode || null
+        });
+        const id = genId();
+        const tcMap = {};
+        prob.testCases.forEach((tc, idx) => {
+          tcMap[genId()] = {
+            input: tc.input,
+            expectedOutput: tc.expectedOutput,
+            isHidden: !!tc.isHidden,
+            order: idx
+          };
+        });
+        await db.ref(`problems/${cid}/${id}`).set({
+          title: prob.title,
+          description: fullDesc,
+          createdAt: new Date(baseTime + i).toISOString(),
+          testCases: tcMap
+        });
+        registered++;
+        el.textContent = `⏳ 등록 중 ${registered}/${count}...`;
+      }
+      await loadOJProblems(cid);
+      toast(`✓ ${registered}개 문제가 등록됐습니다!`, 'ok');
+      render();
+    } catch(err){
+      toast('등록 실패: ' + err.message, 'err');
+    } finally {
+      el.disabled = false;
+      el.textContent = orig;
+    }
+    return;
+  }
+
   // 선생님: 비주얼 OJ 한방 등록 — 재생목록 가장 긴 노래
   if(act.action === 'oj-load-visual-playlist'){
     const cid = TC_CLS?.id;
