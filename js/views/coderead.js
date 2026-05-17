@@ -71,9 +71,17 @@ function vStCRSolve(){
   // 우측 문제
   let questionHtml = '';
   if(isPredict){
+    // input() 이 들어간 코드는 stdin 을 학생에게 보여줘야 출력 예측 가능
+    const stdinBlock = (r.stdin && r.stdin.trim())
+      ? `<div class="cr-stdin-block">
+           <div class="cr-stdin-label">📥 사용자가 입력한 값 (이 값으로 코드가 실행돼요)</div>
+           <pre class="cr-stdin-pre">${esc(r.stdin)}</pre>
+         </div>`
+      : '';
     questionHtml = `
       <div class="cr-q-title">🔮 이 코드의 출력은 무엇일까요?</div>
       <div class="cr-q-desc">코드를 머릿속으로 한 줄씩 따라가며, <code>print()</code>로 찍히는 결과를 예측해 입력하세요.</div>
+      ${stdinBlock}
       <div class="cr-q-form">
         <textarea id="cr-answer" class="cr-answer-box" placeholder="출력 결과를 그대로 입력하세요&#10;(여러 줄이면 줄바꿈도 똑같이)" autocomplete="off">${esc(CR_ANSWER || '')}</textarea>
         <div style="display:flex;gap:8px;align-items:center">

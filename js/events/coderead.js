@@ -10,21 +10,40 @@ function _normalizeAns(s){
   return String(s == null ? '' : s).replace(/\r\n/g, '\n').split('\n').map(l => l.replace(/\s+$/,'')).join('\n').trim();
 }
 
-// 트레이스 답 비교 — 사용자 입력을 약간 관대하게 받음
+// 트레이스 답 비교 — 사용자 입력을 관대하게 받음
+//   리스트의 공백/따옴표 차이, 부울/None 대소문자 차이까지 허용
+function _normTraceValue(s){
+  return String(s || '')
+    .trim()
+    // 큰따옴표 → 작은따옴표로 통일
+    .replace(/"/g, "'")
+    // [ 뒤 공백, ] 앞 공백 제거 → [ 10, 20 ] → [10, 20]
+    .replace(/\[\s+/g, '[')
+    .replace(/\s+\]/g, ']')
+    // ( ) { } 도 동일
+    .replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
+    .replace(/\{\s+/g, '{').replace(/\s+\}/g, '}')
+    // 쉼표 주변 공백 표준화 → "10,20" → "10, 20"
+    .replace(/\s*,\s*/g, ', ')
+    // 콜론 주변 공백 표준화 (딕셔너리)
+    .replace(/\s*:\s*/g, ': ');
+}
+
 function _matchTraceValue(given, expected){
   const g = String(given || '').trim();
   const e = String(expected || '').trim();
   if(g === e) return true;
-  // 따옴표 차이만 있는 문자열: '..' vs ".."
+  // 정규화 후 비교 (공백/따옴표 차이 흡수)
+  if(_normTraceValue(g) === _normTraceValue(e)) return true;
+  // 따옴표만 다른 문자열 (예: 'hello' vs "hello")
   if(/^["'].*["']$/.test(g) && /^["'].*["']$/.test(e)){
     const stripQuotes = (s) => s.slice(1, -1);
     if(stripQuotes(g) === stripQuotes(e)) return true;
   }
-  // 정수 표기 차이 (예: 5 == 5.0 비허용 — 의도적)
   // 부울/None 대소문자 관대 (True == true)
   if(g.toLowerCase() === e.toLowerCase() &&
-     ['true','false','none','True','False','None'].includes(g) &&
-     ['true','false','none','True','False','None'].includes(e)) return true;
+     ['true','false','none'].includes(g.toLowerCase()) &&
+     ['true','false','none'].includes(e.toLowerCase())) return true;
   return false;
 }
 

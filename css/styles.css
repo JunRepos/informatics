@@ -955,6 +955,13 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 
 .cr-code-textarea{font-family:'Consolas',monospace}
 
+/* 코드 읽기 predict 모드 — input() 코드의 stdin 표시 */
+.cr-stdin-block{background:#fef9e7;border:1.5px solid #fde68a;border-radius:var(--r-md);padding:8px 12px;margin-bottom:10px}
+[data-theme="dark"] .cr-stdin-block{background:#2d2300;border-color:#7c5008}
+.cr-stdin-label{font-size:11px;font-weight:700;color:#92400e;letter-spacing:.02em;margin-bottom:5px}
+[data-theme="dark"] .cr-stdin-label{color:#fcd34d}
+.cr-stdin-pre{margin:0;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Consolas',monospace;font-size:13px;white-space:pre-wrap;color:var(--text)}
+
 /* 코드 읽기 — 선생님 화면: 헤더 행, 예제 묶음 카드 */
 .cr-header-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .cr-pack-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:14px;box-shadow:var(--sh)}
