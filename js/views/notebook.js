@@ -63,7 +63,11 @@ function vNotebookDetail(isTeacher){
   if(!nb) return emptyBox('❌','노트북을 찾을 수 없습니다.');
 
   const isStudent = !isTeacher && !!ST_USER;
-  const saveInd = isStudent ? `<div id="cb-save-ind" class="cb-save-ind" style="font-size:11px;color:var(--cb-text-3);margin-right:6px">✓ 저장됨</div>` : '';
+  // 저장 표시:
+  //  · 학생 모드 — 본인 진도 자동 저장
+  //  · 선생님이 본인이 만든 원본을 편집 중 — 원본 노트북 자동 저장 (학생 진도 보기 모드 제외)
+  const showSaveInd = isStudent || (isTeacher && !NB_VIEWING_STUDENT);
+  const saveInd = showSaveInd ? `<div id="cb-save-ind" class="cb-save-ind" style="font-size:11px;color:var(--cb-text-3);margin-right:6px">✓ 저장됨</div>` : '';
   const progressBtn = isTeacher ? `<button class="cb-tb-btn" data-action="nb-show-progress" title="학생별 진도 보기">👥 학생 진도</button>` : '';
 
   // 학생 진도 보는 중일 때 상단 배너
