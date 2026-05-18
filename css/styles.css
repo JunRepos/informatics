@@ -560,7 +560,7 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .cb-cell.cb-selected{border-left-color:var(--cb-selected);background:var(--cb-bg-2);box-shadow:inset 0 0 0 1px var(--cb-border)}
 
 /* 셀 호버 툴바 */
-.cb-cell-actions{position:absolute;top:-10px;right:12px;display:flex;gap:1px;background:var(--cb-bg);border:1px solid var(--cb-border);border-radius:6px;padding:2px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:10;box-shadow:0 2px 6px rgba(60,64,67,.15),0 1px 2px rgba(60,64,67,.1)}
+.cb-cell-actions{position:absolute;top:-10px;left:12px;display:flex;gap:1px;background:var(--cb-bg);border:1px solid var(--cb-border);border-radius:6px;padding:2px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;z-index:10;box-shadow:0 2px 6px rgba(60,64,67,.15),0 1px 2px rgba(60,64,67,.1)}
 [data-theme="dark"] .cb-cell-actions{box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .cb-cell:hover .cb-cell-actions,.cb-cell.cb-selected .cb-cell-actions{opacity:1;transform:translateY(0)}
 .cb-act-btn{background:none;border:none;color:var(--cb-text-2);width:28px;height:26px;font-size:13px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
