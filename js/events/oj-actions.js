@@ -610,96 +610,160 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 선생님: 23문제 한방 등록 (1~6차시 종합 문제집)
-  if(act.action === 'oj-load-23-pack'){
+  // 선생님: JSON 템플릿 업로드 — 파일 선택 → 한 번에 여러 문제 등록
+  if(act.action === 'oj-import-json'){
     const cid = TC_CLS?.id;
     if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
-    if(typeof OJ_23_PROBLEMS === 'undefined' || !OJ_23_PROBLEMS.length){
-      toast('문제 데이터를 찾을 수 없어요.', 'err');
-      return;
-    }
-    const count = OJ_23_PROBLEMS.length;
-    if(!confirm(`${TC_CLS.label} 에 OJ 문제 ${count}개를 한 번에 등록할까요?\n\n(1~6차시 학습 내용 + 현실 맥락 종합 문제 포함)`)) return;
-    el.disabled = true;
-    const orig = el.textContent;
-    el.textContent = `⏳ 등록 중 0/${count}...`;
-    try {
-      const baseTime = Date.now();
-      let registered = 0;
-      for(let i = 0; i < OJ_23_PROBLEMS.length; i++){
-        const prob = OJ_23_PROBLEMS[i];
-        // 사전 코드를 description 메타로 인코딩
-        const fullDesc = _encodeOJMeta(prob.description, {
-          starterCode: prob.starterCode || null
-        });
-        const id = genId();
-        const tcMap = {};
-        prob.testCases.forEach((tc, idx) => {
-          tcMap[genId()] = {
-            input: tc.input,
-            expectedOutput: tc.expectedOutput,
-            isHidden: !!tc.isHidden,
-            order: idx
-          };
-        });
-        await db.ref(`problems/${cid}/${id}`).set({
-          title: prob.title,
-          description: fullDesc,
-          createdAt: new Date(baseTime + i).toISOString(),
-          testCases: tcMap
-        });
-        registered++;
-        el.textContent = `⏳ 등록 중 ${registered}/${count}...`;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      input.remove();
+      if(!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const problems = Array.isArray(data) ? data : (data.problems || []);
+        if(!problems.length){ toast('JSON에서 문제를 찾을 수 없어요.', 'err'); return; }
+        // 검증
+        for(let i = 0; i < problems.length; i++){
+          const p = problems[i];
+          if(!p || typeof p !== 'object' || !p.title || !p.description){
+            toast(`문제 ${i+1}: title / description 필수`, 'err');
+            return;
+          }
+          if(!Array.isArray(p.testCases) || !p.testCases.length){
+            toast(`"${p.title}" 에 테스트 케이스가 없어요.`, 'err');
+            return;
+          }
+          for(const tc of p.testCases){
+            if(typeof tc.input !== 'string' || typeof tc.expectedOutput !== 'string'){
+              toast(`"${p.title}" 테스트 케이스의 input/expectedOutput은 문자열이어야 해요.`, 'err');
+              return;
+            }
+          }
+        }
+        if(!confirm(`${TC_CLS.label} 에 OJ 문제 ${problems.length}개를 등록할까요?\n\n파일: ${file.name}`)) return;
+        const btn = document.querySelector('[data-action="oj-import-json"]');
+        if(btn){ btn.disabled = true; }
+        const orig = btn ? btn.textContent : '';
+        try {
+          const baseTime = Date.now();
+          for(let i = 0; i < problems.length; i++){
+            const prob = problems[i];
+            const fullDesc = _encodeOJMeta(prob.description, {
+              visualType: prob.visualType || null,
+              starterCode: prob.starterCode || null
+            });
+            const id = genId();
+            const tcMap = {};
+            prob.testCases.forEach((tc, idx) => {
+              tcMap[genId()] = {
+                input: tc.input,
+                expectedOutput: tc.expectedOutput,
+                isHidden: !!tc.isHidden,
+                order: idx
+              };
+            });
+            await db.ref(`problems/${cid}/${id}`).set({
+              title: prob.title,
+              description: fullDesc,
+              createdAt: new Date(baseTime + i).toISOString(),
+              testCases: tcMap
+            });
+            if(btn) btn.textContent = `⏳ 등록 중 ${i+1}/${problems.length}...`;
+          }
+          await loadOJProblems(cid);
+          toast(`✓ ${problems.length}개 문제가 등록됐습니다!`, 'ok');
+          render();
+        } catch(err){
+          toast('등록 실패: ' + err.message, 'err');
+        } finally {
+          if(btn){ btn.disabled = false; btn.textContent = orig; }
+        }
+      } catch(err){
+        toast('JSON 읽기 실패: ' + err.message, 'err');
       }
-      await loadOJProblems(cid);
-      toast(`✓ ${registered}개 문제가 등록됐습니다!`, 'ok');
-      render();
-    } catch(err){
-      toast('등록 실패: ' + err.message, 'err');
-    } finally {
-      el.disabled = false;
-      el.textContent = orig;
-    }
+    };
+    input.click();
     return;
   }
 
-  // 선생님: 비주얼 OJ 한방 등록 — 재생목록 가장 긴 노래
-  if(act.action === 'oj-load-visual-playlist'){
+  // 선생님: 샘플 JSON 양식 다운로드 (편집해서 다시 업로드)
+  if(act.action === 'oj-download-sample'){
+    const sample = {
+      version: 1,
+      problems: [
+        {
+          title: "🧪 예시: 두 수의 합",
+          description: "## 문제\n두 정수를 입력받아 합을 출력하세요.\n\n## 입력\n- 첫 줄: 두 정수 (공백 구분)\n\n## 출력\n- 두 수의 합",
+          starterCode: "a, b = map(int, input().split())\n# 여기에 코드를 작성하세요\n",
+          testCases: [
+            {input: "3 5", expectedOutput: "8", isHidden: false},
+            {input: "10 20", expectedOutput: "30", isHidden: false},
+            {input: "100 200", expectedOutput: "300", isHidden: true}
+          ]
+        },
+        {
+          title: "🎵 예시: 가장 긴 노래 (비주얼 OJ)",
+          description: "## 문제\n재생목록에서 가장 긴 노래의 인덱스(0부터)와 그 길이를 출력하세요.\n\n## 입력\n- 첫 줄: N (노래 개수)\n- 둘째 줄: N개 정수 (각 길이, 초)\n\n## 출력\n- 첫 줄: 가장 긴 노래의 인덱스\n- 둘째 줄: 그 길이",
+          starterCode: "n = int(input())\n# split·map: 공백으로 나눠 정수 리스트로 변환\nlengths = list(map(int, input().split()))\n# 여기에 코드를 작성하세요\n",
+          visualType: "playlist-bars",
+          testCases: [
+            {input: "5\n180 240 195 320 210", expectedOutput: "3\n320", isHidden: false},
+            {input: "3\n100 200 150", expectedOutput: "1\n200", isHidden: true}
+          ]
+        }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(sample, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'oj-template-sample.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('샘플 양식이 다운로드됐어요. 편집한 뒤 📥 업로드 하세요.', 'ok');
+    return;
+  }
+
+  // 선생님: 현재 반 문제 전체 → JSON 내보내기 (백업 / 다른 반 이동용)
+  if(act.action === 'oj-export-json'){
     const cid = TC_CLS?.id;
     if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
-    if(!confirm(`${TC_CLS.label} 에 비주얼 OJ "재생목록 — 가장 긴 노래 찾기" 문제를 등록할까요?\n\n좌측에 막대 그래프 시각화가 나오고, 정답을 맞히면 🏆 트로피가 표시돼요!`)) return;
-    el.disabled = true;
-    const orig = el.textContent;
-    el.textContent = '⏳ 등록 중...';
-    try {
-      const id = genId();
-      const tcMap = {};
-      OJ_VISUAL_PLAYLIST.testCases.forEach((tc, idx) => {
-        tcMap[genId()] = {
-          input: tc.input,
-          expectedOutput: tc.expectedOutput,
-          isHidden: !!tc.isHidden,
-          order: idx
+    if(!OJ_PROBLEMS.length){ toast('내보낼 문제가 없어요.', 'err'); return; }
+    const stripMeta = (s) => (s || '')
+      .replace(/^<!--\s*visual:[^>]*-->\s*\n?/, '')
+      .replace(/^<!--\s*starter:[^>]*-->\s*\n?/, '');
+    const out = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      classId: cid,
+      problems: OJ_PROBLEMS.map(p => {
+        const obj = {
+          title: p.title || '',
+          description: stripMeta(p.description),
+          testCases: (p.testCases || []).map(tc => ({
+            input: tc.input || '',
+            expectedOutput: tc.expectedOutput || '',
+            isHidden: !!tc.isHidden
+          }))
         };
-      });
-      // 비주얼 OJ 메타는 description 첫 줄에 HTML 주석으로 인코딩
-      // (DB 규칙 추가 게시 없이 동작; loadOJProblems가 자동으로 visualType 추출)
-      const descWithVisual = `<!-- visual:${OJ_VISUAL_PLAYLIST.visualType} -->\n` + OJ_VISUAL_PLAYLIST.description;
-      await db.ref(`problems/${cid}/${id}`).set({
-        title: OJ_VISUAL_PLAYLIST.title,
-        description: descWithVisual,
-        createdAt: new Date().toISOString(),
-        testCases: tcMap
-      });
-      await loadOJProblems(cid);
-      toast('✓ 비주얼 OJ 문제가 등록됐습니다!', 'ok');
-      render();
-    } catch(err){
-      toast('등록 실패: ' + err.message, 'err');
-    } finally {
-      el.disabled = false;
-      el.textContent = orig;
-    }
+        if(p.starterCode) obj.starterCode = p.starterCode;
+        if(p.visualType) obj.visualType = p.visualType;
+        return obj;
+      })
+    };
+    const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `oj-${cid}-${dateStr}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`✓ ${OJ_PROBLEMS.length}개 문제를 내보냈어요`, 'ok');
     return;
   }
 
@@ -766,64 +830,3 @@ document.addEventListener('click', async e => {
   }
 });
 
-// ══════════════════════════════════════
-//  비주얼 OJ 문제 데이터 — 재생목록 (가장 긴 노래)
-//  좌측 시각화: 📊 막대 그래프 (visual-widgets.js의 playlist-bars)
-//  학습: 변수, input, list, max, 인덱싱 — 1·2·3차시 종합
-// ══════════════════════════════════════
-const OJ_VISUAL_PLAYLIST = {
-  title: '🎵 재생목록 — 가장 긴 노래는?',
-  visualType: 'playlist-bars',
-  description: `## 🎬 상황
-
-내 음악 재생목록에 \`N\`개의 노래가 있어요.
-각 노래의 **재생 시간(초)** 이 차례로 주어집니다.
-
-**가장 긴 노래** 의 *인덱스* (0부터 시작) 와 *재생 시간(초)* 을 출력하세요!
-
-> 💡 왼쪽 그래프에 막대로 표시돼요. 코드를 실행하면 결과가 시각적으로 보여요!
-
-## 입력
-
-- 첫 줄: 정수 \`N\` (1 ≤ N ≤ 10) — 노래 개수
-- 둘째 줄: \`N\`개의 정수 (각 노래 재생 시간, 공백 구분)
-
-## 출력
-
-- 첫 줄: 가장 긴 노래의 **인덱스**
-- 둘째 줄: 그 노래의 **재생 시간**
-
-## 예시
-
-**입력**
-\`\`\`
-5
-180 240 195 320 210
-\`\`\`
-
-**출력**
-\`\`\`
-3
-320
-\`\`\`
-
-→ 인덱스 \`3\` 의 노래가 \`320\` 초로 가장 김 → 출력!
-
-## 💡 힌트
-
-- 두 번째 줄을 split해서 정수 리스트로:
-  \`times = list(map(int, input().split()))\`
-- 가장 큰 값: \`max(times)\`
-- 그 값이 몇 번째인지: \`times.index(max(times))\`
-- 두 줄로 출력하려면 \`print()\` 두 번`,
-  testCases: [
-    // 공개 (시각화에 첫 번째 사용됨)
-    {input: '5\n180 240 195 320 210', expectedOutput: '3\n320', isHidden: false},
-    {input: '4\n100 100 250 100', expectedOutput: '2\n250', isHidden: false},
-    {input: '6\n50 60 70 80 90 100', expectedOutput: '5\n100', isHidden: false},
-    // 숨김
-    {input: '1\n42', expectedOutput: '0\n42', isHidden: true},
-    {input: '3\n300 200 100', expectedOutput: '0\n300', isHidden: true},
-    {input: '7\n11 22 33 44 55 44 33', expectedOutput: '4\n55', isHidden: true}
-  ]
-};

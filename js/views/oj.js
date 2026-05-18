@@ -12,8 +12,9 @@
 // 선생님 OJ 탭 메인
 function vTcOJ(){
   const samplesBar = `<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-    <button class="btn-p btn-sm" data-action="oj-load-23-pack" title="1~6차시 학습 내용 기반 23문제 + 현실 맥락 종합 문제를 한 번에 등록">📦 23문제 한방 등록 (전체 진도)</button>
-    <button class="btn-sm" data-action="oj-load-visual-playlist" title="비주얼 OJ — 재생목록에서 가장 긴 노래 찾기 (왼쪽에 막대 그래프 시각화)">🎨 비주얼 OJ — 재생목록</button>
+    <button class="btn-p btn-sm" data-action="oj-import-json" title="JSON 템플릿 파일을 골라 여러 문제를 한 번에 등록">📥 JSON 템플릿 업로드</button>
+    <button class="btn-sm" data-action="oj-download-sample" title="JSON 양식 예시 파일 다운로드 (편집해서 다시 업로드 가능)">📄 샘플 양식</button>
+    <button class="btn-sm" data-action="oj-export-json" title="현재 반의 모든 OJ 문제를 JSON 파일로 내보내기 (백업/이동용)">📤 내보내기</button>
   </div>`;
   const form = vTcOJForm();
   const list = vTcOJList();
