@@ -285,18 +285,6 @@ function vTcCodeRead(){
 }
 
 function vTcCRList(){
-  // 묶음별 등록 카드
-  const packCards = (typeof CR_SAMPLE_PACKS !== 'undefined' ? CR_SAMPLE_PACKS : []).map(p => `
-    <button class="cr-pack-card" data-action="cr-load-pack" data-pack-id="${esc(p.id)}">
-      <div class="cr-pack-icon">${p.icon || '📦'}</div>
-      <div class="cr-pack-body">
-        <div class="cr-pack-title">${esc(p.title)}</div>
-        <div class="cr-pack-meta">${p.samples.length}문제 · ${esc(p.description)}</div>
-      </div>
-      <div class="cr-pack-arrow">＋</div>
-    </button>
-  `).join('');
-
   const typeCards = QUIZ_TYPES.map(t => `
     <button class="quiz-type-card" data-action="cr-new" data-qtype="${t.id}">
       <div class="quiz-type-card-label">${t.label}</div>
@@ -312,14 +300,8 @@ function vTcCRList(){
   </div>
   <div class="quiz-type-grid">${typeCards}</div>`;
 
-  const packsSection = packCards ? `
-    <div class="cr-pack-section">
-      <div class="cr-pack-section-title">📦 예제 묶음 한방 등록 <span style="font-weight:400;color:var(--text3);font-size:11px">— 카드를 클릭하면 해당 차시 문제가 모두 등록됩니다</span></div>
-      <div class="cr-pack-grid">${packCards}</div>
-    </div>` : '';
-
   if(!CR_READINGS.length){
-    return header + packsSection + emptyBox('🧩','아직 등록된 퀴즈가 없어요. 위에서 유형을 골라 새 퀴즈를 만들어 보세요.');
+    return header + emptyBox('🧩','아직 등록된 퀴즈가 없어요. 위에서 유형을 골라 새 퀴즈를 만들어 보세요.');
   }
 
   const rows = CR_READINGS.map((r, i) => {
@@ -346,7 +328,7 @@ function vTcCRList(){
     </div>`;
   }).join('');
 
-  return header + packsSection + `<div class="sec-title" style="margin-top:14px">등록된 퀴즈 (${CR_READINGS.length}개)</div>` + rows;
+  return header + `<div class="sec-title" style="margin-top:14px">등록된 퀴즈 (${CR_READINGS.length}개)</div>` + rows;
 }
 
 function vTcCREdit(){

@@ -1069,18 +1069,6 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 [data-theme="dark"] .cr-stdin-label{color:#fcd34d}
 .cr-stdin-pre{margin:0;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Consolas',monospace;font-size:13px;white-space:pre-wrap;color:var(--text)}
 
-/* 코드 읽기 — 선생님 화면: 헤더 행, 예제 묶음 카드 */
+/* 퀴즈 — 선생님 화면: 헤더 행 */
 .cr-header-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.cr-pack-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:14px;box-shadow:var(--sh)}
-.cr-pack-section-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.cr-pack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px}
-.cr-pack-card{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;text-align:left;transition:background .12s,border-color .12s,transform .08s;width:100%}
-.cr-pack-card:hover{background:var(--accent-lt);border-color:var(--accent)}
-.cr-pack-card:active{transform:scale(.99)}
-.cr-pack-card:disabled{opacity:.55;cursor:wait}
-.cr-pack-icon{font-size:22px;flex-shrink:0;line-height:1}
-.cr-pack-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.cr-pack-title{font-size:13px;font-weight:700;color:var(--text);white-space:normal}
-.cr-pack-meta{font-size:11px;color:var(--text3);white-space:normal;line-height:1.4}
-.cr-pack-arrow{font-size:18px;color:var(--accent);flex-shrink:0;font-weight:700}
 
