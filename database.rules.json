@@ -303,19 +303,16 @@
     //   active/{cid}        : bool — 선생님이 켜야 학생에게 노출
     //   sessions/{cid}/{학번}: { messages, code, turnCount, lineExplains, view, updatedAt }
     "assessment": {
-      ".read": true,
-      ".write": true,
       "active": {
         "$classId": {
-          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/) && newData.isBoolean()"
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
         }
       },
       "sessions": {
         "$classId": {
-          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
-          "$studentNum": {
-            ".validate": true
-          }
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
         }
       }
     },
