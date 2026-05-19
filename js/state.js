@@ -96,6 +96,21 @@ let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
 let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
 let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
 
+// 수행평가 (Assessment) — AI 기반 코딩 수행평가
+// 백엔드: Cloudflare Worker (informatics-ai.chlwns1023.workers.dev) → Gemini API
+let ASMT_ACTIVE      = {};     // { [classId]: boolean } — 반별 활성화 상태 캐시
+let ASMT_VIEW        = 'entry';// 학생: 'entry'|'chat'|'explain'|'modify'|'done', 선생님: 'manage'|'student'
+let ASMT_MESSAGES    = [];     // 채팅 메시지 [{role:'user'|'assistant', content, ts}]
+let ASMT_CODE        = '';     // 우측 패널의 현재 코드 (AI가 만든 마지막 코드)
+let ASMT_TURN_COUNT  = 0;      // 학생 메시지 누적 (30턴 제한)
+let ASMT_LOADING     = false;  // AI 응답 대기 중
+let ASMT_LINE_EXPLAINS = {};   // 줄별 설명 모드에서 { [lineIdx]: explanation }
+let ASMT_AUTO_TIMER  = null;   // 진입 화면 3분 자동 인사 타이머 ID
+let ASMT_TC_SEL_SNUM = null;   // 선생님이 보고 있는 학생 학번
+let ASMT_ALL_SESSIONS = {};    // 선생님: { [studentNum]: session } — 전체 세션 캐시
+const ASMT_TURN_LIMIT = 30;    // 학생당 최대 메시지 수
+const ASMT_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

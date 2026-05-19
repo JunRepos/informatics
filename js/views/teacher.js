@@ -30,6 +30,7 @@ function vTeacher(){
     ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
     ${tcIsInfo ? tab('🧩 퀴즈','coderead',TC_TAB,"setTC('coderead')") : ''}
+    ${tcIsInfo ? tab('📝 수행평가','asmt',TC_TAB,"setTC('asmt')") : ''}
     ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -49,6 +50,7 @@ function vTeacher(){
   else if(TC_TAB === 'notebook')   body = vTcNotebook();
   else if(TC_TAB === 'mission')    body = vTcMission();
   else if(TC_TAB === 'coderead')   body = vTcCodeRead();
+  else if(TC_TAB === 'asmt')       body = vTcAssessment();
   else if(TC_TAB === 'curriculum') body = vTcCurriculum();
   else if(TC_TAB === 'settings')   body = vTcSettings();
 
@@ -68,6 +70,17 @@ function setTC(t){
   } else if(t === 'curriculum'){
     // 진도 계획은 전역 하나, 최초 진입 시 로드
     loadCurriculum().then(render);
+  } else if(t === 'asmt' && TC_CLS){
+    // 수행평가 탭 — 활성화 상태 + 전체 학생 세션 미리 로드
+    ASMT_VIEW = 'manage';
+    ASMT_TC_SEL_SNUM = null;
+    Promise.all([
+      loadAsmtActive(TC_CLS.id),
+      loadAllAsmtSessions(TC_CLS.id)
+    ]).then(([_active, sessions]) => {
+      ASMT_ALL_SESSIONS = sessions || {};
+      render();
+    });
   } else if(t === 'coderead' && TC_CLS){
     CR_VIEW = 'list';
     CR_SEL = null;

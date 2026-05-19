@@ -335,6 +335,55 @@ async function loadAllCodeReadingProgress(cid, rdId){
   }
 }
 
+// ── 수행평가 (Assessment) ──
+// 반별 활성화 토글: assessment/active/{cid} = true/false
+async function loadAsmtActive(cid){
+  try {
+    const s = await db.ref(`assessment/active/${cid}`).get();
+    const v = s.exists() ? !!s.val() : false;
+    ASMT_ACTIVE[cid] = v;
+    return v;
+  } catch(err){
+    console.warn('[수행평가] 활성화 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    ASMT_ACTIVE[cid] = false;
+    return false;
+  }
+}
+
+async function setAsmtActive(cid, active){
+  await db.ref(`assessment/active/${cid}`).set(!!active);
+  ASMT_ACTIVE[cid] = !!active;
+}
+
+// 학생 세션: assessment/sessions/{cid}/{studentNum}
+// = { messages, code, turnCount, lineExplains, view, updatedAt }
+async function loadAsmtSession(cid, studentNum){
+  try {
+    const s = await db.ref(`assessment/sessions/${cid}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[수행평가] 세션 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+async function saveAsmtSession(cid, studentNum, data){
+  await db.ref(`assessment/sessions/${cid}/${studentNum}`).set({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function loadAllAsmtSessions(cid){
+  try {
+    const s = await db.ref(`assessment/sessions/${cid}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[수행평가] 전체 세션 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -346,7 +395,8 @@ async function loadAllClassData(cid){
     loadOJProblems(cid),
     loadNotebooks(cid),
     loadMissions(cid),
-    loadCodeReadings(cid)
+    loadCodeReadings(cid),
+    loadAsmtActive(cid)
   ]);
 }
 
