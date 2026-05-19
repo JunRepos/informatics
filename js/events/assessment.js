@@ -1,14 +1,162 @@
 /* ═══════════════════════════════════════
    events/assessment.js — 수행평가 이벤트 핸들러
 
-   현재 단계 (1단계 commit):
-     - 선생님: 활성화 토글
-     - 학생: 진입 카드 클릭 (다음 단계에서 채팅으로 전환)
-   다음 단계에서 추가될 것:
-     - 워커 호출 + 채팅 모드
-     - 줄별 설명 모드 + 잠금
-     - 변형 과제 모드 + 제출
+   학생 흐름:
+     entry → (카드 클릭) → chat 모드
+       - 💡 아이디어 있어요  → 빈 채팅 (학생이 먼저 입력)
+       - 🤔 모르겠어요       → AI가 먼저 인사
+       - 📚 예시 보기         → 카테고리 → 예시 선택 → 채팅 시작
+     entry 3분 무동작        → AI가 먼저 인사 (= 모르겠어요와 동일)
+
+   선생님:
+     수행평가 탭에서 활성화 토글 + 학생 진행 현황 표
 ═══════════════════════════════════════ */
+
+// ── 진입 3분 자동 인사 타이머 ──
+function _startAsmtEntryTimer(){
+  _clearAsmtEntryTimer();
+  ASMT_AUTO_TIMER = setTimeout(() => {
+    if(ASMT_VIEW === 'entry' && ST_TAB === 'asmt'){
+      _enterAsmtChat('need-help');
+    }
+  }, 3 * 60 * 1000); // 3분
+}
+
+function _clearAsmtEntryTimer(){
+  if(ASMT_AUTO_TIMER){
+    clearTimeout(ASMT_AUTO_TIMER);
+    ASMT_AUTO_TIMER = null;
+  }
+}
+
+// ── 채팅 모드로 진입 ──
+//   mode: 'have-idea' | 'need-help' | { preset: '... 자동 입력 메시지 ...' }
+async function _enterAsmtChat(mode){
+  _clearAsmtEntryTimer();
+  ASMT_VIEW = 'chat';
+  ASMT_MESSAGES = [];
+  ASMT_CODE = '';
+  ASMT_TURN_COUNT = 0;
+  ASMT_LINE_EXPLAINS = {};
+  ASMT_LOADING = false;
+  render();
+
+  if(mode === 'have-idea'){
+    // 학생이 먼저 입력. 별도 동작 없음.
+    return;
+  }
+
+  // need-help 또는 preset 메시지 → 학생 메시지 또는 AI 인사 자동 시작
+  if(mode && typeof mode === 'object' && mode.preset){
+    // 학생 시뮬레이션 메시지 + AI 응답
+    await _sendAsmtMessage(mode.preset);
+    return;
+  }
+
+  if(mode === 'need-help'){
+    // AI가 먼저 인사 — 사용자 메시지 없이 호출
+    // Gemini는 사용자 메시지가 있어야 응답하므로 "(시작)" 같은 트리거 메시지 자동 추가
+    await _sendAsmtMessage('(학생이 아직 어떤 프로그램을 만들지 정하지 못했습니다. 인사하고 진로/관심사를 물어 아이디어 찾기를 도와주세요.)');
+    return;
+  }
+}
+
+// ── 학생 메시지 전송 + AI 응답 받기 ──
+async function _sendAsmtMessage(userText){
+  if(!userText || !userText.trim()) return;
+  if(ASMT_LOADING) return;
+  if(ASMT_TURN_COUNT >= ASMT_TURN_LIMIT){
+    toast(`대화 한도 ${ASMT_TURN_LIMIT}회를 모두 사용했어요.`, 'err');
+    return;
+  }
+
+  // 사용자 메시지 추가
+  ASMT_MESSAGES.push({
+    role: 'user',
+    content: userText.trim(),
+    ts: Date.now()
+  });
+  ASMT_TURN_COUNT += 1;
+  ASMT_LOADING = true;
+  render();
+  _scrollMsgListToBottom();
+
+  try {
+    // 워커 호출 — 시스템 프롬프트는 서버에 박혀있음
+    const r = await fetch(ASMT_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: ASMT_MESSAGES.map(m => ({ role: m.role, content: m.content }))
+      })
+    });
+    if(!r.ok){
+      const errText = await r.text().catch(() => '');
+      throw new Error(`서버 응답 오류 (${r.status}): ${errText.slice(0, 200)}`);
+    }
+    const data = await r.json();
+    if(data.error){
+      throw new Error(data.error);
+    }
+    const aiText = data.text || '';
+
+    // AI 메시지 추가
+    ASMT_MESSAGES.push({
+      role: 'assistant',
+      content: aiText,
+      ts: Date.now()
+    });
+
+    // 코드 블록 추출 → 우측 패널에 반영
+    const code = _extractAsmtCode(aiText);
+    if(code){
+      ASMT_CODE = code;
+    }
+
+    ASMT_LOADING = false;
+    render();
+    _scrollMsgListToBottom();
+    _saveAsmtSession();
+  } catch(e){
+    ASMT_LOADING = false;
+    // 실패한 학생 메시지는 그대로 둠 (다시 시도 가능)
+    ASMT_MESSAGES.push({
+      role: 'assistant',
+      content: `(⚠️ AI 응답 중 오류가 발생했어요: ${e.message}\n\n잠시 후 다시 시도해 주세요.)`,
+      ts: Date.now(),
+      isError: true
+    });
+    render();
+    _scrollMsgListToBottom();
+  }
+}
+
+// ── 세션 저장 (debounce 1초) ──
+function _saveAsmtSession(){
+  if(!SEL_CLS || !ST_USER) return;
+  if(ASMT_SAVE_TIMER) clearTimeout(ASMT_SAVE_TIMER);
+  ASMT_SAVE_TIMER = setTimeout(async () => {
+    try {
+      await saveAsmtSession(SEL_CLS.id, ST_USER.number, {
+        messages: ASMT_MESSAGES,
+        code: ASMT_CODE,
+        turnCount: ASMT_TURN_COUNT,
+        lineExplains: ASMT_LINE_EXPLAINS,
+        view: ASMT_VIEW
+      });
+    } catch(err){
+      console.warn('[수행평가] 세션 저장 실패:', err);
+    }
+  }, 1000);
+}
+
+// 메시지 영역 스크롤 하단으로
+function _scrollMsgListToBottom(){
+  setTimeout(() => {
+    const el = document.getElementById('asmt-msg-list');
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 30);
+}
 
 // ── 클릭 이벤트 ──
 document.addEventListener('click', async e => {
@@ -16,15 +164,73 @@ document.addEventListener('click', async e => {
   if(!el) return;
   const act = el.dataset;
 
-  // 학생: 진입 카드 클릭 (현재는 토스트 안내만, 다음 commit 에서 채팅 진입)
+  // 학생: 진입 카드 클릭
   if(act.action === 'asmt-start-mode'){
-    toast('이 기능은 다음 업데이트에서 활성화됩니다.', 'ok');
+    const mode = act.mode;
+    if(mode === 'examples'){
+      _clearAsmtEntryTimer();
+      ASMT_VIEW = 'examples';
+      ASMT_EXAMPLES_CAT = null;
+      render();
+      return;
+    }
+    await _enterAsmtChat(mode); // 'have-idea' or 'need-help'
     return;
   }
 
-  // 학생: 이전 세션 이어가기 (다음 commit 에서 채팅 진입)
+  // 학생: 이전 세션 이어가기
   if(act.action === 'asmt-resume'){
-    toast('이어서 하기는 다음 업데이트에서 활성화됩니다.', 'ok');
+    _clearAsmtEntryTimer();
+    ASMT_VIEW = ASMT_MESSAGES.length ? 'chat' : 'entry';
+    render();
+    if(ASMT_VIEW === 'chat') _scrollMsgListToBottom();
+    return;
+  }
+
+  // 학생: 진입 화면으로 돌아가기 (대화는 보존)
+  if(act.action === 'asmt-back-entry'){
+    _clearAsmtEntryTimer();
+    ASMT_VIEW = 'entry';
+    ASMT_EXAMPLES_CAT = null;
+    render();
+    return;
+  }
+
+  // 학생: 카테고리 선택
+  if(act.action === 'asmt-pick-cat'){
+    ASMT_EXAMPLES_CAT = act.cat || null;
+    render();
+    return;
+  }
+  if(act.action === 'asmt-back-cats'){
+    ASMT_EXAMPLES_CAT = null;
+    render();
+    return;
+  }
+
+  // 학생: 예시 클릭 → 채팅 시작 (자동 입력)
+  if(act.action === 'asmt-pick-example'){
+    const cat = ASMT_CATEGORIES.find(c => c.id === ASMT_EXAMPLES_CAT);
+    const ex = cat?.examples[parseInt(act.idx)];
+    if(!ex) return;
+    await _enterAsmtChat({preset: `${ex} 를 만들어주세요.`});
+    return;
+  }
+
+  // 학생: 메시지 전송
+  if(act.action === 'asmt-send'){
+    const input = document.getElementById('asmt-input');
+    const text = input?.value || '';
+    if(!text.trim()) return;
+    if(input) input.value = '';
+    await _sendAsmtMessage(text);
+    return;
+  }
+
+  // 학생: "이 코드로 진행" — 줄별 설명 모드 (다음 commit 에서 구현)
+  if(act.action === 'asmt-proceed-explain'){
+    if(!ASMT_CODE){ toast('아직 코드가 없어요.', 'err'); return; }
+    toast('줄별 설명 모드는 다음 업데이트에서 활성화됩니다.', 'ok');
     return;
   }
 
@@ -62,3 +268,35 @@ document.addEventListener('change', async e => {
     return;
   }
 });
+
+// ── 키보드: Enter 전송 ──
+document.addEventListener('keydown', e => {
+  if(e.target?.id !== 'asmt-input') return;
+  if(e.key !== 'Enter' || e.shiftKey) return;
+  e.preventDefault();
+  const text = e.target.value || '';
+  if(!text.trim()) return;
+  e.target.value = '';
+  _sendAsmtMessage(text);
+});
+
+// ── render 후 처리: 채팅 모드에서 스크롤·포커스 + 진입 화면 타이머 ──
+function afterRenderAssessment(){
+  if(ST_TAB !== 'asmt') {
+    _clearAsmtEntryTimer();
+    return;
+  }
+  if(ASMT_VIEW === 'entry'){
+    _startAsmtEntryTimer();
+  } else if(ASMT_VIEW === 'chat'){
+    _scrollMsgListToBottom();
+    // 입력창 자동 포커스
+    setTimeout(() => {
+      const inp = document.getElementById('asmt-input');
+      if(inp && !inp.disabled) inp.focus();
+    }, 50);
+  }
+}
+
+// 전역 노출 — render.js 의 afterRender 에서 호출
+window.afterRenderAssessment = afterRenderAssessment;

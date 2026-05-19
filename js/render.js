@@ -203,6 +203,11 @@ function afterRender(){
     afterRenderMission();
   }
 
+  // 수행평가 — 채팅 스크롤·포커스·진입 타이머
+  if(typeof afterRenderAssessment === 'function'){
+    afterRenderAssessment();
+  }
+
   // 비주얼 OJ — 첫 렌더링 시 시각화 위젯에 첫 공개 TC 입력 그림 (output 없이)
   const visualCanvas = document.getElementById('oj-visual-canvas');
   if(visualCanvas && OJ_SEL_PROB?.visualType && typeof renderVisualWidget === 'function'){

@@ -13,9 +13,10 @@
 // ══════════════════════════════════════
 
 function vStAssessment(){
-  // 진입 화면 (entry) — 카드 3개. 다음 단계는 다음 commit 에서 구현.
-  if(ASMT_VIEW === 'entry') return vStAsmtEntry();
-  // 다음 단계 (chat/explain/modify/done) 는 차차 추가
+  if(ASMT_VIEW === 'entry')    return vStAsmtEntry();
+  if(ASMT_VIEW === 'examples') return vStAsmtExamples();
+  if(ASMT_VIEW === 'chat')     return vStAsmtChat();
+  // explain / modify / done 은 다음 commit
   return vStAsmtEntry();
 }
 
@@ -73,6 +74,153 @@ function vStAsmtEntry(){
       </div>
     </div>
   `;
+}
+
+// ── 학생: 예시 보기 (카테고리 그리드 / 카테고리 내 예시 목록) ──
+function vStAsmtExamples(){
+  const back = `<div class="asmt-sub-header">
+    <button class="btn-sm" data-action="asmt-back-entry">← 진입 화면으로</button>
+    <div class="asmt-sub-title">${ASMT_EXAMPLES_CAT ? '예시 프로그램 선택' : '진로 카테고리 선택'}</div>
+    <div></div>
+  </div>`;
+
+  if(!ASMT_EXAMPLES_CAT){
+    // 카테고리 8개 그리드
+    const cards = ASMT_CATEGORIES.map(c => `
+      <button class="asmt-cat-card" data-action="asmt-pick-cat" data-cat="${esc(c.id)}">
+        <div class="asmt-cat-emoji">${c.emoji}</div>
+        <div class="asmt-cat-label">${esc(c.label)}</div>
+        <div class="asmt-cat-tag">${esc(c.tagline)}</div>
+      </button>
+    `).join('');
+    return back + `
+      <div class="asmt-cat-grid">${cards}</div>
+      <div class="asmt-entry-note">📌 내 진로가 안 보여도 가장 가까운 분야로 가서 예시를 보고, 채팅에서 직접 다듬어도 좋아요.</div>
+    `;
+  }
+
+  // 선택된 카테고리의 예시 4개
+  const cat = ASMT_CATEGORIES.find(c => c.id === ASMT_EXAMPLES_CAT);
+  if(!cat){
+    ASMT_EXAMPLES_CAT = null;
+    return back;
+  }
+  const items = cat.examples.map((ex, i) => `
+    <button class="asmt-example-row" data-action="asmt-pick-example" data-idx="${i}">
+      <span class="asmt-example-num">${i + 1}</span>
+      <span class="asmt-example-text">${esc(ex)}</span>
+      <span class="asmt-example-arrow">→</span>
+    </button>
+  `).join('');
+  return `<div class="asmt-sub-header">
+      <button class="btn-sm" data-action="asmt-back-cats">← 카테고리</button>
+      <div class="asmt-sub-title">${cat.emoji} ${esc(cat.label)} — 예시 프로그램</div>
+      <div></div>
+    </div>
+    <div class="asmt-example-list">${items}</div>
+    <div class="asmt-entry-note">📌 예시를 클릭하면 AI 에게 "이 프로그램을 만들어주세요" 라고 자동으로 요청해요. 채팅에서 더 다듬을 수 있어요.</div>
+  `;
+}
+
+// ── 학생: 채팅 화면 (좌 채팅 / 우 코드 패널) ──
+function vStAsmtChat(){
+  const turnLeft = Math.max(0, ASMT_TURN_LIMIT - ASMT_TURN_COUNT);
+  const isLimit = turnLeft <= 0;
+
+  // 메시지 말풍선
+  const messages = ASMT_MESSAGES.map(m => {
+    if(m.role === 'user'){
+      return `<div class="asmt-msg asmt-msg-user">
+        <div class="asmt-msg-bubble">${esc(m.content)}</div>
+      </div>`;
+    }
+    // assistant — 마크다운 + 코드 펜스 제거하여 렌더 (코드는 우측 패널로 옮겨감)
+    const rendered = _renderAsmtAssistant(m.content);
+    return `<div class="asmt-msg asmt-msg-ai">
+      <div class="asmt-msg-avatar">🤖</div>
+      <div class="asmt-msg-bubble">${rendered}</div>
+    </div>`;
+  }).join('');
+
+  const loadingBubble = ASMT_LOADING ? `
+    <div class="asmt-msg asmt-msg-ai">
+      <div class="asmt-msg-avatar">🤖</div>
+      <div class="asmt-msg-bubble asmt-msg-loading">
+        <span></span><span></span><span></span>
+      </div>
+    </div>` : '';
+
+  // 우측 코드 패널
+  const codePanel = ASMT_CODE
+    ? `<div class="asmt-code-head">
+         <span>💻 AI가 만든 코드 (${ASMT_CODE.split('\n').length}줄)</span>
+         <button class="btn-p btn-sm" data-action="asmt-proceed-explain" ${ASMT_LOADING ? 'disabled' : ''}>📝 이 코드로 진행</button>
+       </div>
+       <pre class="asmt-code-body"><code>${esc(ASMT_CODE)}</code></pre>`
+    : `<div class="asmt-code-empty">
+         <div class="asmt-code-empty-icon">💻</div>
+         <div class="asmt-code-empty-msg">AI에게 만들고 싶은 프로그램을 설명해주세요.<br>코드가 만들어지면 여기에 표시돼요.</div>
+       </div>`;
+
+  const inputDisabled = ASMT_LOADING || isLimit;
+  const placeholder = isLimit
+    ? '대화 한도(30회)를 모두 사용했어요. "이 코드로 진행" 버튼을 눌러주세요.'
+    : ASMT_LOADING
+      ? 'AI가 답변 중이에요...'
+      : (ASMT_MESSAGES.length === 0
+          ? '어떤 프로그램을 만들어볼까요? (예: 학생 점수 평균을 구하는 프로그램)'
+          : '메시지를 입력하세요... (Enter로 전송, Shift+Enter 줄바꿈)');
+
+  return `
+    <div class="asmt-chat-wrap">
+      <div class="asmt-chat-bar">
+        <button class="btn-sm" data-action="asmt-back-entry">← 처음으로</button>
+        <div class="asmt-chat-bar-stats">
+          <span class="asmt-turn-chip${turnLeft <= 5 ? ' warn' : ''}">대화 ${ASMT_TURN_COUNT}/${ASMT_TURN_LIMIT}</span>
+        </div>
+      </div>
+
+      <div class="asmt-chat-split">
+        <div class="asmt-chat-left">
+          <div class="asmt-msg-list" id="asmt-msg-list">
+            ${messages || '<div class="asmt-msg-empty">AI에게 첫 메시지를 보내보세요 👇</div>'}
+            ${loadingBubble}
+          </div>
+          <div class="asmt-input-row">
+            <textarea
+              id="asmt-input"
+              class="asmt-input"
+              rows="2"
+              placeholder="${esc(placeholder)}"
+              ${inputDisabled ? 'disabled' : ''}
+            ></textarea>
+            <button class="btn-p asmt-send-btn" data-action="asmt-send" ${inputDisabled ? 'disabled' : ''}>전송</button>
+          </div>
+        </div>
+
+        <div class="asmt-chat-right">${codePanel}</div>
+      </div>
+    </div>
+  `;
+}
+
+// AI 응답 텍스트에서 코드 펜스 제거 + 마크다운 간단 렌더
+function _renderAsmtAssistant(text){
+  if(!text) return '';
+  // ```python ... ``` 또는 ``` ... ``` 펜스 제거 (코드는 우측 패널로 옮겨감)
+  const stripped = text.replace(/```[\w-]*\n[\s\S]*?```/g, '*(코드는 오른쪽 패널을 확인해주세요 →)*');
+  // marked 가 로드돼 있으면 사용, 아니면 간단 이스케이프
+  if(typeof marked !== 'undefined'){
+    return marked.parse(stripped);
+  }
+  return esc(stripped).replace(/\n/g, '<br>');
+}
+
+// AI 응답에서 첫 번째 python 코드 블록 추출 (없으면 null)
+function _extractAsmtCode(text){
+  if(!text) return null;
+  const m = text.match(/```(?:python|py)?\n([\s\S]*?)```/);
+  return m ? m[1].replace(/\n$/, '') : null;
 }
 
 // ══════════════════════════════════════
