@@ -70,12 +70,21 @@ function setST(t){
     ASMT_CODE = '';
     ASMT_TURN_COUNT = 0;
     ASMT_LINE_EXPLAINS = {};
+    ASMT_MOD_CODE = '';
+    ASMT_MOD_REASON = '';
+    ASMT_MOD_STDIN = '';
+    ASMT_RUN_RESULT = null;
+    ASMT_SUBMITTED_AT = null;
     loadAsmtSession(SEL_CLS.id, ST_USER.number).then(s => {
       if(s){
         ASMT_MESSAGES = Array.isArray(s.messages) ? s.messages : [];
         ASMT_CODE = s.code || '';
         ASMT_TURN_COUNT = s.turnCount || 0;
         ASMT_LINE_EXPLAINS = s.lineExplains || {};
+        ASMT_MOD_CODE = s.modCode || '';
+        ASMT_MOD_REASON = s.modReason || '';
+        ASMT_MOD_STDIN = s.modStdin || '';
+        ASMT_SUBMITTED_AT = s.submittedAt || null;
         ASMT_VIEW = s.view || (ASMT_MESSAGES.length ? 'chat' : 'entry');
       }
       render();

@@ -17,7 +17,8 @@ function vStAssessment(){
   if(ASMT_VIEW === 'examples') return vStAsmtExamples();
   if(ASMT_VIEW === 'chat')     return vStAsmtChat();
   if(ASMT_VIEW === 'explain')  return vStAsmtExplain();
-  // modify / done 은 다음 commit
+  if(ASMT_VIEW === 'modify')   return vStAsmtModify();
+  if(ASMT_VIEW === 'done')     return vStAsmtDone();
   return vStAsmtEntry();
 }
 
@@ -286,6 +287,139 @@ function vStAsmtExplain(){
       </div>
 
       <div class="asmt-explain-list">${rows}</div>
+    </div>
+  `;
+}
+
+// ── 학생: 변형 과제 (조건문/반복문 활용 + 코드 실행) ──
+function vStAsmtModify(){
+  const origCode = ASMT_CODE || '';
+  const curCode = ASMT_MOD_CODE || origCode;
+  const codeDiff = curCode !== origCode;
+  const reasonFilled = (ASMT_MOD_REASON || '').trim().length >= 10;
+  const canSubmit = codeDiff && reasonFilled;
+
+  // 원본 코드 좌측 (참고용)
+  const origLines = origCode.split('\n').map((src, i) =>
+    `<div class="asmt-mod-orig-line"><span class="asmt-line-no">${i+1}</span><span class="asmt-line-src">${esc(src) || ' '}</span></div>`
+  ).join('');
+
+  // 실행 결과 영역
+  let runBlock = '';
+  if(ASMT_RUNNING){
+    runBlock = `<div class="asmt-mod-run-loading">⏳ 실행 중... (첫 실행은 Pyodide 로딩으로 10~15초 걸려요)</div>`;
+  } else if(ASMT_RUN_RESULT){
+    const r = ASMT_RUN_RESULT;
+    runBlock = `<div class="asmt-mod-run-result ${r.success ? 'ok' : 'err'}">
+      <div class="asmt-mod-run-head">${r.success ? '✅ 실행 결과' : '⚠️ 실행 오류'}</div>
+      ${r.output ? `<pre class="asmt-mod-run-out">${esc(r.output)}</pre>` : ''}
+      ${r.error ? `<pre class="asmt-mod-run-err">${esc(r.error)}</pre>` : ''}
+    </div>`;
+  }
+
+  return `
+    <div class="asmt-mod-wrap">
+      <div class="asmt-mod-bar">
+        <div class="asmt-mod-title">🛠️ 3단계 — 변형 과제</div>
+        <button class="btn-p btn-sm" data-action="asmt-submit-final" ${canSubmit ? '' : 'disabled'}>
+          ${canSubmit ? '✓ 제출' : (codeDiff ? '변경 이유를 적어주세요' : '코드를 수정해주세요')}
+        </button>
+      </div>
+
+      <div class="asmt-mod-task">
+        <div class="asmt-mod-task-label">📝 과제</div>
+        <div class="asmt-mod-task-body">
+          위 AI가 만든 코드를 수정해서 <b>조건문(if/elif/else)</b> 또는 <b>반복문(for/while)</b> 중
+          <b>한 가지를 새로 활용</b> 해 보세요.
+          이미 그 문법이 코드에 있다면 <b>한 번 더 추가</b> 해 주세요.
+          어떤 응용을 할지는 본인이 자유롭게 결정합니다.
+        </div>
+      </div>
+
+      <div class="asmt-mod-split">
+        <div class="asmt-mod-orig">
+          <div class="asmt-mod-orig-head">📖 원본 코드 (수정 전 — 참고용)</div>
+          <pre class="asmt-mod-orig-body">${origLines}</pre>
+        </div>
+
+        <div class="asmt-mod-edit">
+          <div class="asmt-mod-edit-head">
+            ✏️ 내가 수정한 코드 ${codeDiff ? '<span class="asmt-mod-changed">변경됨</span>' : ''}
+          </div>
+          <textarea
+            id="asmt-mod-code"
+            class="asmt-mod-code-area"
+            spellcheck="false"
+            placeholder="여기에 코드를 수정하세요..."
+            data-action="asmt-mod-code-input"
+          >${esc(curCode)}</textarea>
+        </div>
+      </div>
+
+      <div class="asmt-mod-run-row">
+        <div class="asmt-mod-stdin">
+          <label>📥 실행 시 입력값 (input() 호출 1줄에 하나씩)</label>
+          <textarea
+            id="asmt-mod-stdin"
+            class="asmt-mod-stdin-area"
+            spellcheck="false"
+            placeholder="코드에 input()이 없으면 비워두세요"
+            data-action="asmt-mod-stdin-input"
+          >${esc(ASMT_MOD_STDIN)}</textarea>
+        </div>
+        <div class="asmt-mod-run-actions">
+          <button class="btn-p" data-action="asmt-run-mod" ${ASMT_RUNNING ? 'disabled' : ''}>
+            ${ASMT_RUNNING ? '⏳ 실행 중...' : '▶ 실행'}
+          </button>
+          <button class="btn-sm" data-action="asmt-reset-mod" title="원본 코드로 되돌리기">↺ 원본으로</button>
+        </div>
+      </div>
+
+      ${runBlock}
+
+      <div class="asmt-mod-reason">
+        <label>💬 어떤 부분을 어떻게 바꿨고, 왜 그렇게 바꿨나요? (최소 10자)</label>
+        <textarea
+          id="asmt-mod-reason"
+          class="asmt-mod-reason-area"
+          spellcheck="false"
+          placeholder="예: 13번째 줄에 if 문을 추가해서, 점수가 90 이상이면 '훌륭해요!'라는 추가 메시지가 출력되도록 했어요. 학생의 성취감을 높여주기 위해서요."
+          data-action="asmt-mod-reason-input"
+        >${esc(ASMT_MOD_REASON)}</textarea>
+        <div class="asmt-mod-reason-count">
+          ${(ASMT_MOD_REASON || '').trim().length} / 최소 10자
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── 학생: 제출 완료 화면 ──
+function vStAsmtDone(){
+  const submittedAt = ASMT_SUBMITTED_AT ? fmtDt(ASMT_SUBMITTED_AT) : '';
+  const lineExplainsCount = Object.values(ASMT_LINE_EXPLAINS || {}).filter(v => (v||'').trim()).length;
+  return `
+    <div class="asmt-done-wrap">
+      <div class="asmt-done-card">
+        <div class="asmt-done-icon">🎉</div>
+        <div class="asmt-done-title">수행평가 제출 완료!</div>
+        <div class="asmt-done-sub">수고하셨어요. 선생님이 확인하시면 결과가 반영됩니다.</div>
+        ${submittedAt ? `<div class="asmt-done-time">제출 시각: ${submittedAt}</div>` : ''}
+      </div>
+
+      <div class="asmt-done-summary">
+        <div class="asmt-done-summary-title">📋 제출 내역 요약</div>
+        <table class="asmt-done-table">
+          <tr><td>AI 와의 대화</td><td>${ASMT_MESSAGES.length}개 메시지</td></tr>
+          <tr><td>줄별 의미 적기</td><td>${lineExplainsCount}줄 설명 완료</td></tr>
+          <tr><td>변형 과제 코드</td><td>${(ASMT_MOD_CODE || '').split('\n').length}줄 수정 완료</td></tr>
+          <tr><td>변경 이유</td><td>${(ASMT_MOD_REASON || '').length}자 작성</td></tr>
+        </table>
+      </div>
+
+      <div class="asmt-done-note">
+        💡 제출 후에는 수정할 수 없어요. 다른 친구들도 모두 마치면 선생님이 종합 피드백을 알려주실 거예요.
+      </div>
     </div>
   `;
 }

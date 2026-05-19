@@ -110,6 +110,12 @@ let ASMT_TC_SEL_SNUM = null;   // 선생님이 보고 있는 학생 학번
 let ASMT_ALL_SESSIONS = {};    // 선생님: { [studentNum]: session } — 전체 세션 캐시
 let ASMT_EXAMPLES_CAT = null;  // 학생: 예시 보기에서 선택한 카테고리 id (null = 카테고리 목록)
 let ASMT_SAVE_TIMER = null;    // 세션 저장 debounce 타이머
+let ASMT_MOD_CODE   = '';      // 4단계 변형 과제 — 학생이 수정한 코드
+let ASMT_MOD_REASON = '';      // 4단계 — 어떻게/왜 수정했는지 설명
+let ASMT_MOD_STDIN  = '';      // 변형 코드 실행 시 미리 입력값
+let ASMT_RUN_RESULT = null;    // 실행 결과 { output, error, success }
+let ASMT_RUNNING    = false;   // Pyodide 실행 중
+let ASMT_SUBMITTED_AT = null;  // 제출 완료 시각 (있으면 'done' 표시)
 const ASMT_TURN_LIMIT = 30;    // 학생당 최대 메시지 수
 const ASMT_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 

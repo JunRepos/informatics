@@ -1226,3 +1226,72 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
   .asmt-line-code{border-right:none;border-bottom:1px solid var(--border)}
 }
 
+/* ───── 변형 과제 모드 ───── */
+.asmt-mod-wrap{max-width:1080px;margin:0 auto}
+.asmt-mod-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);position:sticky;top:0;z-index:10}
+.asmt-mod-title{font-size:14px;font-weight:700;color:var(--text)}
+.asmt-mod-task{background:#fef3c7;border:1.5px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:14px;color:#78350f}
+[data-theme="dark"] .asmt-mod-task{background:#3a2900;border-color:#7c5008;color:#FCD34D}
+.asmt-mod-task-label{font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:6px}
+.asmt-mod-task-body{font-size:13.5px;line-height:1.7}
+
+.asmt-mod-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.asmt-mod-orig, .asmt-mod-edit{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;display:flex;flex-direction:column}
+.asmt-mod-orig-head, .asmt-mod-edit-head{padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;color:var(--text2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.asmt-mod-orig-body{margin:0;padding:10px 4px;background:var(--bg);font-family:'Consolas','Roboto Mono',monospace;font-size:13px;line-height:1.55;overflow-x:auto;flex:1;min-height:280px;max-height:420px;overflow-y:auto}
+.asmt-mod-orig-line{display:flex;padding:0 12px;color:var(--text2)}
+.asmt-mod-orig-line .asmt-line-no{min-width:32px;color:var(--text3);text-align:right;margin-right:14px;user-select:none}
+.asmt-mod-orig-line .asmt-line-src{flex:1;white-space:pre;color:var(--text2)}
+.asmt-mod-code-area{width:100%;flex:1;min-height:280px;max-height:420px;padding:10px 14px;background:var(--bg);color:var(--text);font-family:'Consolas','Roboto Mono',monospace;font-size:13.5px;line-height:1.55;border:none;outline:none;resize:vertical;box-sizing:border-box;tab-size:4;white-space:pre}
+.asmt-mod-changed{display:inline-block;font-size:10.5px;font-weight:700;background:var(--accent);color:#fff;padding:2px 8px;border-radius:8px}
+
+.asmt-mod-run-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px}
+.asmt-mod-stdin{display:flex;flex-direction:column;gap:6px}
+.asmt-mod-stdin label{font-size:12px;font-weight:600;color:var(--text2)}
+.asmt-mod-stdin-area{min-height:50px;padding:8px 10px;font-family:monospace;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);resize:vertical;outline:none}
+.asmt-mod-stdin-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.asmt-mod-run-actions{display:flex;gap:6px;align-items:end;flex-wrap:wrap}
+
+.asmt-mod-run-loading{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;text-align:center}
+[data-theme="dark"] .asmt-mod-run-loading{background:#1a2747;border-color:#1e3a5f;color:#93C5FD}
+.asmt-mod-run-result{border-radius:10px;padding:10px 14px;margin-bottom:12px;border:1px solid;font-size:13px}
+.asmt-mod-run-result.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+.asmt-mod-run-result.err{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+[data-theme="dark"] .asmt-mod-run-result.ok{background:#0d2218;border-color:#1e5b34;color:#86efac}
+[data-theme="dark"] .asmt-mod-run-result.err{background:#3a0e0e;border-color:#7f1d1d;color:#fca5a5}
+.asmt-mod-run-head{font-weight:700;margin-bottom:6px;font-size:12.5px}
+.asmt-mod-run-out, .asmt-mod-run-err{margin:0;padding:6px 8px;background:rgba(0,0,0,.05);border-radius:4px;font-family:'Consolas',monospace;font-size:12.5px;white-space:pre-wrap;color:inherit}
+.asmt-mod-run-err{margin-top:4px}
+
+.asmt-mod-reason{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px}
+.asmt-mod-reason label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px}
+.asmt-mod-reason-area{width:100%;min-height:80px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13.5px;line-height:1.6;resize:vertical;outline:none;box-sizing:border-box}
+.asmt-mod-reason-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.asmt-mod-reason-count{margin-top:4px;font-size:11px;color:var(--text3);text-align:right}
+
+@media (max-width: 900px){
+  .asmt-mod-split{grid-template-columns:1fr}
+  .asmt-mod-run-row{grid-template-columns:1fr}
+}
+
+/* ───── 제출 완료 ───── */
+.asmt-done-wrap{max-width:680px;margin:0 auto}
+.asmt-done-card{text-align:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:1.5px solid #f59e0b;border-radius:14px;padding:34px 24px;margin-bottom:18px}
+[data-theme="dark"] .asmt-done-card{background:linear-gradient(135deg,#3a2900 0%,#5c3f00 100%);border-color:#7c5008}
+.asmt-done-icon{font-size:54px;margin-bottom:8px}
+.asmt-done-title{font-size:22px;font-weight:800;color:#78350f;margin-bottom:6px}
+[data-theme="dark"] .asmt-done-title{color:#FCD34D}
+.asmt-done-sub{font-size:13.5px;color:#92400e;margin-bottom:8px}
+[data-theme="dark"] .asmt-done-sub{color:#FDE68A}
+.asmt-done-time{font-size:12px;color:var(--text3);background:rgba(255,255,255,.4);display:inline-block;padding:3px 12px;border-radius:12px;margin-top:6px}
+
+.asmt-done-summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:14px;box-shadow:var(--sh)}
+.asmt-done-summary-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+.asmt-done-table{width:100%;font-size:13px;color:var(--text)}
+.asmt-done-table td{padding:6px 0;border-bottom:1px dashed var(--border)}
+.asmt-done-table td:first-child{color:var(--text2);font-weight:500}
+.asmt-done-table td:last-child{text-align:right;font-weight:700}
+.asmt-done-table tr:last-child td{border-bottom:none}
+
+.asmt-done-note{background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2);text-align:center;line-height:1.6}
+
