@@ -16,8 +16,19 @@ function vStAssessment(){
   if(ASMT_VIEW === 'entry')    return vStAsmtEntry();
   if(ASMT_VIEW === 'examples') return vStAsmtExamples();
   if(ASMT_VIEW === 'chat')     return vStAsmtChat();
-  // explain / modify / done 은 다음 commit
+  if(ASMT_VIEW === 'explain')  return vStAsmtExplain();
+  // modify / done 은 다음 commit
   return vStAsmtEntry();
+}
+
+// 코드의 의미있는 줄(빈 줄·공백만인 줄 제외) 인덱스 배열
+function _asmtMeaningfulLines(code){
+  const lines = (code || '').split('\n');
+  const idxs = [];
+  for(let i = 0; i < lines.length; i++){
+    if(lines[i].trim()) idxs.push(i);
+  }
+  return idxs;
 }
 
 function vStAsmtEntry(){
@@ -221,6 +232,62 @@ function _extractAsmtCode(text){
   if(!text) return null;
   const m = text.match(/```(?:python|py)?\n([\s\S]*?)```/);
   return m ? m[1].replace(/\n$/, '') : null;
+}
+
+// ── 학생: 줄별 설명 모드 (채팅 잠금) ──
+function vStAsmtExplain(){
+  const lines = (ASMT_CODE || '').split('\n');
+  const meaningfulIdxs = _asmtMeaningfulLines(ASMT_CODE);
+  const total = meaningfulIdxs.length;
+  const done = meaningfulIdxs.filter(i => (ASMT_LINE_EXPLAINS[i] || '').trim()).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const allDone = done >= total && total > 0;
+
+  // 코드 줄 한 줄씩 + 옆에 설명 입력란
+  const rows = lines.map((src, i) => {
+    const isMeaningful = !!src.trim();
+    const saved = ASMT_LINE_EXPLAINS[i] || '';
+    return `<div class="asmt-line-row${isMeaningful ? '' : ' empty'}">
+      <div class="asmt-line-code">
+        <span class="asmt-line-no">${i + 1}</span>
+        <span class="asmt-line-src">${esc(src) || ' '}</span>
+      </div>
+      ${isMeaningful ? `
+        <input
+          class="asmt-line-explain ${saved.trim() ? 'filled' : ''}"
+          type="text"
+          data-action="asmt-line-input"
+          data-idx="${i}"
+          value="${esc(saved)}"
+          placeholder="이 줄의 의미를 자기 말로 적어주세요..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+      ` : `<div class="asmt-line-explain-empty">(빈 줄)</div>`}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="asmt-explain-wrap">
+      <div class="asmt-explain-bar">
+        <div class="asmt-explain-title">📝 2단계 — 줄별 의미 적기</div>
+        <div class="asmt-explain-progress">
+          <span class="asmt-explain-count">${done} / ${total} 줄 완료</span>
+          <div class="asmt-explain-bar-track"><div class="asmt-explain-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <button class="btn-p btn-sm" data-action="asmt-proceed-modify" ${allDone ? '' : 'disabled'}>
+          ${allDone ? '다음: 변형 과제 →' : `${total - done}줄 더 채우기`}
+        </button>
+      </div>
+
+      <div class="asmt-explain-info">
+        🤖 AI 채팅은 잠겼어요. 코드를 보면서 각 줄이 어떤 일을 하는지 <b>자기 말로</b> 적어주세요.
+        틀려도 괜찮으니 자신 있게 적어보세요. 헷갈리는 줄은 자기 생각을 그대로 써도 OK 예요.
+      </div>
+
+      <div class="asmt-explain-list">${rows}</div>
+    </div>
+  `;
 }
 
 // ══════════════════════════════════════

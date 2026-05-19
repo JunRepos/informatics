@@ -227,10 +227,20 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: "이 코드로 진행" — 줄별 설명 모드 (다음 commit 에서 구현)
+  // 학생: "이 코드로 진행" → 줄별 설명 모드 진입 (채팅 잠금)
   if(act.action === 'asmt-proceed-explain'){
     if(!ASMT_CODE){ toast('아직 코드가 없어요.', 'err'); return; }
-    toast('줄별 설명 모드는 다음 업데이트에서 활성화됩니다.', 'ok');
+    if(!confirm('이 코드로 진행할까요?\n\n진행 후에는 AI와 더 이상 대화할 수 없어요. 코드를 더 다듬고 싶다면 "취소"를 눌러주세요.')) return;
+    ASMT_VIEW = 'explain';
+    ASMT_LINE_EXPLAINS = ASMT_LINE_EXPLAINS || {};
+    render();
+    _saveAsmtSession();
+    return;
+  }
+
+  // 학생: 줄별 설명 → 변형 과제 (다음 commit 에서 구현)
+  if(act.action === 'asmt-proceed-modify'){
+    toast('변형 과제 모드는 다음 업데이트에서 활성화됩니다.', 'ok');
     return;
   }
 
@@ -279,6 +289,41 @@ document.addEventListener('keydown', e => {
   e.target.value = '';
   _sendAsmtMessage(text);
 });
+
+// ── 줄별 설명 입력 — 실시간 저장 (debounce) + 진행률 갱신 ──
+let _asmtLineProgressTimer = null;
+document.addEventListener('input', e => {
+  const t = e.target;
+  if(!t || t.dataset?.action !== 'asmt-line-input') return;
+  const idx = parseInt(t.dataset.idx);
+  const v = t.value || '';
+  ASMT_LINE_EXPLAINS[idx] = v;
+  // 입력 칸 채워짐 상태 토글 (스타일)
+  if(v.trim()){ t.classList.add('filled'); } else { t.classList.remove('filled'); }
+  // 진행률은 너무 자주 re-render 하면 포커스 잃으니, 카운트만 갱신
+  _updateAsmtExplainProgress();
+  // 세션 저장 debounce
+  _saveAsmtSession();
+});
+
+function _updateAsmtExplainProgress(){
+  if(ASMT_VIEW !== 'explain') return;
+  const meaningful = _asmtMeaningfulLines(ASMT_CODE);
+  const total = meaningful.length;
+  const done = meaningful.filter(i => (ASMT_LINE_EXPLAINS[i] || '').trim()).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const countEl = document.querySelector('.asmt-explain-count');
+  const fillEl = document.querySelector('.asmt-explain-bar-fill');
+  if(countEl) countEl.textContent = `${done} / ${total} 줄 완료`;
+  if(fillEl) fillEl.style.width = pct + '%';
+  // 다음 버튼 활성화
+  const nextBtn = document.querySelector('[data-action="asmt-proceed-modify"]');
+  if(nextBtn){
+    const allDone = done >= total && total > 0;
+    nextBtn.disabled = !allDone;
+    nextBtn.textContent = allDone ? '다음: 변형 과제 →' : `${total - done}줄 더 채우기`;
+  }
+}
 
 // ── render 후 처리: 채팅 모드에서 스크롤·포커스 + 진입 화면 타이머 ──
 function afterRenderAssessment(){

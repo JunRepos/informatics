@@ -38,7 +38,8 @@ function applyWrapWidth(){
     if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
-    else if(ST_TAB === 'asmt' && (ASMT_VIEW === 'chat' || ASMT_VIEW === 'explain' || ASMT_VIEW === 'modify')) cls = 'full';
+    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'chat') cls = 'full';
+    else if(ST_TAB === 'asmt' && (ASMT_VIEW === 'explain' || ASMT_VIEW === 'modify')) cls = 'wide';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
 }
