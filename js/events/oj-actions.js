@@ -610,13 +610,13 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 선생님: JSON 템플릿 업로드 — 파일 선택 → 한 번에 여러 문제 등록
-  if(act.action === 'oj-import-json'){
+  // 선생님: Markdown 업로드 — 파일 선택 → 파싱 → 한 번에 여러 문제 등록
+  if(act.action === 'oj-import-md'){
     const cid = TC_CLS?.id;
     if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,application/json';
+    input.accept = '.md,.markdown,.txt,text/markdown,text/plain';
     input.style.display = 'none';
     document.body.appendChild(input);
     input.onchange = async () => {
@@ -625,29 +625,19 @@ document.addEventListener('click', async e => {
       if(!file) return;
       try {
         const text = await file.text();
-        const data = JSON.parse(text);
-        const problems = Array.isArray(data) ? data : (data.problems || []);
-        if(!problems.length){ toast('JSON에서 문제를 찾을 수 없어요.', 'err'); return; }
-        // 검증
-        for(let i = 0; i < problems.length; i++){
-          const p = problems[i];
-          if(!p || typeof p !== 'object' || !p.title || !p.description){
-            toast(`문제 ${i+1}: title / description 필수`, 'err');
-            return;
-          }
-          if(!Array.isArray(p.testCases) || !p.testCases.length){
-            toast(`"${p.title}" 에 테스트 케이스가 없어요.`, 'err');
-            return;
-          }
-          for(const tc of p.testCases){
-            if(typeof tc.input !== 'string' || typeof tc.expectedOutput !== 'string'){
-              toast(`"${p.title}" 테스트 케이스의 input/expectedOutput은 문자열이어야 해요.`, 'err');
-              return;
-            }
-          }
+        let problems;
+        try {
+          problems = parseOJMarkdown(text);
+        } catch(perr){
+          toast('Markdown 파싱 오류: ' + perr.message, 'err');
+          return;
+        }
+        if(!problems.length){
+          toast('파일에서 문제를 찾을 수 없어요. (각 문제는 "# 제목" 으로 시작해야 해요)', 'err');
+          return;
         }
         if(!confirm(`${TC_CLS.label} 에 OJ 문제 ${problems.length}개를 등록할까요?\n\n파일: ${file.name}`)) return;
-        const btn = document.querySelector('[data-action="oj-import-json"]');
+        const btn = document.querySelector('[data-action="oj-import-md"]');
         if(btn){ btn.disabled = true; }
         const orig = btn ? btn.textContent : '';
         try {
@@ -685,82 +675,37 @@ document.addEventListener('click', async e => {
           if(btn){ btn.disabled = false; btn.textContent = orig; }
         }
       } catch(err){
-        toast('JSON 읽기 실패: ' + err.message, 'err');
+        toast('파일 읽기 실패: ' + err.message, 'err');
       }
     };
     input.click();
     return;
   }
 
-  // 선생님: 샘플 JSON 양식 다운로드 (편집해서 다시 업로드)
+  // 선생님: 샘플 Markdown 양식 다운로드 (편집해서 다시 업로드)
   if(act.action === 'oj-download-sample'){
-    const sample = {
-      version: 1,
-      problems: [
-        {
-          title: "🧪 예시: 두 수의 합",
-          description: "## 문제\n두 정수를 입력받아 합을 출력하세요.\n\n## 입력\n- 첫 줄: 두 정수 (공백 구분)\n\n## 출력\n- 두 수의 합",
-          starterCode: "a, b = map(int, input().split())\n# 여기에 코드를 작성하세요\n",
-          testCases: [
-            {input: "3 5", expectedOutput: "8", isHidden: false},
-            {input: "10 20", expectedOutput: "30", isHidden: false},
-            {input: "100 200", expectedOutput: "300", isHidden: true}
-          ]
-        },
-        {
-          title: "🎵 예시: 가장 긴 노래 (비주얼 OJ)",
-          description: "## 문제\n재생목록에서 가장 긴 노래의 인덱스(0부터)와 그 길이를 출력하세요.\n\n## 입력\n- 첫 줄: N (노래 개수)\n- 둘째 줄: N개 정수 (각 길이, 초)\n\n## 출력\n- 첫 줄: 가장 긴 노래의 인덱스\n- 둘째 줄: 그 길이",
-          starterCode: "n = int(input())\n# split·map: 공백으로 나눠 정수 리스트로 변환\nlengths = list(map(int, input().split()))\n# 여기에 코드를 작성하세요\n",
-          visualType: "playlist-bars",
-          testCases: [
-            {input: "5\n180 240 195 320 210", expectedOutput: "3\n320", isHidden: false},
-            {input: "3\n100 200 150", expectedOutput: "1\n200", isHidden: true}
-          ]
-        }
-      ]
-    };
-    const blob = new Blob([JSON.stringify(sample, null, 2)], {type:'application/json'});
+    const sample = OJ_MD_SAMPLE;
+    const blob = new Blob([sample], {type:'text/markdown;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'oj-template-sample.json';
+    a.href = url; a.download = 'oj-template-sample.md';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast('샘플 양식이 다운로드됐어요. 편집한 뒤 📥 업로드 하세요.', 'ok');
+    toast('샘플 양식(.md)이 다운로드됐어요. 편집한 뒤 📥 업로드 하세요.', 'ok');
     return;
   }
 
-  // 선생님: 현재 반 문제 전체 → JSON 내보내기 (백업 / 다른 반 이동용)
-  if(act.action === 'oj-export-json'){
+  // 선생님: 현재 반 문제 전체 → Markdown 내보내기 (백업 / 다른 반 이동용)
+  if(act.action === 'oj-export-md'){
     const cid = TC_CLS?.id;
     if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
     if(!OJ_PROBLEMS.length){ toast('내보낼 문제가 없어요.', 'err'); return; }
-    const stripMeta = (s) => (s || '')
-      .replace(/^<!--\s*visual:[^>]*-->\s*\n?/, '')
-      .replace(/^<!--\s*starter:[^>]*-->\s*\n?/, '');
-    const out = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      classId: cid,
-      problems: OJ_PROBLEMS.map(p => {
-        const obj = {
-          title: p.title || '',
-          description: stripMeta(p.description),
-          testCases: (p.testCases || []).map(tc => ({
-            input: tc.input || '',
-            expectedOutput: tc.expectedOutput || '',
-            isHidden: !!tc.isHidden
-          }))
-        };
-        if(p.starterCode) obj.starterCode = p.starterCode;
-        if(p.visualType) obj.visualType = p.visualType;
-        return obj;
-      })
-    };
-    const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+    const md = buildOJMarkdown(OJ_PROBLEMS);
+    const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const dateStr = new Date().toISOString().slice(0,10);
-    a.href = url; a.download = `oj-${cid}-${dateStr}.json`;
+    a.href = url; a.download = `oj-${cid}-${dateStr}.md`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast(`✓ ${OJ_PROBLEMS.length}개 문제를 내보냈어요`, 'ok');
@@ -830,3 +775,343 @@ document.addEventListener('click', async e => {
   }
 });
 
+
+// ══════════════════════════════════════
+//  OJ Markdown 파서 / 직렬화
+//
+//  형식 (한 파일에 여러 문제):
+//    # 문제 제목
+//    <!-- visual:playlist-bars -->     ← 선택 (비주얼 OJ 위젯)
+//
+//    ## 설명
+//    (마크다운 본문 — 입력/출력/예시 등 자유롭게)
+//
+//    ## 시작 코드
+//    ```python
+//    a = int(input())
+//    ```
+//
+//    ## 테스트
+//
+//    ### 케이스 1
+//    입력:
+//    ```
+//    3 5
+//    ```
+//    출력:
+//    ```
+//    8
+//    ```
+//
+//    ### 케이스 2 (숨김)
+//    ...
+//
+//  새 문제는 다시 "# 제목" 으로 시작 (구분자 불필요).
+//  fenced code block (``` ... ```) 내부에 # 가 있으면 무시됨.
+// ══════════════════════════════════════
+
+function parseOJMarkdown(text){
+  // 줄 단위 + fenced block 추적해서 problem 들로 분할
+  const lines = (text || '').replace(/\r\n/g, '\n').split('\n');
+  const problems = [];
+  let cur = null;
+  let inFence = false;
+  for(const line of lines){
+    const isFence = /^\s*```/.test(line);
+    if(isFence){
+      // fenced 진입/탈출 토글, 현재 문제 본문에 추가
+      if(cur) cur._body.push(line);
+      inFence = !inFence;
+      continue;
+    }
+    if(!inFence && /^#\s+/.test(line)){
+      // 새 문제 시작
+      if(cur) problems.push(cur);
+      cur = {_title: line.replace(/^#\s+/, '').trim(), _body: []};
+      continue;
+    }
+    if(cur) cur._body.push(line);
+    // cur가 null이면 (첫 # 전) 그냥 무시 — 앞쪽 자유 노트 허용
+  }
+  if(cur) problems.push(cur);
+
+  // 각 문제의 본문을 섹션으로 분해
+  const result = [];
+  for(const p of problems){
+    const parsed = _parseOJProblemBody(p._title, p._body.join('\n'));
+    if(parsed) result.push(parsed);
+  }
+  return result;
+}
+
+function _parseOJProblemBody(title, body){
+  // visual 메타 (HTML 주석)
+  let visualType = null;
+  body = body.replace(/<!--\s*visual:\s*([\w-]+)\s*-->/i, (m, v) => { visualType = v; return ''; });
+
+  // 본문을 ##/### 헤더로 섹션 분리 (fenced 안의 # 는 무시)
+  const sections = _splitMdSections(body);
+  // sections: [{level, title, content}] — content 는 다음 같은/낮은 레벨 헤더 전까지
+
+  // 섹션 라벨 정규화 (대소문자/공백 무시)
+  const norm = (s) => (s || '').toLowerCase().replace(/\s/g, '');
+  let description = '';
+  let starterCode = '';
+  let testRawSections = []; // 케이스 sub-sections
+
+  for(let i = 0; i < sections.length; i++){
+    const sec = sections[i];
+    if(sec.level !== 2) continue;
+    const t = norm(sec.title);
+    if(t === '설명' || t === 'description'){
+      description = sec.content.trim();
+    } else if(t === '시작코드' || t === 'startercode' || t === '시작' || t === 'starter'){
+      // 첫 fenced 블록의 내용
+      starterCode = _firstFencedContent(sec.content);
+    } else if(t === '테스트' || t === 'tests' || t === '테스트케이스' || t === 'testcases'){
+      // 이 섹션의 sub(### 케이스 N) 들을 모은다
+      testRawSections = _splitMdSections(sec.content).filter(s => s.level === 3);
+    }
+  }
+
+  // 설명이 비어 있고 ## 섹션이 없으면 본문 전체를 설명으로
+  if(!description && !starterCode && !testRawSections.length){
+    description = body.trim();
+  }
+
+  const testCases = [];
+  for(const sec of testRawSections){
+    const isHidden = /\(숨김\)|\(hidden\)/i.test(sec.title);
+    // 섹션 내용에서 fenced 블록 추출 — 첫 번째는 input, 두 번째는 expectedOutput
+    const blocks = _allFencedContents(sec.content);
+    if(blocks.length < 2){
+      // 라벨(입력:/출력:) 기반으로 다시 시도
+      const inMatch = sec.content.match(/(?:입력|input)\s*:?\s*\n```[\w-]*\n([\s\S]*?)```/i);
+      const outMatch = sec.content.match(/(?:출력|expected|output)\s*:?\s*\n```[\w-]*\n([\s\S]*?)```/i);
+      if(inMatch && outMatch){
+        testCases.push({
+          input: _stripFenceTail(inMatch[1]),
+          expectedOutput: _stripFenceTail(outMatch[1]),
+          isHidden
+        });
+        continue;
+      }
+      throw new Error(`"${title}" — 테스트 "${sec.title}" 에 입력/출력 코드 블록이 부족해요. ` +
+        `각 케이스에 \`\`\` ... \`\`\` 블록이 입력, 출력 순서로 2개 필요해요.`);
+    }
+    testCases.push({
+      input: blocks[0],
+      expectedOutput: blocks[1],
+      isHidden
+    });
+  }
+
+  if(!testCases.length){
+    throw new Error(`"${title}" 에 테스트 케이스가 없어요. "## 테스트" 섹션 아래에 "### 케이스 1" 같은 sub 헤더로 추가하세요.`);
+  }
+
+  const obj = {
+    title,
+    description,
+    testCases
+  };
+  if(starterCode) obj.starterCode = starterCode;
+  if(visualType)  obj.visualType  = visualType;
+  return obj;
+}
+
+// 본문을 헤더 단위 섹션으로 분리. fenced 블록 내부의 # 는 무시.
+// 반환: [{level: 2|3|..., title: '...', content: '...'}]
+function _splitMdSections(text){
+  const lines = (text || '').split('\n');
+  const result = [];
+  let cur = null;
+  let inFence = false;
+  for(const line of lines){
+    if(/^\s*```/.test(line)){
+      if(cur) cur.lines.push(line);
+      inFence = !inFence;
+      continue;
+    }
+    const m = !inFence && line.match(/^(#{2,6})\s+(.+?)\s*$/);
+    if(m){
+      if(cur) result.push({level: cur.level, title: cur.title, content: cur.lines.join('\n')});
+      cur = {level: m[1].length, title: m[2], lines: []};
+      continue;
+    }
+    if(cur) cur.lines.push(line);
+  }
+  if(cur) result.push({level: cur.level, title: cur.title, content: cur.lines.join('\n')});
+  return result;
+}
+
+// 텍스트에서 첫 fenced code block 의 내용 추출
+function _firstFencedContent(text){
+  const m = (text || '').match(/```[\w-]*\n([\s\S]*?)```/);
+  return m ? _stripFenceTail(m[1]) : '';
+}
+
+// 텍스트에서 모든 fenced code block 의 내용을 순서대로 추출
+function _allFencedContents(text){
+  const re = /```[\w-]*\n([\s\S]*?)```/g;
+  const out = [];
+  let m;
+  while((m = re.exec(text || '')) !== null){
+    out.push(_stripFenceTail(m[1]));
+  }
+  return out;
+}
+
+// fenced 블록 본문에서 마지막 \n 한 개만 제거 (블록 종료 ``` 직전의 줄바꿈)
+function _stripFenceTail(s){
+  return (s || '').replace(/\n$/, '');
+}
+
+// ── OJ → Markdown 직렬화 (현재 OJ_PROBLEMS 를 .md 텍스트로) ──
+function buildOJMarkdown(problems){
+  const stripMeta = (s) => (s || '')
+    .replace(/^<!--\s*visual:[^>]*-->\s*\n?/, '')
+    .replace(/^<!--\s*starter:[^>]*-->\s*\n?/, '');
+
+  return problems.map(p => {
+    const lines = [];
+    lines.push(`# ${p.title || '(제목 없음)'}`);
+    lines.push('');
+    if(p.visualType) lines.push(`<!-- visual:${p.visualType} -->`, '');
+    const desc = stripMeta(p.description || '').trim();
+    lines.push('## 설명');
+    lines.push('');
+    lines.push(desc || '(설명 없음)');
+    lines.push('');
+    if(p.starterCode && p.starterCode.trim()){
+      lines.push('## 시작 코드');
+      lines.push('');
+      lines.push('```python');
+      lines.push(p.starterCode.replace(/\n$/, ''));
+      lines.push('```');
+      lines.push('');
+    }
+    lines.push('## 테스트');
+    lines.push('');
+    (p.testCases || []).forEach((tc, i) => {
+      const hiddenTag = tc.isHidden ? ' (숨김)' : '';
+      lines.push(`### 케이스 ${i + 1}${hiddenTag}`);
+      lines.push('');
+      lines.push('입력:');
+      lines.push('```');
+      lines.push((tc.input || '').replace(/\n$/, ''));
+      lines.push('```');
+      lines.push('');
+      lines.push('출력:');
+      lines.push('```');
+      lines.push((tc.expectedOutput || '').replace(/\n$/, ''));
+      lines.push('```');
+      lines.push('');
+    });
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  }).join('\n\n');
+}
+
+// ── 샘플 Markdown (다운로드용 — 2문제 예시) ──
+const OJ_MD_SAMPLE = `# 🧪 예시: 두 수의 합
+
+## 설명
+
+두 정수를 입력받아 합을 출력하세요.
+
+**입력**
+- 첫 줄: 두 정수 (공백 구분)
+
+**출력**
+- 두 수의 합
+
+## 시작 코드
+
+\`\`\`python
+a, b = map(int, input().split())
+# 여기에 코드를 작성하세요
+\`\`\`
+
+## 테스트
+
+### 케이스 1
+입력:
+\`\`\`
+3 5
+\`\`\`
+출력:
+\`\`\`
+8
+\`\`\`
+
+### 케이스 2
+입력:
+\`\`\`
+10 20
+\`\`\`
+출력:
+\`\`\`
+30
+\`\`\`
+
+### 케이스 3 (숨김)
+입력:
+\`\`\`
+100 200
+\`\`\`
+출력:
+\`\`\`
+300
+\`\`\`
+
+# 🎵 예시: 가장 긴 노래 (비주얼 OJ)
+
+<!-- visual:playlist-bars -->
+
+## 설명
+
+재생목록에서 가장 긴 노래의 인덱스(0부터)와 그 길이를 출력하세요.
+
+**입력**
+- 첫 줄: N (노래 개수)
+- 둘째 줄: N개 정수 (각 길이, 초)
+
+**출력**
+- 첫 줄: 가장 긴 노래의 인덱스
+- 둘째 줄: 그 길이
+
+## 시작 코드
+
+\`\`\`python
+n = int(input())
+# split·map: 공백으로 나눠 정수 리스트로 변환
+lengths = list(map(int, input().split()))
+# 여기에 코드를 작성하세요
+\`\`\`
+
+## 테스트
+
+### 케이스 1
+입력:
+\`\`\`
+5
+180 240 195 320 210
+\`\`\`
+출력:
+\`\`\`
+3
+320
+\`\`\`
+
+### 케이스 2 (숨김)
+입력:
+\`\`\`
+3
+100 200 150
+\`\`\`
+출력:
+\`\`\`
+1
+200
+\`\`\`
+`;

@@ -12,9 +12,9 @@
 // 선생님 OJ 탭 메인
 function vTcOJ(){
   const samplesBar = `<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-    <button class="btn-p btn-sm" data-action="oj-import-json" title="JSON 템플릿 파일을 골라 여러 문제를 한 번에 등록">📥 JSON 템플릿 업로드</button>
-    <button class="btn-sm" data-action="oj-download-sample" title="JSON 양식 예시 파일 다운로드 (편집해서 다시 업로드 가능)">📄 샘플 양식</button>
-    <button class="btn-sm" data-action="oj-export-json" title="현재 반의 모든 OJ 문제를 JSON 파일로 내보내기 (백업/이동용)">📤 내보내기</button>
+    <button class="btn-p btn-sm" data-action="oj-import-md" title="Markdown(.md) 파일을 골라 여러 문제를 한 번에 등록">📥 Markdown 업로드</button>
+    <button class="btn-sm" data-action="oj-download-sample" title="Markdown 양식 예시 파일 다운로드 (편집해서 다시 업로드 가능)">📄 샘플 양식</button>
+    <button class="btn-sm" data-action="oj-export-md" title="현재 반의 모든 OJ 문제를 Markdown 파일로 내보내기 (백업/이동용)">📤 내보내기</button>
   </div>`;
   const form = vTcOJForm();
   const list = vTcOJList();
