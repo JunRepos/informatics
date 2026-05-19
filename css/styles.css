@@ -1295,3 +1295,75 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 
 .asmt-done-note{background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2);text-align:center;line-height:1.6}
 
+/* ───── 선생님: 학생 상세 화면 ───── */
+.asmt-score-chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--accent-lt);color:var(--accent);border:1px solid var(--accent)}
+.asmt-score-chip.partial{background:var(--warn-bg);color:var(--warn-txt);border-color:var(--warn-bd)}
+.asmt-score-chip.none{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+
+.asmt-tcs-wrap{max-width:1200px;margin:0 auto}
+.asmt-tcs-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:14px;box-shadow:var(--sh);position:sticky;top:0;z-index:10}
+.asmt-tcs-stu-info{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.asmt-tcs-snum{font-family:'Consolas',monospace;font-size:13px;color:var(--text2);background:var(--surface2);padding:3px 9px;border-radius:6px;border:1px solid var(--border)}
+.asmt-tcs-name{font-size:15px;font-weight:700;color:var(--text)}
+
+.asmt-tcs-sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 18px;margin-bottom:14px;box-shadow:var(--sh)}
+.asmt-tcs-sec-head{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.asmt-tcs-sub-head{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+.asmt-tcs-msgs{display:flex;flex-direction:column;gap:8px}
+.asmt-tcs-msg{padding:8px 12px;border-radius:8px;border:1px solid var(--border)}
+.asmt-tcs-msg.user{background:var(--accent-lt);border-color:var(--accent)}
+.asmt-tcs-msg.ai{background:var(--surface2)}
+.asmt-tcs-msg-label{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px}
+.asmt-tcs-msg-body{font-size:13px;color:var(--text);line-height:1.55;white-space:pre-wrap}
+.asmt-tcs-msg-body code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'Consolas',monospace;font-size:12px}
+[data-theme="dark"] .asmt-tcs-msg-body code{background:rgba(255,255,255,.1)}
+
+.asmt-tcs-code-explain{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg)}
+.asmt-tcs-line{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);font-size:13px}
+.asmt-tcs-line:last-child{border-bottom:none}
+.asmt-tcs-line.empty{background:var(--surface2);opacity:.6}
+.asmt-tcs-line-code{padding:6px 12px;font-family:'Consolas','Roboto Mono',monospace;color:var(--text);border-right:1px solid var(--border);display:flex;align-items:flex-start;overflow-x:auto;white-space:pre}
+.asmt-tcs-line-code .asmt-line-no{min-width:28px;color:var(--text3);text-align:right;margin-right:12px;user-select:none}
+.asmt-tcs-line-exp{padding:6px 12px;color:var(--text);line-height:1.55}
+.asmt-tcs-line-exp.missing{color:var(--text3);background:#fef2f2}
+[data-theme="dark"] .asmt-tcs-line-exp.missing{background:#2a0a0a}
+.asmt-tcs-line-exp.filled{background:#ecfdf5}
+[data-theme="dark"] .asmt-tcs-line-exp.filled{background:#0d2218}
+
+.asmt-tcs-mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.asmt-tcs-code-pre{margin:0;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-family:'Consolas',monospace;font-size:12.5px;line-height:1.55;color:var(--text);white-space:pre;overflow-x:auto;max-height:340px;overflow-y:auto}
+.asmt-tcs-stdin{margin-top:10px}
+.asmt-tcs-reason{margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.asmt-tcs-reason-body{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap}
+
+.asmt-tcs-score-sec{border:2px solid var(--accent)}
+.asmt-tcs-score-table{width:100%;font-size:13px}
+.asmt-tcs-score-table th{padding:6px 10px;background:var(--surface2);font-weight:700;text-align:left;font-size:12px;color:var(--text2)}
+.asmt-tcs-score-table td{padding:8px 10px;border-top:1px solid var(--border);vertical-align:middle}
+.asmt-tcs-score-table td:first-child{width:55%;font-weight:600}
+.asmt-tcs-score-opts{display:flex;gap:6px;flex-wrap:wrap}
+.asmt-tcs-score-opt{display:flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);font-size:12.5px;font-weight:600;color:var(--text2);transition:border-color .12s,background .12s,color .12s}
+.asmt-tcs-score-opt:hover{border-color:var(--accent);color:var(--text)}
+.asmt-tcs-score-opt.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.asmt-tcs-score-opt input{display:none}
+
+.asmt-tcs-score-comment{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.asmt-tcs-score-comment label{font-size:12.5px;font-weight:600;color:var(--text)}
+.asmt-tcs-comment-area{width:100%;min-height:70px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;line-height:1.55;resize:vertical;outline:none;box-sizing:border-box}
+.asmt-tcs-comment-area:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.asmt-tcs-score-meta{margin-top:6px;font-size:11px;color:var(--text3);text-align:right}
+
+/* 인쇄 — 헤더/액션 숨김, 깔끔하게 */
+@media print{
+  .header, .tabs, .asmt-tcs-header button{display:none !important}
+  .asmt-tcs-sec{break-inside:avoid;box-shadow:none;border:1px solid #ddd}
+  body, .wrap{background:#fff !important}
+}
+
+@media (max-width: 900px){
+  .asmt-tcs-line{grid-template-columns:1fr}
+  .asmt-tcs-line-code{border-right:none;border-bottom:1px solid var(--border)}
+  .asmt-tcs-mod-grid{grid-template-columns:1fr}
+}
+

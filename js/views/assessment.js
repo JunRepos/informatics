@@ -430,16 +430,37 @@ function vStAsmtDone(){
 
 function vTcAssessment(){
   if(!TC_CLS) return emptyBox('👆','관리할 반을 먼저 선택하세요.');
-  // 학생 상세 보기는 다음 단계에서 구현
+  if(ASMT_VIEW === 'student' && ASMT_TC_SEL_SNUM) return vTcAsmtStudent();
   return vTcAsmtManage();
+}
+
+// 채점 평가요소 메타 (계획서 기준, 25점)
+const ASMT_RUBRIC = [
+  {id:'algo',     label:'알고리즘 표현 — 문제 추상화', max:5},
+  {id:'dataType', label:'자료형 활용',                  max:5},
+  {id:'io',       label:'적절한 입출력 형식 활용',      max:5},
+  {id:'control',  label:'다양한 제어 구조 활용',        max:5},
+  {id:'result',   label:'다양한 상황에서 올바른 결과', max:5}
+];
+
+function _asmtScoreTotal(s){
+  if(!s) return null;
+  let sum = 0;
+  for(const r of ASMT_RUBRIC){
+    const v = s[r.id];
+    if(typeof v === 'number' && v >= 2 && v <= 5) sum += v;
+    else return null; // 한 항목이라도 없으면 미완
+  }
+  return sum;
 }
 
 function vTcAsmtManage(){
   const cid = TC_CLS.id;
   const active = !!ASMT_ACTIVE[cid];
+  const sessions = ASMT_ALL_SESSIONS || {};
+  const scores = ASMT_ALL_SCORES || {};
 
   // 학생별 진행 단계 요약
-  const sessions = ASMT_ALL_SESSIONS || {};
   const stuRows = STUDENTS.map(st => {
     const s = sessions[st.number] || null;
     const stage = s?.view || (s?.messages?.length ? 'chat' : '-');
@@ -452,13 +473,20 @@ function vTcAsmtManage(){
     })[stage] || '-';
     const turns = s?.turnCount || 0;
     const updatedAt = s?.updatedAt ? fmtDt(s.updatedAt) : '-';
+    const sc = scores[st.number];
+    const total = _asmtScoreTotal(sc);
+    const scoreCell = total != null
+      ? `<span class="asmt-score-chip">${total}/25</span>`
+      : (sc ? `<span class="asmt-score-chip partial">미완</span>` : `<span class="asmt-score-chip none">-</span>`);
+    const canView = !!(s && (s.messages?.length || 0) > 0);
     return `<tr>
       <td>${esc(st.number)}</td>
       <td>${esc(st.name)}</td>
       <td>${stageLabel}</td>
       <td>${turns}/${ASMT_TURN_LIMIT}</td>
       <td>${updatedAt}</td>
-      <td><button class="btn-xs" data-action="asmt-tc-view" data-snum="${esc(st.number)}" disabled title="(다음 단계에서 활성화)">상세</button></td>
+      <td>${scoreCell}</td>
+      <td><button class="btn-xs" data-action="asmt-tc-view" data-snum="${esc(st.number)}" ${canView ? '' : 'disabled'}>상세</button></td>
     </tr>`;
   }).join('');
 
@@ -467,6 +495,7 @@ function vTcAsmtManage(){
     const s = sessions[st.number];
     return s && s.view !== 'done' && (s.messages?.length || 0) > 0;
   }).length;
+  const scoredCount = STUDENTS.filter(st => _asmtScoreTotal(scores[st.number]) != null).length;
 
   return `
     <div class="asmt-tc-toggle-row">
@@ -488,13 +517,18 @@ function vTcAsmtManage(){
       <div class="stat-card"><div class="stat-num">${STUDENTS.length}</div><div class="stat-label">전체 학생</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${inProgressCount}</div><div class="stat-label">진행 중</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${submittedCount}</div><div class="stat-label">제출 완료</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#a855f7">${scoredCount}</div><div class="stat-label">채점 완료</div></div>
     </div>
 
-    <div class="sec-title" style="margin-top:14px">학생별 진행 현황</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px">
+      <div class="sec-title" style="margin:0">학생별 진행 현황</div>
+      <button class="btn-sm" data-action="asmt-export-csv" title="학생별 채점·진행 상태를 CSV 파일로 다운로드 (NEIS 입력 등에 활용)">📤 CSV 내보내기</button>
+    </div>
+
     ${STUDENTS.length === 0
       ? emptyBox('👥', '먼저 학생을 등록하세요.')
       : `<div style="overflow-x:auto"><table class="tbl asmt-tc-table">
-          <thead><tr><th>학번</th><th>이름</th><th>단계</th><th>대화</th><th>마지막 활동</th><th></th></tr></thead>
+          <thead><tr><th>학번</th><th>이름</th><th>단계</th><th>대화</th><th>마지막 활동</th><th>점수</th><th></th></tr></thead>
           <tbody>${stuRows}</tbody>
         </table></div>`
     }
@@ -505,8 +539,156 @@ function vTcAsmtManage(){
         <li>활성화 토글을 켜면 학생 화면에 메뉴가 즉시 나타납니다 (학생 새로고침 필요).</li>
         <li>평가 종료 후 토글을 끄면 메뉴가 사라져 학생이 추가 시도를 못 합니다 (저장된 세션은 보존).</li>
         <li>학생당 AI 와의 메시지 교환은 최대 <b>${ASMT_TURN_LIMIT}회</b> 입니다.</li>
-        <li>학생 상세 화면(대화 로그·코드·줄별 설명·변형 과제 제출물)은 다음 업데이트에서 추가됩니다.</li>
+        <li>"상세" 버튼으로 학생 답안 전체를 한 화면에서 확인하고 5개 항목(각 5점)으로 채점할 수 있어요.</li>
+        <li>📤 CSV 내보내기 — 채점 결과를 NEIS 옮길 때 활용하세요.</li>
       </ul>
     </div>
   `;
+}
+
+// ── 선생님: 학생 상세 화면 (한 페이지 세로 스크롤) ──
+function vTcAsmtStudent(){
+  const snum = ASMT_TC_SEL_SNUM;
+  const st = STUDENTS.find(s => s.number === snum);
+  const sess = ASMT_ALL_SESSIONS[snum] || {};
+  const sc = ASMT_ALL_SCORES[snum] || {};
+  if(!st){
+    return emptyBox('❓', `학번 ${snum} 학생을 찾을 수 없어요.`);
+  }
+  const messages = Array.isArray(sess.messages) ? sess.messages : [];
+  const code = sess.code || '';
+  const lineExplains = sess.lineExplains || {};
+  const modCode = sess.modCode || '';
+  const modReason = sess.modReason || '';
+  const modStdin = sess.modStdin || '';
+  const submittedAt = sess.submittedAt ? fmtDt(sess.submittedAt) : null;
+  const totalScore = _asmtScoreTotal(sc);
+
+  // 헤더
+  const header = `
+    <div class="asmt-tcs-header">
+      <button class="btn-sm" data-action="asmt-tc-back">← 학생 목록</button>
+      <div class="asmt-tcs-stu-info">
+        <span class="asmt-tcs-snum">${esc(st.number)}</span>
+        <span class="asmt-tcs-name">${esc(st.name)}</span>
+        ${submittedAt
+          ? `<span class="chip chip-green">✓ 제출 ${submittedAt}</span>`
+          : `<span class="chip chip-orange">진행 중 — ${esc(sess.view || '시작 전')}</span>`}
+        ${totalScore != null ? `<span class="asmt-score-chip">${totalScore}/25</span>` : ''}
+      </div>
+      <button class="btn-sm" onclick="window.print()" title="브라우저 인쇄 → PDF로 저장 가능">🖨️ 인쇄</button>
+    </div>
+  `;
+
+  // ① AI 대화 로그
+  const dialogSec = messages.length ? `
+    <section class="asmt-tcs-sec">
+      <div class="asmt-tcs-sec-head">💬 1단계 — AI 대화 (${messages.length}개 메시지)</div>
+      <div class="asmt-tcs-msgs">
+        ${messages.map(m => {
+          const cls = m.role === 'user' ? 'user' : 'ai';
+          const label = m.role === 'user' ? `👤 ${esc(st.name)}` : '🤖 AI';
+          const body = m.role === 'user'
+            ? esc(m.content).replace(/\n/g, '<br>')
+            : (typeof marked !== 'undefined' ? marked.parse(m.content) : esc(m.content).replace(/\n/g, '<br>'));
+          return `<div class="asmt-tcs-msg ${cls}">
+            <div class="asmt-tcs-msg-label">${label}</div>
+            <div class="asmt-tcs-msg-body">${body}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>` : `
+    <section class="asmt-tcs-sec">
+      <div class="asmt-tcs-sec-head">💬 1단계 — AI 대화</div>
+      ${emptyBox('💬','학생이 아직 AI와 대화를 시작하지 않았어요.')}
+    </section>`;
+
+  // ② 학생이 정한 코드 + ③ 줄별 설명 (같이 표시)
+  const codeSec = code ? `
+    <section class="asmt-tcs-sec">
+      <div class="asmt-tcs-sec-head">📝 2단계 — AI 코드 + 줄별 학생 설명</div>
+      <div class="asmt-tcs-code-explain">
+        ${code.split('\n').map((src, i) => {
+          const exp = lineExplains[i];
+          const hasExp = (exp || '').trim();
+          return `<div class="asmt-tcs-line${src.trim() ? '' : ' empty'}">
+            <div class="asmt-tcs-line-code">
+              <span class="asmt-line-no">${i+1}</span>
+              <span class="asmt-line-src">${esc(src) || ' '}</span>
+            </div>
+            <div class="asmt-tcs-line-exp ${hasExp ? 'filled' : 'missing'}">
+              ${hasExp ? esc(exp) : (src.trim() ? '<i>(설명 없음)</i>' : '')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>` : '';
+
+  // ④ 변형 코드 + ⑤ 변경 이유
+  const modSec = modCode ? `
+    <section class="asmt-tcs-sec">
+      <div class="asmt-tcs-sec-head">🛠️ 3단계 — 변형 과제 (조건문/반복문 활용)</div>
+      <div class="asmt-tcs-mod-grid">
+        <div>
+          <div class="asmt-tcs-sub-head">원본 코드</div>
+          <pre class="asmt-tcs-code-pre">${esc(code)}</pre>
+        </div>
+        <div>
+          <div class="asmt-tcs-sub-head">학생이 수정한 코드</div>
+          <pre class="asmt-tcs-code-pre">${esc(modCode)}</pre>
+        </div>
+      </div>
+      ${modStdin ? `<div class="asmt-tcs-stdin">
+        <div class="asmt-tcs-sub-head">📥 실행 시 입력값</div>
+        <pre class="asmt-tcs-code-pre">${esc(modStdin)}</pre>
+      </div>` : ''}
+      <div class="asmt-tcs-reason">
+        <div class="asmt-tcs-sub-head">💬 변경 이유 (${(modReason||'').length}자)</div>
+        <div class="asmt-tcs-reason-body">${esc(modReason || '(작성하지 않음)').replace(/\n/g,'<br>')}</div>
+      </div>
+    </section>` : '';
+
+  // ⑥ 채점 입력
+  const rubricRows = ASMT_RUBRIC.map(r => {
+    const cur = sc[r.id];
+    const opts = [5,4,3,2].map(v => `
+      <label class="asmt-tcs-score-opt ${cur === v ? 'on' : ''}">
+        <input type="radio" name="asmt-score-${r.id}" value="${v}" ${cur === v ? 'checked' : ''} data-action="asmt-score-input" data-rid="${r.id}"/>
+        <span class="asmt-tcs-score-val">${v}점</span>
+      </label>
+    `).join('');
+    return `<tr>
+      <td>${esc(r.label)}</td>
+      <td><div class="asmt-tcs-score-opts">${opts}</div></td>
+    </tr>`;
+  }).join('');
+
+  const scoreSec = `
+    <section class="asmt-tcs-sec asmt-tcs-score-sec">
+      <div class="asmt-tcs-sec-head">⭐ 채점 (25점 만점) ${totalScore != null ? `<span class="asmt-score-chip">${totalScore}/25</span>` : ''}</div>
+      <table class="asmt-tcs-score-table">
+        <thead><tr><th>평가요소</th><th>점수</th></tr></thead>
+        <tbody>${rubricRows}</tbody>
+      </table>
+      <div class="asmt-tcs-score-comment">
+        <label>종합 코멘트 (선택 — 세특 작성 시 참고)</label>
+        <textarea
+          class="asmt-tcs-comment-area"
+          data-action="asmt-score-comment"
+          placeholder="학생의 강점·약점·향후 지도 방향 등"
+        >${esc(sc.comment || '')}</textarea>
+      </div>
+      <div class="asmt-tcs-score-meta">
+        ${sc.scoredAt ? `💾 마지막 저장: ${fmtDt(sc.scoredAt)}` : '아직 저장된 점수가 없습니다.'}
+      </div>
+    </section>
+  `;
+
+  return `<div class="asmt-tcs-wrap">
+    ${header}
+    ${dialogSec}
+    ${codeSec}
+    ${modSec}
+    ${scoreSec}
+  </div>`;
 }

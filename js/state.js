@@ -108,6 +108,7 @@ let ASMT_LINE_EXPLAINS = {};   // 줄별 설명 모드에서 { [lineIdx]: explan
 let ASMT_AUTO_TIMER  = null;   // 진입 화면 3분 자동 인사 타이머 ID
 let ASMT_TC_SEL_SNUM = null;   // 선생님이 보고 있는 학생 학번
 let ASMT_ALL_SESSIONS = {};    // 선생님: { [studentNum]: session } — 전체 세션 캐시
+let ASMT_ALL_SCORES = {};      // 선생님: { [studentNum]: { algo, dataType, io, control, result, comment, scoredAt } }
 let ASMT_EXAMPLES_CAT = null;  // 학생: 예시 보기에서 선택한 카테고리 id (null = 카테고리 목록)
 let ASMT_SAVE_TIMER = null;    // 세션 저장 debounce 타이머
 let ASMT_MOD_CODE   = '';      // 4단계 변형 과제 — 학생이 수정한 코드

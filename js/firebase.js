@@ -384,6 +384,24 @@ async function loadAllAsmtSessions(cid){
   }
 }
 
+// 채점 (선생님): assessment/scores/{cid}/{학번} = { algo, dataType, io, control, result, comment, scoredAt }
+async function loadAllAsmtScores(cid){
+  try {
+    const s = await db.ref(`assessment/scores/${cid}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[수행평가] 점수 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
+async function saveAsmtScore(cid, studentNum, score){
+  await db.ref(`assessment/scores/${cid}/${studentNum}`).set({
+    ...score,
+    scoredAt: new Date().toISOString()
+  });
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([

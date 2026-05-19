@@ -156,6 +156,9 @@ function _saveAsmtSession(){
   }, 1000);
 }
 
+// 코멘트 debounce
+let _asmtCommentTimer = null;
+
 // ── Pyodide 워커 (변형 과제 실행) ──
 let _asmtWorker = null;
 
@@ -333,9 +336,58 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 선생님: 학생 상세 보기 (다음 commit)
+  // 선생님: 학생 상세 보기
   if(act.action === 'asmt-tc-view'){
-    toast('학생 상세 화면은 다음 업데이트에서 추가돼요.', 'ok');
+    const snum = act.snum;
+    if(!snum) return;
+    ASMT_TC_SEL_SNUM = snum;
+    ASMT_VIEW = 'student';
+    render();
+    setTimeout(() => window.scrollTo({top:0, behavior:'instant'}), 30);
+    return;
+  }
+
+  // 선생님: 학생 목록으로 돌아가기
+  if(act.action === 'asmt-tc-back'){
+    ASMT_TC_SEL_SNUM = null;
+    ASMT_VIEW = 'manage';
+    render();
+    return;
+  }
+
+  // 선생님: CSV 내보내기
+  if(act.action === 'asmt-export-csv'){
+    if(!STUDENTS.length){ toast('학생 명단이 비어있어요.', 'err'); return; }
+    const cid = TC_CLS?.id || 'unknown';
+    const cls = TC_CLS?.label || cid;
+    const headers = ['학번','이름','단계','대화수','알고리즘(5)','자료형(5)','입출력(5)','제어구조(5)','결과확인(5)','총점(25)','코멘트','제출시각'];
+    const rows = STUDENTS.map(st => {
+      const sess = ASMT_ALL_SESSIONS[st.number] || {};
+      const sc = ASMT_ALL_SCORES[st.number] || {};
+      const stageLabel = ({entry:'시작 전', chat:'1단계', explain:'2단계', modify:'3단계', done:'제출완료'})[sess.view] || (sess.messages?.length ? '진행 중' : '-');
+      const total = _asmtScoreTotal(sc);
+      const submittedAt = sess.submittedAt ? fmtDt(sess.submittedAt) : '';
+      return [
+        st.number, st.name, stageLabel, sess.turnCount || 0,
+        sc.algo ?? '', sc.dataType ?? '', sc.io ?? '', sc.control ?? '', sc.result ?? '',
+        total ?? '', (sc.comment || '').replace(/\n/g,' '), submittedAt
+      ];
+    });
+    const csvRow = (arr) => arr.map(v => {
+      const s = String(v ?? '');
+      // 쉼표·따옴표·줄바꿈 포함 시 따옴표로 감싸고 따옴표는 두 번
+      if(/[,"\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+      return s;
+    }).join(',');
+    const csv = '﻿' + csvRow(headers) + '\n' + rows.map(csvRow).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `수행평가-${cls}-${dateStr}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('✓ CSV 파일 다운로드 시작', 'ok');
     return;
   }
 });
@@ -345,6 +397,34 @@ document.addEventListener('change', async e => {
   const el = e.target.closest('[data-action]');
   if(!el) return;
   const act = el.dataset;
+
+  // 선생님: 채점 점수 입력 (라디오)
+  if(act.action === 'asmt-score-input'){
+    const snum = ASMT_TC_SEL_SNUM;
+    if(!snum || !TC_CLS) return;
+    const rid = el.dataset.rid;
+    const val = parseInt(el.value);
+    if(!rid || !val) return;
+    const prev = ASMT_ALL_SCORES[snum] || {};
+    const next = {...prev, [rid]: val};
+    ASMT_ALL_SCORES[snum] = next;
+    try {
+      await saveAsmtScore(TC_CLS.id, snum, next);
+      // 합계 칩 + 헤더 칩 갱신만 (re-render 없이)
+      const total = _asmtScoreTotal(next);
+      document.querySelectorAll('.asmt-tcs-score-sec .asmt-score-chip, .asmt-tcs-stu-info .asmt-score-chip').forEach(chip => {
+        if(total != null) chip.textContent = `${total}/25`;
+      });
+      // 라벨 on/off
+      el.closest('.asmt-tcs-score-opts')?.querySelectorAll('.asmt-tcs-score-opt').forEach(l => l.classList.remove('on'));
+      el.closest('.asmt-tcs-score-opt')?.classList.add('on');
+      const metaEl = document.querySelector('.asmt-tcs-score-meta');
+      if(metaEl) metaEl.textContent = `💾 마지막 저장: ${fmtDt(new Date().toISOString())}`;
+    } catch(err){
+      toast('점수 저장 실패: ' + (err.message || err), 'err');
+    }
+    return;
+  }
 
   if(act.action === 'asmt-toggle-active'){
     const cid = TC_CLS?.id;
@@ -409,6 +489,20 @@ document.addEventListener('input', e => {
   if(a === 'asmt-mod-stdin-input'){
     ASMT_MOD_STDIN = t.value || '';
     _saveAsmtSession();
+    return;
+  }
+
+  // 선생님: 채점 코멘트 입력 (debounce 저장)
+  if(a === 'asmt-score-comment'){
+    const snum = ASMT_TC_SEL_SNUM;
+    if(!snum || !TC_CLS) return;
+    const prev = ASMT_ALL_SCORES[snum] || {};
+    const next = {...prev, comment: t.value || ''};
+    ASMT_ALL_SCORES[snum] = next;
+    if(_asmtCommentTimer) clearTimeout(_asmtCommentTimer);
+    _asmtCommentTimer = setTimeout(async () => {
+      try { await saveAsmtScore(TC_CLS.id, snum, next); } catch(e){ /* ignore */ }
+    }, 700);
     return;
   }
 

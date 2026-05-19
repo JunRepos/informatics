@@ -71,14 +71,16 @@ function setTC(t){
     // 진도 계획은 전역 하나, 최초 진입 시 로드
     loadCurriculum().then(render);
   } else if(t === 'asmt' && TC_CLS){
-    // 수행평가 탭 — 활성화 상태 + 전체 학생 세션 미리 로드
+    // 수행평가 탭 — 활성화 상태 + 전체 학생 세션 + 점수 미리 로드
     ASMT_VIEW = 'manage';
     ASMT_TC_SEL_SNUM = null;
     Promise.all([
       loadAsmtActive(TC_CLS.id),
-      loadAllAsmtSessions(TC_CLS.id)
-    ]).then(([_active, sessions]) => {
+      loadAllAsmtSessions(TC_CLS.id),
+      loadAllAsmtScores(TC_CLS.id)
+    ]).then(([_active, sessions, scores]) => {
       ASMT_ALL_SESSIONS = sessions || {};
+      ASMT_ALL_SCORES = scores || {};
       render();
     });
   } else if(t === 'coderead' && TC_CLS){
