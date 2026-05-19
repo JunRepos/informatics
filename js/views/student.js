@@ -59,6 +59,16 @@ function setST(t){
       }
       render();
     });
+  } else if(t === 'mission' && SEL_CLS && ST_USER){
+    // 미션 그리드 카드의 진행률 표시용 — 한 번에 로드
+    MISSION_VIEW = 'list';
+    SEL_MISSION = null;
+    MISSION_PROGRESS_ALL = null;
+    render(); // 일단 빈 진행률로 렌더
+    loadAllMissionProgress(SEL_CLS.id, ST_USER.number).then(prog => {
+      MISSION_PROGRESS_ALL = prog;
+      if(ST_TAB === 'mission' && MISSION_VIEW === 'list') render();
+    });
   } else {
     render();
   }

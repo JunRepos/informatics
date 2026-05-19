@@ -76,6 +76,7 @@ let MISSION_STEP_IDX   = 0;     // 현재 진행 중인 단계 인덱스
 let MISSION_STEP_PASS  = {};    // { [stepId]: {passed:true, code:"..."} } — 통과 상태
 let MISSION_EDITING    = null;  // 선생님: 편집 중인 미션 (null=신규 또는 수정대상)
 let MISSION_VIEW       = 'list'; // 'list' | 'play' | 'edit'
+let MISSION_PROGRESS_ALL = null;   // 학생 그리드 카드용: { [missionId]: stepPass } 미리 로드
 
 // 진도 계획
 let CURRICULUM = null; // {startDate, endDate, classDays, topics, sessions, updatedAt}

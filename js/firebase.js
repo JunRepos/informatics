@@ -241,6 +241,20 @@ async function loadMissionProgress(cid, mid, studentNum){
   return s.exists() ? s.val() : null;
 }
 
+// 학생의 모든 미션 진도를 한 번에 로드 — 그리드 카드의 진행률 바에 사용.
+// 결과: { [missionId]: { [stepId]: {passed, ...} } } (없으면 빈 객체)
+async function loadAllMissionProgress(cid, studentNum){
+  if(!cid || !studentNum) return {};
+  const result = {};
+  for(const m of MISSIONS){
+    try {
+      const prog = await loadMissionProgress(cid, m.id, studentNum);
+      result[m.id] = prog?.stepPass || {};
+    } catch(_e){ result[m.id] = {}; }
+  }
+  return result;
+}
+
 async function saveMissionProgress(cid, mid, studentNum, stepPass){
   await db.ref(`missionProgress/${cid}/${mid}/${studentNum}`).set({
     stepPass, updatedAt: new Date().toISOString()

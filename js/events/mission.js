@@ -444,10 +444,7 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // ── 선생님: 미션 관리 ──
-  if(act.action === 'mission-new'){
-    MISSION_EDITING = null; MISSION_VIEW = 'edit'; render(); return;
-  }
+  // ── 선생님: 단계 텍스트 편집 진입 (미션 자체는 코드 고정) ──
   if(act.action === 'mission-edit'){
     const m = MISSIONS.find(x => x.id === act.mid); if(!m) return;
     MISSION_EDITING = JSON.parse(JSON.stringify(m)); // deep clone
@@ -530,170 +527,50 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // ── 에디터: 단계 조작 ──
-  if(act.action === 'me-add-step'){
-    collectEditorState();
-    MISSION_EDITING = MISSION_EDITING || {};
-    MISSION_EDITING.steps = MISSION_EDITING.steps || [];
-    MISSION_EDITING.steps.push({
-      id: 'step_' + Date.now().toString(36),
-      title: '',
-      description: '',
-      starterCode: '',
-      hint: '',
-      tests: [],
-      unlocks: ''
-    });
-    render(); return;
-  }
-  if(act.action === 'me-del-step'){
-    collectEditorState();
-    if(MISSION_EDITING?.steps?.length > 1){
-      MISSION_EDITING.steps.splice(parseInt(act.sidx), 1);
-      render();
-    } else { toast('최소 1개 단계가 있어야 합니다.', 'err'); }
-    return;
-  }
-  if(act.action === 'me-move-step'){
-    collectEditorState();
-    const i = parseInt(act.sidx), d = parseInt(act.dir);
-    const arr = MISSION_EDITING.steps;
-    const j = i + d;
-    if(j < 0 || j >= arr.length) return;
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-    render(); return;
-  }
-  if(act.action === 'me-add-test'){
-    collectEditorState();
-    const sidx = parseInt(act.sidx);
-    const step = MISSION_EDITING.steps[sidx];
-    step.tests = step.tests || [];
-    if(act.ttype === 'variable') step.tests.push({type: 'variable', name: '', expected: 0});
-    else if(act.ttype === 'block') step.tests.push({type: 'block', inputs: {}, output: step.blockOutput || '', expected: 0});
-    else step.tests.push({type: 'function', call: '', expected: 0});
-    render(); return;
-  }
-  if(act.action === 'me-del-test'){
-    collectEditorState();
-    const sidx = parseInt(act.sidx), tidx = parseInt(act.tidx);
-    MISSION_EDITING.steps[sidx].tests.splice(tidx, 1);
-    render(); return;
-  }
-
-  // 미션 저장
-  if(act.action === 'me-save'){
-    await saveMissionFromEditor(el); return;
-  }
-});
-
-// 에디터 DOM → MISSION_EDITING 수집
-function collectEditorState(){
-  MISSION_EDITING = MISSION_EDITING || {};
-  const t = document.getElementById('me-title')?.value || '';
-  const g = document.getElementById('me-game-type')?.value || 'flappybird';
-  const d = document.getElementById('me-desc')?.value || '';
-  MISSION_EDITING.title = t;
-  MISSION_EDITING.gameType = g;
-  MISSION_EDITING.description = d;
-  MISSION_EDITING.steps = MISSION_EDITING.steps || [];
-  document.querySelectorAll('.me-step').forEach(stepEl => {
-    const idx = parseInt(stepEl.dataset.sidx);
-    const step = MISSION_EDITING.steps[idx] || {};
-    step.title = stepEl.querySelector('.me-step-title')?.value || '';
-    step.description = stepEl.querySelector('.me-step-desc')?.value || '';
-    step.hint = stepEl.querySelector('.me-step-hint')?.value || '';
-    step.starterCode = stepEl.querySelector('.me-step-code')?.value || '';
-    step.unlocks = stepEl.querySelector('.me-step-unlocks')?.value || '';
-    // hookStyle 수집
-    const hs = stepEl.querySelector('.me-step-hookstyle:checked')?.value || step.hookStyle || 'variable';
-    step.hookStyle = hs;
-    if(hs === 'block'){
-      const inputsRaw = stepEl.querySelector('.me-block-inputs')?.value || '';
-      step.blockInputs = inputsRaw.split(',').map(s => s.trim()).filter(Boolean);
-      step.blockOutput = stepEl.querySelector('.me-block-output')?.value?.trim() || '';
-    }
-    // 테스트 수집
-    step.tests = [];
-    stepEl.querySelectorAll('.me-test-row').forEach(row => {
-      const type = row.querySelector('.me-test-type')?.value;
-      const expRaw = row.querySelector('.me-test-expected')?.value || '';
-      let expected;
-      try { expected = JSON.parse(expRaw); }
-      catch { expected = expRaw; }
-      if(type === 'variable'){
-        const name = row.querySelector('.me-test-name')?.value?.trim() || '';
-        if(name) step.tests.push({type, name, expected});
-      } else if(type === 'block'){
-        const inputsRaw = row.querySelector('.me-test-block-inputs')?.value || '{}';
-        let inputs = {};
-        try { inputs = JSON.parse(inputsRaw); } catch(e){}
-        step.tests.push({type: 'block', inputs, output: step.blockOutput || '', expected});
-      } else {
-        const call = row.querySelector('.me-test-call')?.value?.trim() || '';
-        if(call) step.tests.push({type: 'function', call, expected});
-      }
-    });
-    MISSION_EDITING.steps[idx] = step;
-  });
-}
-
-async function saveMissionFromEditor(btn){
-  collectEditorState();
-  const m = MISSION_EDITING;
-  const err = document.getElementById('me-err');
-  if(!m?.title){ err.textContent = '제목을 입력하세요.'; return; }
-  if(!m.steps?.length){ err.textContent = '최소 1개 단계가 필요합니다.'; return; }
-  for(const s of m.steps){
-    if(!s.title){ err.textContent = '모든 단계에 제목이 필요합니다.'; return; }
-    if(!s.tests?.length){ err.textContent = `"${s.title}" 단계에 테스트 케이스가 없습니다.`; return; }
-  }
-
-  btn.disabled = true; err.textContent = '';
-  try {
-    const editId = btn.dataset.mid;
-    const now = new Date().toISOString();
-    if(editId){
-      // 수정
-      const cid = TC_CLS.id;
-      await saveMission(cid, editId, {
-        title: m.title,
-        gameType: m.gameType || 'flappybird',
-        description: m.description || '',
-        steps: m.steps,
-        createdAt: m.createdAt || now
+  // ── 단계 텍스트 편집 저장 (game 로직/테스트는 보존, 학생용 문구만 갱신) ──
+  if(act.action === 'met-save'){
+    const cid = TC_CLS?.id;
+    if(!cid || !MISSION_EDITING?.id){ return; }
+    const err = document.getElementById('met-err');
+    if(err) err.textContent = '';
+    el.disabled = true;
+    try {
+      // 원본 미션 deep clone — 코드·테스트·hook 등 모두 보존
+      const orig = MISSIONS.find(x => x.id === MISSION_EDITING.id);
+      if(!orig){ if(err) err.textContent = '원본 미션을 찾을 수 없어요.'; el.disabled = false; return; }
+      const next = JSON.parse(JSON.stringify(orig));
+      // 미션 전체 설명
+      next.description = document.getElementById('met-mission-desc')?.value || '';
+      // 단계별 텍스트 (title/description/hint/experiment)만 덮어쓰기
+      document.querySelectorAll('.met-step').forEach(stepEl => {
+        const idx = parseInt(stepEl.dataset.sidx);
+        const s = next.steps?.[idx];
+        if(!s) return;
+        s.title = stepEl.querySelector('.met-step-title')?.value || '';
+        s.description = stepEl.querySelector('.met-step-desc')?.value || '';
+        s.hint = stepEl.querySelector('.met-step-hint')?.value || '';
+        const expEl = stepEl.querySelector('.met-step-exp');
+        if(expEl) s.experiment = expEl.value;
       });
-      toast('미션 수정 완료', 'ok');
-    } else {
-      // 신규 — 다중 반 선택
-      const targets = getSelectedClasses('me');
-      if(!targets.length){ err.textContent = '등록할 반을 선택하세요.'; btn.disabled = false; return; }
-      for(const cid of targets){
-        const id = genId();
-        await saveMission(cid, id, {
-          title: m.title,
-          gameType: m.gameType || 'flappybird',
-          description: m.description || '',
-          steps: m.steps,
-          createdAt: now
-        });
+      // 단계 제목 누락 검사
+      for(const s of next.steps || []){
+        if(!s.title?.trim()){
+          if(err) err.textContent = '모든 단계에 제목이 필요해요.';
+          el.disabled = false;
+          return;
+        }
       }
-      toast(`${targets.length}개 반에 미션이 등록됐습니다.`, 'ok');
+      await saveMission(cid, MISSION_EDITING.id, next);
+      MISSION_EDITING = null;
+      MISSION_VIEW = 'list';
+      await loadMissions(cid);
+      toast('단계 텍스트가 저장됐어요.', 'ok');
+      render();
+    } catch(e){
+      if(err) err.textContent = '저장 실패: ' + e.message;
+      el.disabled = false;
     }
-    MISSION_EDITING = null;
-    MISSION_VIEW = 'list';
-    await loadMissions(TC_CLS.id);
-    render();
-  } catch(e){
-    err.textContent = '저장 실패: ' + e.message;
-    btn.disabled = false;
-  }
-}
-
-// 에디터의 hookStyle 라디오 변경 시 재렌더
-document.addEventListener('change', e => {
-  if(e.target.classList?.contains('me-step-hookstyle')){
-    collectEditorState();
-    render();
+    return;
   }
 });
 

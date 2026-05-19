@@ -6,35 +6,55 @@
 ═══════════════════════════════════════ */
 
 const GAME_TYPES = [
-  {id:'flappybird', label:'🐦 플래피 버드', hooks:[
-    {id:'gameStartScore', label:'gameStartScore', desc:'게임 시작/재시작 시 점수 (변수 score 읽음)'},
-    {id:'welcomeMessage', label:'welcomeMessage', desc:'시작 화면 메시지 (변수 greeting 읽음)'},
-    {id:'addScore', label:'addScore(score)', desc:'장애물 하나 지날 때 호출 — 새 점수를 반환'},
-    {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'},
-    {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
-    {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'},
-    {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N + 배경 변화)'}
-  ]},
-  {id:'typehunter', label:'⚔️ 타입 헌터', hooks:[
-    {id:'heroSummon',    label:'heroSummon',    desc:'영웅 소환 — 변수 hero_name (str) 읽음'},
-    {id:'heroAttack',    label:'heroAttack',    desc:'공격력 — 변수 attack (int) 읽음, 영웅이 INT 타입(파랑)으로 전환'},
-    {id:'heroSpeed',     label:'heroSpeed',     desc:'이동 속도 — 변수 speed (float) 읽음, FLOAT 타입(보라)'},
-    {id:'heroShield',    label:'heroShield',    desc:'방어막 — 변수 shielded (bool) 읽음, BOOL 타입(황금)'},
-    {id:'heroTransform', label:'heroTransform', desc:'변신술 — 변수 hero 의 자료형이 영웅 색을 결정 (str/int/float/bool)'},
-    {id:'heroFinal',     label:'heroFinal',     desc:'최종: 변수 intro (str) 를 카드로 표시 + 자유 능력 종합'}
-  ]},
-  {id:'lockerdrop', label:'🗄️ 떨어지는 사물함', hooks:[
-    // 액션 게임 — 떨어지는 이모지를 lockers에 정의된 종류만 받음
-    // 단계별 unlock 메타: 게임에서 동작은 동일 (applyState로 lockers/grades 통째 전달)
-    {id:'dropCreate', label:'dropCreate', desc:'lockers 변수 만들기'},
-    {id:'dropAdd',    label:'dropAdd',    desc:'append/insert 로 칸 추가'},
-    {id:'dropModify', label:'dropModify', desc:'lockers[i] = ...로 종류 교체'},
-    {id:'dropRemove', label:'dropRemove', desc:'pop/remove 로 위험 제거'},
-    {id:'dropSlice',  label:'dropSlice',  desc:'슬라이싱으로 리스트 일부만 활성화'},
-    {id:'dropSort',   label:'dropSort',   desc:'sort + 통계'},
-    {id:'dropGrid',   label:'dropGrid',   desc:'2차원 grades — 다층 사물함'}
-  ]}
+  {id:'flappybird', label:'🐦 플래피 버드',
+    emoji:'🐦', tagline:'파이프를 피하며 점수를 쌓는 입문 게임',
+    topics:['변수','문자열','산술','입력','몫'],
+    gradient:'linear-gradient(135deg,#a3d8ff 0%,#5fa3e0 55%,#3b6fa6 100%)',
+    decor:'<div class="mi-card-pipes"><span></span><span></span><span></span></div>',
+    hooks:[
+      {id:'gameStartScore', label:'gameStartScore', desc:'게임 시작/재시작 시 점수 (변수 score 읽음)'},
+      {id:'welcomeMessage', label:'welcomeMessage', desc:'시작 화면 메시지 (변수 greeting 읽음)'},
+      {id:'addScore', label:'addScore(score)', desc:'장애물 하나 지날 때 호출 — 새 점수를 반환'},
+      {id:'finalScore', label:'finalScore(score, pipesPassed)', desc:'addScore 결과에 추가 적용 (보너스 등)'},
+      {id:'gameOverBonus', label:'gameOverBonus(score, pipesPassed)', desc:'게임 오버 시 보너스 (최종 점수 변경)'},
+      {id:'speedConfig', label:'speedConfig', desc:'입력받은 speed 값으로 게임 속도 조절'},
+      {id:'levelCalc', label:'levelCalc(pipesPassed)', desc:'레벨 계산 (좌상단 Lv.N + 배경 변화)'}
+    ]
+  },
+  {id:'typehunter', label:'⚔️ 타입 헌터',
+    emoji:'⚔️', tagline:'자료형을 무기로 영웅을 강하게',
+    topics:['변수','자료형','형변환','print'],
+    gradient:'linear-gradient(135deg,#3a1c5a 0%,#6a3aa0 55%,#241046 100%)',
+    decor:'<div class="mi-card-stars"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>',
+    hooks:[
+      {id:'heroSummon',    label:'heroSummon',    desc:'영웅 소환 — 변수 hero_name (str) 읽음'},
+      {id:'heroAttack',    label:'heroAttack',    desc:'공격력 — 변수 attack (int) 읽음, 영웅이 INT 타입(파랑)으로 전환'},
+      {id:'heroSpeed',     label:'heroSpeed',     desc:'이동 속도 — 변수 speed (float) 읽음, FLOAT 타입(보라)'},
+      {id:'heroShield',    label:'heroShield',    desc:'방어막 — 변수 shielded (bool) 읽음, BOOL 타입(황금)'},
+      {id:'heroTransform', label:'heroTransform', desc:'변신술 — 변수 hero 의 자료형이 영웅 색을 결정 (str/int/float/bool)'},
+      {id:'heroFinal',     label:'heroFinal',     desc:'최종: 변수 intro (str) 를 카드로 표시 + 자유 능력 종합'}
+    ]
+  },
+  {id:'lockerdrop', label:'🗄️ 떨어지는 사물함',
+    emoji:'🗄️', tagline:'리스트를 정의해 떨어지는 사물함 받기',
+    topics:['리스트','append','인덱싱','슬라이싱'],
+    gradient:'linear-gradient(135deg,#d97706 0%,#9a3412 55%,#451a03 100%)',
+    decor:'<div class="mi-card-emojis"><span>🍎</span><span>📚</span><span>⭐</span><span>💣</span></div>',
+    hooks:[
+      {id:'dropCreate', label:'dropCreate', desc:'lockers 변수 만들기'},
+      {id:'dropAdd',    label:'dropAdd',    desc:'append/insert 로 칸 추가'},
+      {id:'dropModify', label:'dropModify', desc:'lockers[i] = ...로 종류 교체'},
+      {id:'dropRemove', label:'dropRemove', desc:'pop/remove 로 위험 제거'},
+      {id:'dropSlice',  label:'dropSlice',  desc:'슬라이싱으로 리스트 일부만 활성화'},
+      {id:'dropSort',   label:'dropSort',   desc:'sort + 통계'},
+      {id:'dropGrid',   label:'dropGrid',   desc:'2차원 grades — 다층 사물함'}
+    ]
+  }
 ];
+
+function _gameTypeMeta(id){
+  return GAME_TYPES.find(g => g.id === id) || GAME_TYPES[0];
+}
 
 // ── 학생: 미션 목록/플레이 ──
 function vStMission(){
@@ -42,58 +62,73 @@ function vStMission(){
   return vMissionList(false);
 }
 
-// ── 선생님: 미션 관리/에디터/미리보기 ──
+// ── 선생님: 미션 관리/단계 텍스트 편집/미리보기 ──
 function vTcMission(){
-  if(MISSION_VIEW === 'edit') return vMissionEditor();
+  if(MISSION_VIEW === 'edit' && MISSION_EDITING) return vMissionTextEditor();
   if(MISSION_VIEW === 'play' && SEL_MISSION) return vMissionPlay(true);
   return vMissionList(true);
 }
 
-// ── 미션 목록 ──
+// ── 미션 목록 (Steam/Itch 스타일 그리드 카드) ──
 function vMissionList(isTeacher){
-  const tcBar = isTeacher ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  const tcBar = isTeacher ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div class="sec-title" style="margin:0">🎮 게임 미션</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn-p btn-sm" data-action="mission-new">+ 미션 만들기</button>
-      <button class="btn-sm" data-action="mission-load-sample" title="플래피 버드 7단계: 변수→문자열→덧셈→곱셈→입력→몫→자유창작">🐦 플래피버드 예제</button>
-      <button class="btn-sm" data-action="mission-load-typehunter" title="1차시(변수/자료형/형변환/print) 학습용 슈팅 미션 6단계">⚔️ 타입헌터 예제</button>
-      <button class="btn-sm" data-action="mission-load-lockerdrop" title="3차시(리스트) 액션 게임 — 떨어지는 이모지를 lockers에 정의한 종류만 받기">🗄️ 떨어지는 사물함 예제</button>
+      <button class="btn-sm" data-action="mission-load-sample" title="플래피 버드 7단계: 변수→문자열→덧셈→곱셈→입력→몫→자유창작">🐦 플래피버드 등록</button>
+      <button class="btn-sm" data-action="mission-load-typehunter" title="1차시(변수/자료형/형변환/print) 학습용 슈팅 미션 6단계">⚔️ 타입헌터 등록</button>
+      <button class="btn-sm" data-action="mission-load-lockerdrop" title="3차시(리스트) 액션 게임 — 떨어지는 이모지를 lockers에 정의한 종류만 받기">🗄️ 사물함 등록</button>
     </div>
   </div>` : '';
 
   if(!MISSIONS.length){
-    return tcBar + emptyBox('🎮', isTeacher ? '만든 미션이 없습니다. "예제 미션 불러오기"로 바로 시작해보세요!' : '선생님이 올린 게임 미션이 없습니다.');
+    return tcBar + emptyBox('🎮', isTeacher ? '등록된 게임이 없어요. 위 버튼으로 예제 게임을 등록해 보세요!' : '선생님이 올린 게임 미션이 없습니다.');
   }
 
-  const list = MISSIONS.map(m => {
-    const steps = m.steps?.length || 0;
-    const gt = GAME_TYPES.find(g => g.id === m.gameType);
-    if(isTeacher){
-      return `<div class="list-row">
-        <div class="row-icon" data-action="mission-play" data-mid="${m.id}" style="cursor:pointer">${gt?.label?.split(' ')[0] || '🎮'}</div>
-        <div class="row-info" data-action="mission-play" data-mid="${m.id}" style="cursor:pointer">
-          <div class="row-title">${esc(m.title)}</div>
-          <div class="row-meta">${gt?.label || m.gameType} · ${steps}개 미션 단계${m.description ? ' · ' + esc(m.description).slice(0,40) : ''}</div>
+  const cards = MISSIONS.map(m => {
+    const gt = _gameTypeMeta(m.gameType);
+    const stepCount = m.steps?.length || 0;
+    // 진행률 (학생만, 미리 로드된 MISSION_PROGRESS_ALL 사용)
+    let progressBlock = '';
+    if(!isTeacher && typeof MISSION_PROGRESS_ALL === 'object' && MISSION_PROGRESS_ALL){
+      const prog = MISSION_PROGRESS_ALL[m.id] || {};
+      const passed = (m.steps || []).filter(s => prog[s.id]?.passed).length;
+      const pct = stepCount ? Math.round(passed / stepCount * 100) : 0;
+      progressBlock = `<div class="mi-card-progress">
+        <div class="mi-card-progress-row">
+          <span class="mi-card-progress-label">${passed} / ${stepCount} 단계</span>
+          <span class="mi-card-progress-pct">${pct}%</span>
         </div>
-        <div class="row-right">
-          <button class="btn-xs" data-action="mission-move-up" data-mid="${m.id}" title="위로">▲</button>
-          <button class="btn-xs" data-action="mission-move-down" data-mid="${m.id}" title="아래로">▼</button>
-          <button class="btn-xs" data-action="mission-edit" data-mid="${m.id}">✏️ 편집</button>
-          <button class="btn-xs btn-danger" data-action="mission-delete" data-mid="${m.id}" data-mtitle="${esc(m.title)}">삭제</button>
-        </div>
+        <div class="mi-card-progress-bar"><div class="mi-card-progress-fill" style="width:${pct}%"></div></div>
       </div>`;
+    } else if(isTeacher){
+      progressBlock = `<div class="mi-card-meta-row">${stepCount}개 단계</div>`;
     }
-    return `<div class="list-row click" data-action="mission-play" data-mid="${m.id}">
-      <div class="row-icon">${gt?.label?.split(' ')[0] || '🎮'}</div>
-      <div class="row-info">
-        <div class="row-title">${esc(m.title)}</div>
-        <div class="row-meta">${gt?.label || m.gameType} · ${steps}개 미션 단계${m.description ? ' · ' + esc(m.description).slice(0,40) : ''}</div>
+
+    const tagChips = (gt.topics || []).slice(0, 3).map(t => `<span class="mi-card-tag">${esc(t)}</span>`).join('');
+
+    const teacherActions = isTeacher ? `<div class="mi-card-tc-actions">
+      <button class="mi-card-iconbtn" data-action="mission-move-up" data-mid="${m.id}" title="위로">▲</button>
+      <button class="mi-card-iconbtn" data-action="mission-move-down" data-mid="${m.id}" title="아래로">▼</button>
+      <button class="mi-card-iconbtn" data-action="mission-edit" data-mid="${m.id}" title="단계 텍스트 편집">✏️</button>
+      <button class="mi-card-iconbtn mi-card-iconbtn-danger" data-action="mission-delete" data-mid="${m.id}" data-mtitle="${esc(m.title)}" title="삭제">🗑️</button>
+    </div>` : '';
+
+    return `<div class="mi-card" data-action="mission-play" data-mid="${m.id}">
+      <div class="mi-card-visual" style="background:${gt.gradient || 'linear-gradient(135deg,#444,#222)'}">
+        <div class="mi-card-emoji">${gt.emoji || '🎮'}</div>
+        ${gt.decor || ''}
+        ${teacherActions}
       </div>
-      <div class="row-right"><span class="chip chip-purple">시작 →</span></div>
+      <div class="mi-card-body">
+        <div class="mi-card-title">${esc(m.title)}</div>
+        <div class="mi-card-tagline">${esc(m.description || gt.tagline || '')}</div>
+        ${tagChips ? `<div class="mi-card-tags">${tagChips}</div>` : ''}
+        ${progressBlock}
+      </div>
     </div>`;
   }).join('');
 
-  return tcBar + list;
+  return tcBar + `<div class="mi-grid">${cards}</div>`;
 }
 
 // ── 미션 플레이 (게임 + 단계 패널) ──
@@ -254,153 +289,70 @@ function vMiTestResults(results, allPassed){
   return `<div class="mi-results">${items}</div>`;
 }
 
-// ── 선생님: 미션 에디터 ──
-function vMissionEditor(){
+// ── 선생님: 단계 텍스트 편집기 (제목/설명/힌트만 수정 가능) ──
+//   미션 자체(게임 종류·테스트·hook·시작 코드 등)는 코드로 고정되어 있어
+//   선생님이 새 미션을 만들거나 게임 로직을 바꿀 수는 없음. 하지만 학생에게
+//   보여줄 단계의 문구는 수업 흐름에 맞게 조정할 수 있도록 텍스트만 노출함.
+function vMissionTextEditor(){
   const m = MISSION_EDITING || {};
-  const steps = m.steps || [{id: 'step_' + Date.now().toString(36), title: '', description: '', starterCode: '', tests: [], hint: '', unlocks: 'addScore'}];
-  const gameOpts = GAME_TYPES.map(g => `<option value="${g.id}"${(m.gameType||'flappybird')===g.id ? ' selected' : ''}>${g.label}</option>`).join('');
+  const gt = _gameTypeMeta(m.gameType);
+  const steps = m.steps || [];
+
+  const stepRows = steps.map((s, i) => `
+    <div class="met-step" data-sidx="${i}">
+      <div class="met-step-head">
+        <span class="met-step-num">단계 ${i + 1}</span>
+        <span class="met-step-locked" title="코드·테스트·게임 기능은 잠겨 있어요">🔒 게임 로직 잠김</span>
+      </div>
+      <div class="form">
+        <div class="field"><label>단계 제목</label>
+          <input class="met-step-title" type="text" value="${esc(s.title || '')}" placeholder="학생에게 보여줄 단계 제목"/>
+        </div>
+        <div class="field"><label>설명 (마크다운 지원)</label>
+          <textarea class="met-step-desc" style="min-height:90px" placeholder="학생에게 보여줄 문제 설명">${esc(s.description || '')}</textarea>
+        </div>
+        <div class="field"><label>힌트 (선택)</label>
+          <textarea class="met-step-hint" style="min-height:50px" placeholder="막힐 때 펼쳐볼 수 있는 힌트">${esc(s.hint || '')}</textarea>
+        </div>
+        ${s.experiment !== undefined ? `<div class="field"><label>🎨 자유 실험 안내 (선택)</label>
+          <textarea class="met-step-exp" style="min-height:50px" placeholder="단계 통과 후 학생이 실험해볼 수 있는 변형 안내">${esc(s.experiment || '')}</textarea>
+        </div>` : ''}
+      </div>
+    </div>
+  `).join('');
 
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div class="sec-title" style="margin:0">🎮 ${m.id ? '미션 편집' : '새 미션 만들기'}</div>
+      <div class="sec-title" style="margin:0">✏️ 단계 텍스트 편집 — ${esc(m.title || '')}</div>
       <button class="btn-sm" data-action="mission-editor-cancel">✕ 취소</button>
     </div>
 
-    <div class="section">
-      <div class="form">
-        <div class="field"><label>미션 제목</label>
-          <input id="me-title" type="text" placeholder="예: 플래피 버드 — 점수 시스템" value="${esc(m.title || '')}"/>
+    <div class="met-info-box">
+      <div class="met-info-icon">${gt.emoji || '🎮'}</div>
+      <div class="met-info-body">
+        <div class="met-info-title">${esc(gt.label || m.gameType)}</div>
+        <div class="met-info-tag">${esc(gt.tagline || '')}</div>
+        <div class="met-info-hint">
+          이 미션의 <b>제목·설명·힌트</b> 같은 학생용 텍스트만 수정할 수 있어요.<br>
+          코드 로직·테스트·게임 기능은 게임 엔진에 묶여 있어 코드 수정이 필요합니다.
         </div>
-        <div class="form-row">
-          <div class="field"><label>게임 종류</label>
-            <select id="me-game-type">${gameOpts}</select>
-          </div>
-        </div>
-        <div class="field"><label>미션 설명 (선택)</label>
-          <textarea id="me-desc" placeholder="학생에게 보여줄 간단한 소개">${esc(m.description || '')}</textarea>
-        </div>
-        ${!m.id ? multiClassPicker('me', TC_CLS?.id) : ''}
       </div>
     </div>
 
-    <div class="sec-title">단계 (순서대로 진행됨)</div>
-    <div id="me-steps">${steps.map((s, i) => vMeStepEditor(s, i)).join('')}</div>
-    <button class="btn-sm" data-action="me-add-step" style="margin:8px 0 16px">+ 단계 추가</button>
+    <div class="field" style="max-width:600px">
+      <label>미션 전체 설명 (목록 카드의 한 줄 안내)</label>
+      <textarea id="met-mission-desc" style="min-height:50px" placeholder="학생 목록에 한 줄로 보이는 안내">${esc(m.description || '')}</textarea>
+    </div>
 
-    <div id="me-err" class="err"></div>
-    <div style="display:flex;gap:8px;margin-bottom:30px">
-      <button class="btn-p" data-action="me-save" data-mid="${m.id || ''}">${m.id ? '미션 수정 저장' : '미션 저장'}</button>
+    <div class="sec-title" style="margin-top:18px">단계별 학생용 텍스트</div>
+    <div class="met-steps">${stepRows}</div>
+
+    <div id="met-err" class="err"></div>
+    <div style="display:flex;gap:8px;margin:14px 0 30px">
+      <button class="btn-p" data-action="met-save" data-mid="${m.id}">💾 변경 저장</button>
       <button class="btn-sm" data-action="mission-editor-cancel">취소</button>
     </div>
   `;
-}
-
-function vMeStepEditor(step, idx){
-  const tests = step.tests || [];
-  const hooks = GAME_TYPES[0].hooks; // flappybird
-  const hookStyle = step.hookStyle || 'variable';
-
-  return `<div class="section me-step" data-sidx="${idx}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-weight:700;font-size:14px">단계 ${idx + 1}</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn-xs" data-action="me-move-step" data-sidx="${idx}" data-dir="-1">↑</button>
-        <button class="btn-xs" data-action="me-move-step" data-sidx="${idx}" data-dir="1">↓</button>
-        <button class="btn-xs btn-danger" data-action="me-del-step" data-sidx="${idx}">삭제</button>
-      </div>
-    </div>
-
-    <div class="form">
-      <div class="field"><label>제목</label>
-        <input class="me-step-title" type="text" placeholder="예: 점수 변수 만들기" value="${esc(step.title || '')}"/>
-      </div>
-      <div class="field"><label>설명 (마크다운 지원)</label>
-        <textarea class="me-step-desc" style="min-height:80px" placeholder="학생에게 보여줄 문제 설명">${esc(step.description || '')}</textarea>
-      </div>
-      <div class="field"><label>힌트 (선택)</label>
-        <textarea class="me-step-hint" style="min-height:50px" placeholder="막힐 때 펼쳐볼 수 있는 힌트">${esc(step.hint || '')}</textarea>
-      </div>
-      <div class="field"><label>시작 코드</label>
-        <textarea class="me-step-code" style="min-height:80px;font-family:monospace;font-size:13px">${esc(step.starterCode || '')}</textarea>
-      </div>
-
-      <div class="field">
-        <label>코드 스타일 & 테스트 방식</label>
-        <div class="me-hookstyle-opts">
-          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="variable" ${hookStyle==='variable'?'checked':''} data-sidx="${idx}"/> <b>변수</b> — 변수를 만들고 값을 넣는 코드 (예: <code>score = 0</code>)</label>
-          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="block" ${hookStyle==='block'?'checked':''} data-sidx="${idx}"/> <b>코드 블록</b> ⭐ — 게임 이벤트 시 실행되는 코드 (변수가 주어지고, 수정 후 돌려줌)</label>
-          <label class="me-radio"><input type="radio" name="me-hookstyle-${idx}" class="me-step-hookstyle" value="function" ${hookStyle==='function'?'checked':''} data-sidx="${idx}"/> <b>함수</b> — <code>def 함수이름(...):</code> 형태</label>
-        </div>
-      </div>
-
-      ${hookStyle === 'block' ? `
-        <div class="form-row">
-          <div class="field"><label>입력 변수 (게임이 제공, 쉼표로 구분)</label>
-            <input class="me-block-inputs" type="text" placeholder="예: score 또는 score, pipesPassed" value="${esc((step.blockInputs || []).join(', '))}"/>
-          </div>
-          <div class="field"><label>출력 변수 (게임이 읽어감)</label>
-            <input class="me-block-output" type="text" placeholder="예: score" value="${esc(step.blockOutput || '')}"/>
-          </div>
-        </div>
-      ` : ''}
-
-      <div class="field"><label>통과 시 활성화할 게임 기능 (hook)</label>
-        <select class="me-step-unlocks">
-          <option value="">(없음)</option>
-          ${hooks.map(h => `<option value="${h.id}"${step.unlocks === h.id ? ' selected' : ''}>${h.label} — ${h.desc}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="field">
-        <label>테스트 케이스 (모두 통과해야 단계 완료)</label>
-        <div class="me-tests" id="me-tests-${idx}">
-          ${tests.map((t, ti) => vMeTestEditor(t, idx, ti, hookStyle, step)).join('')}
-        </div>
-        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-          ${hookStyle === 'block'
-            ? `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="block">+ 블록 테스트</button>`
-            : hookStyle === 'function'
-              ? `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="function">+ 함수 호출 테스트</button>`
-              : `<button class="btn-xs" data-action="me-add-test" data-sidx="${idx}" data-ttype="variable">+ 변수 테스트</button>`
-          }
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function vMeTestEditor(t, sidx, tidx, hookStyle, step){
-  if(t.type === 'variable'){
-    return `<div class="me-test-row" data-tidx="${tidx}">
-      <span style="font-size:11px;color:var(--text3);min-width:60px">변수값</span>
-      <input class="me-test-name" type="text" placeholder="변수명 (예: score)" value="${esc(t.name || '')}" style="flex:1"/>
-      <span>==</span>
-      <input class="me-test-expected" type="text" placeholder="기대값 (JSON: 0, 15, &quot;hi&quot;)" value="${esc(typeof t.expected === 'string' ? JSON.stringify(t.expected) : JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
-      <input type="hidden" class="me-test-type" value="variable"/>
-      <button class="btn-xs btn-danger" data-action="me-del-test" data-sidx="${sidx}" data-tidx="${tidx}">✕</button>
-    </div>`;
-  }
-  if(t.type === 'block'){
-    // 블록 테스트: 입력 변수들의 값과 기대 출력값
-    const inputsJson = t.inputs ? JSON.stringify(t.inputs) : '{}';
-    return `<div class="me-test-row me-test-block" data-tidx="${tidx}">
-      <span style="font-size:11px;color:var(--text3);min-width:60px">입력→결과</span>
-      <input class="me-test-block-inputs" type="text" placeholder='예: {"score": 0}' value='${esc(inputsJson)}' style="flex:1.3"/>
-      <span>→</span>
-      <input class="me-test-expected" type="text" placeholder="기대값 (JSON)" value="${esc(JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
-      <input type="hidden" class="me-test-type" value="block"/>
-      <button class="btn-xs btn-danger" data-action="me-del-test" data-sidx="${sidx}" data-tidx="${tidx}">✕</button>
-    </div>`;
-  }
-  // function call
-  return `<div class="me-test-row" data-tidx="${tidx}">
-    <span style="font-size:11px;color:var(--text3);min-width:60px">함수호출</span>
-    <input class="me-test-call" type="text" placeholder="예: add_score(0)" value="${esc(t.call || '')}" style="flex:1.2"/>
-    <span>==</span>
-    <input class="me-test-expected" type="text" placeholder="기대값 (JSON)" value="${esc(JSON.stringify(t.expected ?? ''))}" style="flex:1"/>
-    <input type="hidden" class="me-test-type" value="function"/>
-    <button class="btn-xs btn-danger" data-action="me-del-test" data-sidx="${sidx}" data-tidx="${tidx}">✕</button>
-  </div>`;
 }
 
 // ── 예제 미션 템플릿 (플래피 버드) — 7단계: 변수→문자열→덧셈→곱셈→입력→몫→창작 ──

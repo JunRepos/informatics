@@ -57,6 +57,12 @@ function vTeacher(){
 
 function setTC(t){
   TC_TAB = t;
+  if(t === 'mission'){
+    // 미션 탭 진입 시 그리드 목록으로 — 편집/플레이 모드 잔재 정리
+    MISSION_VIEW = 'list';
+    MISSION_EDITING = null;
+    SEL_MISSION = null;
+  }
   if(t === 'attend' && TC_CLS){
     loadAttendance(TC_CLS.id, AT_DATE).then(render);
   } else if(t === 'curriculum'){
