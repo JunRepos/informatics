@@ -29,7 +29,7 @@ function vTeacher(){
     ${tcIsInfo ? tab('📓 노트북','notebook',TC_TAB,"setTC('notebook')") : ''}
     ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
     ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
-    ${tcIsInfo ? tab('🔍 코드 읽기','coderead',TC_TAB,"setTC('coderead')") : ''}
+    ${tcIsInfo ? tab('🧩 퀴즈','coderead',TC_TAB,"setTC('coderead')") : ''}
     ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -72,6 +72,8 @@ function setTC(t){
     CR_VIEW = 'list';
     CR_SEL = null;
     CR_EDITING = null;
+    CR_CLOZE_ANSWERS = null;
+    CR_BUG_SEL = null;
     loadCodeReadings(TC_CLS.id).then(async () => {
       // 선생님 목록에서 통과 인원 표시용으로 모든 학생 진도 로드
       CR_PROGRESS = {};

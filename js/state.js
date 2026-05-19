@@ -93,6 +93,8 @@ let CR_ANSWER      = '';     // 학생이 입력 중인 답
 let CR_LAST_RESULT = null;   // {pass, correct, given, expected, msg} — 직전 채점 결과
 let CR_EDITING     = null;   // 선생님: 편집 중인 문제 (null=신규)
 let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
+let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
+let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
 
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){

@@ -964,8 +964,60 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 .cr-type-chip{display:inline-block;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.02em}
 .cr-type-predict{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
 .cr-type-trace{background:#DBEAFE;color:#1E3A8A;border:1px solid #BFDBFE}
+.cr-type-mcq{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.cr-type-cloze{background:#ede9fe;color:#5b21b6;border:1px solid #ddd6fe}
+.cr-type-bugfix{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
 [data-theme="dark"] .cr-type-predict{background:#3a2900;color:#FCD34D;border-color:#7c5008}
 [data-theme="dark"] .cr-type-trace{background:#1a2747;color:#93C5FD;border-color:#1e3a5f}
+[data-theme="dark"] .cr-type-mcq{background:#0f2e1b;color:#86efac;border-color:#1e5b34}
+[data-theme="dark"] .cr-type-cloze{background:#241846;color:#c4b5fd;border-color:#4c1d95}
+[data-theme="dark"] .cr-type-bugfix{background:#3a0e0e;color:#fca5a5;border-color:#7f1d1d}
+
+/* 퀴즈 유형 선택 카드 (선생님: 새 퀴즈 만들기 진입점) */
+.quiz-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:12px 0 18px}
+.quiz-type-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:left;cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;display:flex;flex-direction:column;gap:6px}
+.quiz-type-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.1)}
+.quiz-type-card-label{font-size:14px;font-weight:700;color:var(--text)}
+.quiz-type-card-desc{font-size:11.5px;color:var(--text2);line-height:1.45}
+
+/* 객관식 */
+.quiz-mcq-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.quiz-mcq-question{font-size:15px;font-weight:600;color:var(--text);margin:14px 0 12px;line-height:1.55}
+.quiz-mcq-choices{display:flex;flex-direction:column;gap:8px}
+.quiz-mcq-choice{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;color:var(--text);text-align:left;transition:border-color .12s,background .12s,transform .08s}
+.quiz-mcq-choice:hover{border-color:var(--accent);background:var(--accent-lt);transform:translateX(2px)}
+.quiz-mcq-letter{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1.5px solid var(--border);border-radius:50%;font-weight:700;font-size:13px;flex-shrink:0}
+.quiz-mcq-choice:hover .quiz-mcq-letter{border-color:var(--accent);background:var(--accent);color:#fff}
+.quiz-mcq-text{flex:1;line-height:1.4}
+/* 객관식 편집 폼 */
+.quiz-mcq-edit-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.quiz-mcq-edit-row{display:flex;align-items:center;gap:10px}
+.quiz-mcq-edit-correct{display:flex;align-items:center;gap:5px;font-weight:600;font-size:13px;cursor:pointer;min-width:54px}
+.quiz-mcq-edit-correct input{width:auto}
+.quiz-mcq-edit-row .cr-e-choice{flex:1;font-size:13px}
+
+/* 빈칸 채우기 */
+.quiz-cloze-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.quiz-cloze-blank{display:inline-block;width:auto;min-width:60px;padding:2px 8px;font-family:'Consolas',monospace;font-size:13px;background:#fef9c3;border:1.5px solid #f59e0b;border-radius:4px;color:#78350f;font-weight:600}
+.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 3px rgba(245,158,11,.25);background:#fff}
+[data-theme="dark"] .quiz-cloze-blank{background:#3a2900;color:#FCD34D;border-color:#7c5008}
+[data-theme="dark"] .quiz-cloze-blank:focus{background:#1f1709;border-color:#FCD34D}
+/* cloze 편집 폼 */
+.quiz-cloze-edit-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.quiz-cloze-edit-row{display:flex;align-items:center;gap:10px}
+.quiz-cloze-edit-tag{font-size:11.5px;font-weight:700;color:var(--text3);min-width:60px}
+.quiz-cloze-edit-row .cr-e-blank{flex:1;font-family:monospace;font-size:13px}
+
+/* 버그 찾기 */
+.quiz-bug-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.quiz-bug-code{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 0;margin:12px 0;overflow:auto;font-family:'Consolas',monospace;font-size:13.5px}
+.quiz-bug-line{display:flex;align-items:center;cursor:pointer;padding:1px 12px;transition:background .1s}
+.quiz-bug-line:hover{background:rgba(239,68,68,.08)}
+.quiz-bug-line.selected{background:rgba(239,68,68,.18);box-shadow:inset 3px 0 0 #ef4444}
+.quiz-bug-line .cr-line-no{display:inline-block;width:32px;text-align:right;color:var(--text3);margin-right:14px;user-select:none}
+.quiz-bug-line .cr-line-src{flex:1;white-space:pre}
+
+.cr-code-box-full{margin-top:6px}
 
 .cr-solve-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:10px;box-shadow:var(--sh)}
 .cr-solve-bar > div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

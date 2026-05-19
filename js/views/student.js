@@ -19,7 +19,7 @@ function vStudent(){
     ${isInfo ? tab('📓 노트북','notebook',ST_TAB,"setST('notebook')") : ''}
     ${isInfo ? tab('🎮 미션','mission',ST_TAB,"setST('mission')") : ''}
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
-    ${isInfo ? tab('🔍 코드 읽기','coderead',ST_TAB,"setST('coderead')") : ''}
+    ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -47,6 +47,8 @@ function setST(t){
     CR_VIEW = 'list';
     CR_SEL = null;
     CR_LAST_RESULT = null;
+    CR_CLOZE_ANSWERS = null;
+    CR_BUG_SEL = null;
     loadCodeReadings(SEL_CLS.id).then(async () => {
       // 학생 진도 일괄 로드 (목록 표시용)
       CR_PROGRESS = {};
