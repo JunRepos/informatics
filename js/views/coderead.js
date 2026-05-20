@@ -222,7 +222,7 @@ function vStQuizCloze(r){
   return `
     <div class="quiz-cloze-wrap">
       <div class="cr-q-title">🧩 빈칸에 알맞은 값을 채워주세요</div>
-      <div class="cr-q-desc">${blanks.length}개의 빈칸이 있어요. 각 칸을 클릭해서 입력하세요.</div>
+      <div class="cr-q-desc">아래 코드의 <b>노란 칸</b>에 들어갈 값을 채워주세요. 다른 줄(예: <code>print</code>)을 보면 힌트를 얻을 수 있어요. (빈칸 ${blanks.length}개)</div>
       <pre class="cr-code-box cr-code-box-full">${lines}</pre>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
         <button class="btn-p" data-action="cr-submit-cloze">제출</button>
