@@ -189,6 +189,85 @@ const ASMT_CATEGORIES = [
    ]},
 ];
 
+// 🤖 AI 코딩 (자유 실습 메뉴) — 수행평가와 분리된 독립 기능
+// 백엔드: Cloudflare Worker (Gemini). 선생님이 on/off 토글로 노출 제어.
+let AIC_ACTIVE       = {};      // { [classId]: bool } 캐시
+let AIC_VIEW         = 'entry'; // 학생: 'entry'|'examples'|'chat' / 선생님: 'manage'|'student'
+let AIC_MESSAGES     = [];      // 채팅 메시지 [{role, content, ts}]
+let AIC_CODE         = '';      // AI가 만든 현재 코드
+let AIC_TURN_COUNT   = 0;       // 학생 메시지 누적
+let AIC_LOADING      = false;   // AI 응답 대기 중
+let AIC_EXAMPLES_CAT = null;    // 예시 보기 선택 카테고리
+let AIC_SAVE_TIMER   = null;    // 세션 저장 debounce
+let AIC_AUTO_TIMER   = null;    // 진입 3분 자동 인사 타이머
+let AIC_RUN_STDIN    = '';      // 코드 실행 입력값
+let AIC_RUN_RESULT   = null;    // 코드 실행 결과 {output, error, success}
+let AIC_RUNNING      = false;   // Pyodide 실행 중
+let AIC_ALL_SESSIONS = {};      // 선생님: { [학번]: session }
+let AIC_TC_SEL_SNUM  = null;    // 선생님: 보고 있는 학생 학번
+const AIC_TURN_LIMIT = 40;      // 학생당 최대 메시지 수
+const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
+
+// AI 코딩 — 진로 카테고리 8개 + 카테고리별 예시 프로그램
+const AIC_CATEGORIES = [
+  {id:'med', emoji:'🩺', label:'의약·보건', tagline:'의대·치대·약대·간호·수의대',
+   examples:[
+     '환자 키와 몸무게로 BMI를 계산해서 저체중/정상/과체중/비만을 알려주는 프로그램',
+     '수축기/이완기 혈압을 입력받아 정상/주의/고혈압을 판별하는 프로그램',
+     '약 복용 시작 시각과 간격(시간)을 입력받아 하루 복용 시각을 모두 출력하는 프로그램',
+     '체온을 입력받아 정상/미열/발열로 분류하고 권장 행동을 알려주는 프로그램',
+   ]},
+  {id:'eng', emoji:'⚙️', label:'공학', tagline:'기계·전기·화공·토목',
+   examples:[
+     '도로 신호등 — 차량 수에 따라 초록불 시간을 조정하는 프로그램',
+     '다리 위 차량들의 무게 합이 한도를 넘는지 점검하는 프로그램',
+     '24시간 시각을 입력받아 12시간 + 오전/오후 형식으로 변환하는 프로그램',
+     '와이파이 신호 강도(-30 ~ -90 dBm)를 입력받아 신호 단계를 알려주는 프로그램',
+   ]},
+  {id:'it', emoji:'💻', label:'IT·컴퓨터', tagline:'컴공·AI·게임·보안',
+   examples:[
+     '비밀번호를 입력받아 길이·숫자 포함·특수문자 포함을 검사해 강도를 알려주는 프로그램',
+     'CPU·RAM·SSD 가격을 입력받아 총액을 계산하고 예산 초과 여부를 알려주는 프로그램',
+     '가위바위보 — 학생이 입력하면 컴퓨터(랜덤)와 대결하는 프로그램',
+     '카운트다운 — 초를 입력받아 1초씩 줄여가며 모든 숫자를 출력하는 프로그램',
+   ]},
+  {id:'sci', emoji:'🔬', label:'자연과학', tagline:'수학·물리·화학·생물',
+   examples:[
+     '학생 N명의 시험 점수를 입력받아 평균·최댓값·최솟값을 출력하는 프로그램',
+     '양의 정수를 입력받아 소수(prime)인지 판별하는 프로그램',
+     '섭씨 온도를 입력받아 화씨·켈빈으로 변환하는 프로그램',
+     'pH 값(0~14)을 입력받아 산성/중성/염기성을 분류하는 프로그램',
+   ]},
+  {id:'biz', emoji:'💼', label:'사회·경영', tagline:'경영·경제·법·심리',
+   examples:[
+     '상품 단가·수량·할인율을 입력받아 결제 금액을 계산하는 프로그램',
+     '원화 금액을 달러/엔/유로 환율로 변환해주는 프로그램',
+     '월 적립금과 기간을 입력받아 단리 적금 만기액을 계산하는 프로그램',
+     '후보 N명의 득표 수를 입력받아 당선자와 득표율을 출력하는 프로그램',
+   ]},
+  {id:'hum', emoji:'📚', label:'인문', tagline:'어문학·사학·철학',
+   examples:[
+     '문장을 입력받아 글자 수와 모음 개수를 세어주는 프로그램',
+     '연도를 입력받아 몇 세기인지 알려주는 프로그램 (1592 → 16세기)',
+     '단어를 입력받아 거꾸로 읽어도 같은지(회문) 판별하는 프로그램',
+     '문장을 입력받아 단어 수를 세는 프로그램 (공백으로 분리)',
+   ]},
+  {id:'edu', emoji:'🎓', label:'교육', tagline:'사범대·교육학',
+   examples:[
+     '학생 5명의 점수를 입력받아 A/B/C/D/F 학점 분포를 출력하는 프로그램',
+     '출석 일수와 총 수업일 수를 입력받아 출석률(%)을 계산하는 프로그램',
+     '학생 N명의 점수를 입력받아 60점 이상 합격자 명단을 출력하는 프로그램',
+     '하루 학습 시간(분)을 7일치 입력받아 총 시간·분 형식으로 변환하는 프로그램',
+   ]},
+  {id:'art', emoji:'🎨', label:'예체능', tagline:'디자인·음악·미술·체육',
+   examples:[
+     '운동 시간(분)과 강도를 입력받아 소모 칼로리를 계산하는 프로그램',
+     'BPM(분당 박자)을 입력받아 한 박자의 길이(밀리초)를 알려주는 프로그램',
+     'RGB 값을 입력받아 가장 가까운 기본 색(빨강/초록/파랑)을 알려주는 프로그램',
+     '음표 간격(도→솔 = 5도 같은) 두 개를 입력받아 합을 계산하는 프로그램',
+   ]},
+];
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

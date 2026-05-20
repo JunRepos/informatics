@@ -36,12 +36,15 @@ function applyWrapWidth(){
     else if(TC_TAB === 'oj' || TC_TAB === 'curriculum' || TC_TAB === 'coderead') cls = 'wide';
     else if(TC_TAB === 'asmt' && ASMT_VIEW === 'student') cls = 'full';
     else if(TC_TAB === 'asmt') cls = 'wide';
+    else if(TC_TAB === 'aicode' && AIC_VIEW === 'student') cls = 'full';
+    else if(TC_TAB === 'aicode') cls = 'wide';
   } else if(VIEW === 'student'){
     if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
     else if(ST_TAB === 'asmt' && ASMT_VIEW === 'chat') cls = 'full';
     else if(ST_TAB === 'asmt' && ASMT_VIEW === 'describe') cls = 'full';
+    else if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
 }
@@ -209,6 +212,11 @@ function afterRender(){
   // 수행평가 — 채팅 스크롤·포커스·진입 타이머
   if(typeof afterRenderAssessment === 'function'){
     afterRenderAssessment();
+  }
+
+  // AI 코딩 — 채팅 스크롤·포커스·진입 타이머
+  if(typeof afterRenderAiCode === 'function'){
+    afterRenderAiCode();
   }
 
   // 비주얼 OJ — 첫 렌더링 시 시각화 위젯에 첫 공개 TC 입력 그림 (output 없이)

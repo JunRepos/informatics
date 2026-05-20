@@ -321,6 +321,24 @@
       }
     },
 
+    // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
+    //   active/{cid}        : bool — 선생님이 켜야 학생에게 노출
+    //   sessions/{cid}/{학번}: { messages, code, turnCount, updatedAt }
+    "aicode": {
+      "active": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "sessions": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      }
+    },
+
     // ── 코드 읽기 학생 진도 ──
     "codeReadingProgress": {
       "$classId": {

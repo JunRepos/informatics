@@ -1207,6 +1207,10 @@ input.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 
 .asmt-code-empty-icon{font-size:48px;margin-bottom:10px;opacity:.5}
 .asmt-code-empty-msg{font-size:13px;line-height:1.6}
 
+/* AI 코딩 — 코드 패널 하단 실행 박스 */
+.aic-run-box{border-top:1px solid var(--border);padding:10px 14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.aic-run-stdin{flex:1;min-width:160px;font-family:monospace;font-size:12.5px}
+
 /* 모바일 — 채팅 모드는 좌·우 세로 적층 */
 @media (max-width: 900px){
   .asmt-chat-split{grid-template-columns:1fr;grid-template-rows:1fr auto}

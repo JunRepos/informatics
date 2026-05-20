@@ -20,6 +20,7 @@ function vStudent(){
     ${isInfo ? tab('🎮 미션','mission',ST_TAB,"setST('mission')") : ''}
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
+    ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
     ${isInfo && ASMT_PHASE[SEL_CLS?.id] && ASMT_PHASE[SEL_CLS?.id] !== 'off' ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
@@ -34,6 +35,7 @@ function vStudent(){
   else if(ST_TAB === 'mission') body = vStMission();
   else if(ST_TAB === 'oj')      body = vStOJ();
   else if(ST_TAB === 'coderead')body = vStCodeRead();
+  else if(ST_TAB === 'aicode')  body = vStAiCode();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
   else if(ST_TAB === 'mine')    body = vStMine();
   return tabs + body;
@@ -61,6 +63,27 @@ function setST(t){
           CR_PROGRESS[r.id][ST_USER.number] = p;
         }
       }
+      render();
+    });
+  } else if(t === 'aicode' && SEL_CLS && ST_USER){
+    // AI 코딩 탭 — active + 저장 세션 로드 후 적절한 화면 결정
+    AIC_MESSAGES = [];
+    AIC_CODE = '';
+    AIC_TURN_COUNT = 0;
+    AIC_RUN_RESULT = null;
+    AIC_RUN_STDIN = '';
+    AIC_EXAMPLES_CAT = null;
+    AIC_VIEW = 'entry';
+    Promise.all([
+      loadAicActive(SEL_CLS.id),
+      loadAicSession(SEL_CLS.id, ST_USER.number)
+    ]).then(([_active, s]) => {
+      if(s){
+        AIC_MESSAGES = Array.isArray(s.messages) ? s.messages : [];
+        AIC_CODE = s.code || '';
+        AIC_TURN_COUNT = s.turnCount || 0;
+      }
+      AIC_VIEW = _aicInitialStudentView(s);
       render();
     });
   } else if(t === 'asmt' && SEL_CLS && ST_USER){

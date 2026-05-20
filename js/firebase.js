@@ -403,6 +403,54 @@ async function saveAsmtScore(cid, studentNum, score){
   });
 }
 
+// ── 🤖 AI 코딩 (자유 실습 메뉴) ──
+// active/{cid} : bool — 선생님이 켜야 학생에게 노출
+// sessions/{cid}/{학번} : { messages, code, turnCount, updatedAt }
+async function loadAicActive(cid){
+  try {
+    const s = await db.ref(`aicode/active/${cid}`).get();
+    const on = s.exists() ? !!s.val() : false;
+    AIC_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[AI코딩] active 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    AIC_ACTIVE[cid] = false;
+    return false;
+  }
+}
+
+async function setAicActive(cid, on){
+  await db.ref(`aicode/active/${cid}`).set(!!on);
+  AIC_ACTIVE[cid] = !!on;
+}
+
+async function loadAicSession(cid, studentNum){
+  try {
+    const s = await db.ref(`aicode/sessions/${cid}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[AI코딩] 세션 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+async function saveAicSession(cid, studentNum, data){
+  await db.ref(`aicode/sessions/${cid}/${studentNum}`).set({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function loadAllAicSessions(cid){
+  try {
+    const s = await db.ref(`aicode/sessions/${cid}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[AI코딩] 전체 세션 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -415,7 +463,8 @@ async function loadAllClassData(cid){
     loadNotebooks(cid),
     loadMissions(cid),
     loadCodeReadings(cid),
-    loadAsmtPhase(cid)
+    loadAsmtPhase(cid),
+    loadAicActive(cid)
   ]);
 }
 
