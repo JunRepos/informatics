@@ -278,23 +278,15 @@
       }
     },
 
-    // ── 코드 읽기 (Code Reading) — 코드 한 덩어리 + 자동 추출된 정답 ──
+    // ── 퀴즈 (구 코드 읽기) — 5가지 유형: predict/trace/mcq/cloze/bugfix ──
+    //   유형별로 필드가 달라(choices, blanks, buggyLine 등) 필드 단위 검증 대신
+    //   상위 필수 필드(title/type/createdAt)만 확인하고 나머지는 자유롭게 허용.
     "codeReadings": {
       "$classId": {
         ".read": true,
         ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
         "$rdId": {
-          ".validate": "newData.hasChildren(['title', 'code', 'type', 'createdAt'])",
-          "id":             { ".validate": "newData.isString()" },
-          "title":          { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
-          "description":    { ".validate": "newData.isString() && newData.val().length <= 2000" },
-          "code":           { ".validate": "newData.isString() && newData.val().length <= 10000" },
-          "stdin":          { ".validate": "newData.isString() && newData.val().length <= 5000" },
-          "type":           { ".validate": "newData.isString() && (newData.val() === 'predict' || newData.val() === 'trace')" },
-          "expectedOutput": { ".validate": "newData.isString() && newData.val().length <= 10000" },
-          "traces":         { ".validate": true },
-          "createdAt":      { ".validate": "newData.isString()" },
-          "$other":         { ".validate": false }
+          ".validate": "newData.hasChildren(['title', 'type', 'createdAt'])"
         }
       }
     },
