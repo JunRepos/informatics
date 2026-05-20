@@ -48,9 +48,11 @@ AI 없는 순수 자동채점 시험. 4파트 전부 Pyodide 자동 채점.
 | 파트 | 내용 | 채점 | 5요소 매핑 |
 |---|---|---|---|
 | ① 출력예측(predict) | 코드 stdout 예측 | 저장된 expected와 `_normalizeAns` 비교 | ⑤ 결과 |
-| ② 변수추적(trace) | 코드 실행 후 각 변수 최종값 | `_matchTraceValue` | ② 자료형 |
+| ② 코드해석(explain) | 선생님이 강조한 줄을 학생이 **서술 설명** | **자동채점 X — 선생님 수동** | ② 자료형 |
 | ③ 빈칸(cloze) | 코드 `___` 채우기 | `_matchClozeBlank` | ④ 제어구조 |
 | ④ 구현(implement) | 명세+테스트케이스 코드 작성 | 코드 실행 후 통과율 | ① 추상화 + ③ 입출력(절반씩) |
+
+> ② 코드해석은 서술형이라 자동채점에서 제외(2026-05-21 변수추적에서 변경). 선생님이 학생 답을 보고 자료형(②) 점수를 직접 입력. 퀴즈(coderead)의 trace 도 동일하게 explain 으로 교체(퀴즈는 제출 후 모범답안 자가확인).
 
 - **파일**: `js/views/assessment.js`, `js/events/assessment.js` **전면 재작성** + state `ASMT_*` 교체
 - **배점**: 선생님이 파트별 조정(기본 ①5/②5/③5/④10=25). `exam.weights`
@@ -68,7 +70,7 @@ AI 없는 순수 자동채점 시험. 4파트 전부 Pyodide 자동 채점.
 assessment/exam/{cid}              : { active, weights:{predict,trace,cloze,implement},
                                        predict[], trace[], cloze[], implement[], updatedAt }
   predict 문제   = { id, code, stdin, expected }
-  trace 문제     = { id, code, stdin, vars:{varName: repr} }
+  explain 문제   = { id, code, highlight:[줄번호], prompt(질문), answer(모범답안·채점참고) }
   cloze 문제     = { id, code('___'포함), blanks:[...], desc }
   implement 문제 = { id, title, desc, starter, tests:[{input,expected,hidden}] }
 assessment/submissions/{cid}/{학번} : { answers:{predict,trace,cloze,implement}, autoScore:{part:{correct,total}}, submittedAt }
