@@ -1,375 +1,223 @@
 # 🔄 세션 핸드오프 문서
 
-> 이 세션에서 추가/변경한 모든 작업의 요약.
-> 새 세션을 열어서 이어서 작업할 때 **이 문서 + PROJECT_CONTEXT.md** 만 읽으면 컨텍스트 완전 복원 가능.
+> 이 문서 + **PROJECT_CONTEXT.md** 만 읽으면 컨텍스트 완전 복원 가능.
+> 새 세션 시작 시: ① PROJECT_CONTEXT.md → ② 이 문서 → ③ `git log --oneline -40`
+
+---
 
 ## 📅 세션 메타
 
-- **시작**: 2026-05-04
-- **마지막 커밋**: `3a04049` (노트북: 선생님이 셀 편집하면 학생에게 자동 반영)
-- **작업한 브랜치**: `claude/vigilant-mirzakhani-0a9364` (워크트리)
-- **배포 경로**: `git push origin claude/vigilant-mirzakhani-0a9364:main` → GitHub Pages 자동 배포
+- **마지막 갱신**: 2026-05-20
+- **마지막 커밋**: `62c81fc` (수행평가 2차시 전면 개편 — 서술형 5문항)
+- **작업 브랜치**: `claude/musing-kapitsa-488f5f` (워크트리)
+  - 워크트리 경로: `C:\Users\PC\Desktop\github\informatics\.claude\worktrees\musing-kapitsa-488f5f`
+- **배포**: `git push origin claude/musing-kapitsa-488f5f:main` → GitHub Pages 자동 배포
+- **사이트 주소**: https://junrepos.github.io/informatics/
 - **git config** (이 저장소만): `user.name=JunRepos / user.email=chlwns1023@gmail.com`
+  - 커밋 시 `git -c user.name="JunRepos" -c user.email="chlwns1023@gmail.com" commit ...`
+- **배포 확인 패턴**: `until curl -s "https://junrepos.github.io/informatics/<파일>?v=$(date +%s)" | grep -q "<키워드>"; do sleep 15; done`
+
+### ⚠️ 환경 메모
+- 이 워크트리 환경엔 **node 없음**. JS syntax 검증은 PowerShell 파서로:
+  `[System.Management.Automation.Language.Parser]::ParseInput($code,[ref]$null,[ref]$null)`
+  (JS 전용 검증은 아니지만 괄호/토큰 균형 오류는 잡힘)
+- PowerShell 콘솔은 **한글 출력이 깨짐**. 한글 결과는 파일로 저장 후 Read 도구로 확인.
+- `database.rules.json` 은 `//` 주석 포함 → 표준 JSON 파서(ConvertFrom-Json)는 거부하지만 Firebase 는 허용. 정상.
 
 ---
 
-# 📦 이 세션에서 추가한 새 메뉴/기능
+# 🆕 이번 세션(2026-05-20) 작업 요약
 
-## 1. 🔍 코드 읽기 (Code Reading) — 정보반 신규 탭
+총 17개 커밋. 크게 **① 기존 메뉴 개선** + **② 수행평가 시스템 신규 구축(가장 큼)**.
 
-학생이 코드를 *읽고 해석* 하는 새 학습 메뉴 (작성 X, 읽기 O).
+## 1. 노트북 — 셀 호버 툴바 좌측 이동 (`39da85e`)
+- 셀 우상단 `▶ ↑ ↓ 📋 🗑` 버튼이 수업 중 마우스 이동 거리가 멀다는 피드백
+- `css/styles.css` `.cb-cell-actions` 의 `right:12px` → `left:12px` (한 줄)
 
-### 두 가지 문제 유형
-| 유형 | 학생이 하는 것 | 채점 방식 |
-|---|---|---|
-| **🔮 출력 예측 (predict)** | 코드 보고 stdout 결과 텍스트로 입력 | 정답 stdout과 문자열 비교 |
-| **🔍 변수 추적 (trace)** | 각 단계 줄 실행 후 변수 값 입력 | repr 정답과 비교 (공백/따옴표 관대) |
+## 2. OJ — 한방 등록 → 파일 업로드 (`a623a92` → `1c88dcf`)
+- 기존: `oj-problems-data.js`(1177줄)에 23문제 박아 한 버튼 등록 → **제거**
+- 신규: 선생님이 **Markdown(.md) 파일**을 업로드해 여러 문제 일괄 등록
+- OJ 탭 우상단 버튼 3개: **📥 Markdown 업로드 / 📄 샘플 양식 / 📤 내보내기**
+- 처음엔 JSON 으로 만들었다가(`a623a92`), 따옴표/줄바꿈 escape 불편하다는 피드백으로 **Markdown 으로 전환**(`1c88dcf`)
+- 파서/직렬화: `js/events/oj-actions.js` 의 `parseOJMarkdown` / `buildOJMarkdown` / `OJ_MD_SAMPLE`
+- **Markdown 형식**:
+  ```
+  # 문제 제목
+  <!-- visual:playlist-bars -->     ← 선택 (비주얼 OJ)
+  ## 설명
+  (마크다운 본문)
+  ## 시작 코드
+  ```python ... ```
+  ## 테스트
+  ### 케이스 1
+  입력: ``` ... ```
+  출력: ``` ... ```
+  ### 케이스 2 (숨김)
+  ...
+  ```
+  - 새 문제는 다시 `# 제목`. fenced 블록 내부의 `#` 은 무시(학생 코드 주석 안전)
+  - `(숨김)`/`(hidden)` 태그로 hidden TC 표시
+- `_encodeOJMeta`(visualType/starterCode 를 description 주석으로 인코딩)는 유지
 
-### 핵심 파일
-- `js/views/coderead.js` — 학생/교사 뷰
-- `js/events/coderead.js` — 이벤트 + 예제 묶음 데이터 (`CR_SAMPLE_PACKS`)
-- `js/coderead-runner.js` — 메인 측 워커 호출 + 흥미로운 단계 자동 선택
-- `js/coderead-worker.js` — Pyodide + `sys.settrace` 로 줄별 변수 스냅샷
+## 3. 미션 — Steam/Itch 풍 그리드 + 만들기 제거 (`75df408`)
+- 미션 목록을 `list-row` → **그리드 카드**(`.mi-grid`/`.mi-card`)
+  - 게임별 그라데이션 배경 + 큰 이모지 + 인게임 데코(파이프/별/떨어지는 이모지)
+  - 학생 카드: 진행률 바(탭 진입 시 `loadAllMissionProgress` 로 일괄 로드)
+  - 선생님 카드: 호버 시 우상단 `▲▼ ✏️ 🗑`
+- **"+ 미션 만들기" 제거**: 선생님이 새 게임을 만들 수 없으므로(게임 엔진=코드)
+  - `vMissionEditor`/`vMeStepEditor`/`vMeTestEditor` + 관련 핸들러 전부 삭제
+  - ✏️ 버튼 = `vMissionTextEditor` — **단계 텍스트(제목/설명/힌트/experiment)만 편집**, 코드/테스트/hook 은 원본 보존(deep clone 후 텍스트만 덮어씀)
+- `GAME_TYPES` 에 카드 메타(emoji/tagline/topics/gradient/decor) 추가, `_gameTypeMeta(id)` 헬퍼
+- 예제 게임 등록 버튼(🐦 플래피버드 / ⚔️ 타입헌터 / 🗄️ 사물함)은 유지 — 사실상 게임 등록 방법
 
-### 선생님 UX
-1. **코드만 등록하면 정답 자동 추출** — Pyodide가 실행해 stdout / 줄별 변수 캡처
-2. **🪄 자동 분석 미리보기** 버튼 — 등록 전 결과 확인
-3. **예제 묶음 카드** (📥 표준입출력·자료형·산술 5문제 / 📋 리스트 5문제) — 클릭 한 번에 일괄 등록
-
-### 학생 UX (`vStCRSolve`)
-- 좌: 코드 (줄번호 + 읽기 전용)
-- 우: 문제 입력칸 + 통과 시 🎉, 실패 시 친절한 안내
-- **`predict` 타입은 stdin이 학생 화면에 노란 박스로 표시** (학생이 입력값 보고 추측 가능)
-
-### 데이터 모델
-```
-codeReadings/{cid}/{rdId}
-  { id, title, description, code, stdin?, type, expectedOutput?, traces?, createdAt }
-
-codeReadingProgress/{cid}/{rdId}/{studentNum}
-  { passed, attempts, lastAttempt, updatedAt }
-```
-**Firebase 규칙 추가** — `database.rules.json` 게시 필요.
-
-### Trace 정답 매칭 관대화 (`_matchTraceValue`)
-- 큰따옴표 ↔ 작은따옴표 자동 정규화
-- 리스트 `[10,20]` ↔ `[10, 20]` 공백 차이 흡수
-- 학생이 다양한 표기로 답해도 통과
-
----
-
-## 2. 🗄️ 떨어지는 사물함 미션 — 액션 게임 (3차시 리스트)
-
-리스트 학습용 진짜 액션 게임. (사물함 마스터는 시각화에 가까웠다는 사용자 피드백 후 신규 작성)
-
-### 게임 메커니즘
-- 화면 위에서 이모지 떨어짐 (사과 🍎, 책 📚, 별 ⭐, 폭탄 💣...)
-- 학생이 `lockers = [...]` 정의 → 그 종류만 자동 받음
-- 위험 이모지(💣)를 lockers에 넣으면 받아서 ❤️ -1
-- 8단계: 만들기 / append / insert / 인덱싱 수정 / pop·remove / 슬라이싱 / sort+len / 2차원 grades
-
-### 이모지 팔레트 (필수)
-학생이 이모지를 직접 찾기 어려우므로 **코드 에디터 위에 클릭 가능한 이모지 버튼** 표시:
-- 단계별 `emojiPool` 에서 자동 노출
-- 안전(초록)/위험(빨강) 색상 구분
-- 클릭 시 `navigator.clipboard.writeText` + 토스트 "복사됨!"
-
-### 핵심 파일
-- `js/games/lockerdrop.js` — 캔버스 게임 엔진 (`applyState` 패턴)
-- `js/views/mission.js` — `getLockerDropSampleMission()`, `vMiEmojiPalette()`, GAME_TYPES 등록
-- `js/events/mission.js` — `_applyLockerDropState`, 이모지 복사 핸들러
-
-### 시스템에 남아 있는 게임 종류 (GAME_TYPES)
-- 🐦 플래피버드 (1·2차시 산술)
-- ⚔️ 타입헌터 (1차시 자료형)
-- 🗄️ 떨어지는 사물함 (3차시 리스트)
-- ~~사물함 마스터~~ — **삭제됨** (시각화 도구라 게임성 부족 피드백)
+## 4. 코드 읽기 → "퀴즈" 5유형 (`1878e20` → `00b9b69`)
+- 탭 라벨: 🔍 코드 읽기 → **🧩 퀴즈** (학생/선생). DB 경로(`codeReadings`/`codeReadingProgress`)·`CR_*` 변수명은 호환 위해 **유지**
+- 유형 5종 (`QUIZ_TYPES`):
+  - 🔮 출력 예측(predict) / 🔍 변수 추적(trace) — 기존, Pyodide 자동 정답
+  - ✅ 객관식(mcq) — 코드+질문+4지선다, 정답·해설 직접 입력
+  - 🧩 빈칸 채우기(cloze) — 코드의 `___` 토큰을 학생이 채움, 공백/대소문자/따옴표 관대 비교(`_matchClozeBlank`)
+  - 🐛 버그 찾기(bugfix) — 잘못된 줄 클릭, `buggyLine` 일치 시 통과
+- 선생님: 목록 상단 **유형 선택 카드 5개**(`quiz-type-card`) → 클릭 시 유형별 폼
+- 예제 묶음(`CR_SAMPLE_PACKS`) 한방 등록은 **제거**(`00b9b69`)
+- 새 state: `CR_CLOZE_ANSWERS`, `CR_BUG_SEL`
 
 ---
 
-## 3. 💻 OJ — 다섯 가지 큰 개선
+# 🤖 수행평가 시스템 (이번 세션 핵심 신규 — 가장 중요)
 
-### 3-1. 순서 변경 ▲▼
-- 선생님 OJ 목록 각 행 우측에 ▲▼ 버튼
-- 두 문제의 `createdAt` swap (DB 스키마 변경 없음)
-- 정렬은 `createdAt` 오름차순 (등록한 순서대로 학생에게 표시)
+> 커밋: `e3a7de3` → `54c5342` → `e1f7804` → `730bb8e` → `504d076` → `a73b118` → `f237905` → `e83d1c7`(퀴즈규칙) → `7c4194b` → `d188ce1` → `62c81fc`
 
-### 3-2. 사전 코드 (starterCode)
-- 등록 폼에 사전 코드 입력 textarea
-- `description` 첫 줄에 `<!-- starter:base64 -->` 로 인코딩 저장 (DB 스키마 그대로)
-- `loadOJProblems` 가 로드 시 자동 디코드해서 `obj.starterCode` 로 복원
-- 학생 풀이 화면 진입 시 사전 코드가 OJ_CODE 초기값으로
-- 학생이 **초기화** 버튼 누르면 사전 코드로 되돌림
+## 개념
+**AI(Gemini)로 진로 관련 코드를 만들고(1차시), 그 코드를 해석·설명(2차시)** 하는 2차시 구성 수행평가. 평가 계획서(`알고리즘과 프로그래밍 수행평가 계획서.pdf`, D 드라이브)의 **논술 평가방법 + 5개 평가요소(25점)** 에 맞춤.
 
-### 3-3. 실시간 input() (Colab 스타일)
-**가장 큰 변경**. 학생이 ▶ 코드 실행 시:
-- `input()` 만나면 결과 패널에 **노란 입력 박스** 등장
-- 학생이 값 입력 + Enter → 워커에 전달 → 계속 실행
-- "미리 입력값" 비우면 실시간, 채우면 자동 (예전 동작)
+### 평가 계획서 채점 기준 (각 5점, 총 25점)
+1. 알고리즘 표현(문제 추상화) 2. 자료형 활용 3. 적절한 입출력 형식 4. 다양한 제어 구조 활용 5. 다양한 상황에서 올바른 결과 출력
 
-### 구현 (oj-worker.js + events/oj-actions.js)
-- **SharedArrayBuffer + Atomics.wait** (노트북 워커와 같은 패턴)
-- 메인이 `init-stdin` 메시지로 SAB 전달 → 워커는 `crossOriginIsolated` 환경에서만 SAB 활성
-- Python `builtins.input` 을 직접 오버라이드해 `_oj_js_request_input(prompt)` 호출 → 메인에 prompt 포함 메시지
-- SAB 미지원 환경(첫 방문/시크릿)에서 워커가 `undefined` 반환 → Python `None` → `RuntimeError` → friendlyOJError가 "새로고침 안내" 표시
+## 🌐 외부 인프라 (새 세션에서 꼭 알아야 함)
 
-### 캐시 무효화
-- `OJ_WORKER_VER` 상수 (`events/oj-actions.js`) — 워커 코드 바꾸면 이 값 올려서 학생 브라우저에 새 워커 강제 로드
-- 현재 값: `'20260516-input-fallback'`
+### Cloudflare Worker (AI 프록시)
+- **URL**: `https://informatics-ai.chlwns1023.workers.dev`
+- 역할: 학생 브라우저 → 워커(시스템 프롬프트 강제) → Gemini API → 응답
+- **모델**: `gemini-2.5-flash` (Google AI Studio, **유료 결제 등록 완료** — 한국 IP 무료티어 차단 회피용. 실제 비용은 수업당 ~2천원 미만)
+- **Secret**: `GEMINI_API_KEY` (워커 환경변수에 등록됨)
+- **워커 코드/시스템 프롬프트는 Cloudflare 대시보드에만 존재** (이 레포에 없음!)
+  - 새 세션에서 시스템 프롬프트 수정하려면: 워커 코드 전체를 새로 만들어 사용자에게 주고 → 사용자가 Cloudflare 대시보드 `informatics-ai` → Edit code → 통째로 교체 → Deploy
+  - 시스템 프롬프트 핵심 제약(최종본):
+    - 존댓말, 한 번에 한 질문, 짧게
+    - **조건문(if) + 반복문(for/while) 둘 다 필수** 포함, 빼달라 해도 거절
+    - 사용 가능: 변수, print(콤마 출력), input, int/float/str, 산술, 비교, 논리, if/elif/else, while+break+continue, for+range(5)/range(1,5)/range(1,5,2), 리스트/len/인덱싱/슬라이싱
+    - **금지: f-string, `{:.2f}`/round, 문자열 곱셈("-"*20), 인자 없는 range, def, class, import, lambda, 컴프리헨션, try/except, 코드 주석(#)**
+    - 변수명 짧게(2단어까지, `_str` 접미사 금지), `input()` 결과는 바로 형변환
+    - 줄별 설명/정답 요청은 거절(힌트만)
+  - 클라이언트 호출: `js/events/assessment.js` 의 `_sendAsmtMessage` → POST `{messages:[{role,content}]}` → `{text, finishReason, usage}`
+  - **주석 안전망**: AI가 가끔 주석을 달아서, `js/views/assessment.js` 의 `_extractAsmtCode` → `_stripPyComments` 로 코드 추출 시 주석 제거. 문자열 안 `#` 보존, 줄 전체 주석은 줄째 삭제
 
-### 3-4. 수정 시 다른 반에 복사 등록
-- OJ 문제 ✏️ 수정 화면 하단에 "📋 다른 반에도 복사 등록" 체크박스
-- 체크된 반에 새 ID로 같은 문제 등록 (현재 반은 update만)
+### Pyodide 워커 (2차시 코드 실행)
+- `js/asmt-worker.js` — OJ 워커와 별도 인스턴스(단순 실행기). `builtins.input` 을 stdin 줄 소비로 오버라이드
+- 호출: `js/events/assessment.js` `_runAsmtCode(code, stdin)` / `_ensureAsmtWorker`
 
-### 3-5. 23문제 한방 등록 (전체 진도)
-선생님 OJ 탭 우상단 **📦 23문제 한방 등록 (전체 진도)** 버튼:
-- `js/oj-problems-data.js` 의 `OJ_23_PROBLEMS` 배열 23문제 일괄 등록
-- 사전 코드 / 테스트 케이스(공개·숨김) / 마크다운 설명 모두 포함
-- 분포: 변수·자료형 2 / 입출력·산술 4 / 리스트 5 / 조건문 3 / 반복문 4 / 종합 5
-- 학생이 split·map 미학습이라 **모든 split·map 사용 줄 위에 한국어 주석 부착**
-- 등록 후 ▲▼로 순서 자유 조정 가능
-
----
-
-## 4. 🎨 비주얼 OJ — 시각화 위젯 인프라
-
-학생이 OJ 푸는 동안 좌측에 **시각적 결과** 가 함께 보이는 새 패턴.
-
-### 작동 흐름
-1. OJ 문제에 `visualType` 메타 (description 첫 줄에 `<!-- visual:위젯ID -->` 인코딩)
-2. 학생 풀이 화면 좌측에 `<canvas id="oj-visual-canvas">` 추가
-3. 학생 코드 실행 후 stdout → 위젯 호출 (입력은 stdin, 출력은 stdout, 정답은 첫 공개 TC의 expectedOutput)
-4. 정답 시: 황금 막대 + 🏆 트로피 / 오답 시: 파란 강조 / 미실행: 회색 막대
-
-### 첫 위젯
-- `js/visual-widgets.js` 의 `window.VISUAL_WIDGETS['playlist-bars']`
-- 입력 파싱: 첫 줄 N, 둘째 줄 N개 정수 → 막대 그래프
-- 출력 파싱: 첫 줄 인덱스, 둘째 줄 값 → 해당 막대 강조
-
-### 한방 등록
-선생님 OJ 탭 **🎨 비주얼 OJ — 재생목록** 버튼 → "🎵 재생목록 — 가장 긴 노래는?" 등록.
-
-### 확장 패턴 (새 위젯 추가 시)
-```js
-window.VISUAL_WIDGETS['새위젯ID'] = function(canvas, opts){
-  // opts.input, opts.output, opts.expected
-  // canvas 에 그리기
-};
-```
-그 다음 OJ 문제 등록 시 `description` 앞에 `<!-- visual:새위젯ID -->` 추가하면 끝.
-
----
-
-## 5. ▲▼ 순서 변경 — 모든 탭에 일괄 적용
-
-선생님 화면의 6개 탭에 순서 조정 버튼:
-
-| 탭 | 정렬 키 |
-|---|---|
-| 📢 공지 | createdAt (isPinned 그룹 내) |
-| 📋 게시판 | uploadedAt |
-| 📓 노트북 | createdAt |
-| 🎮 미션 | createdAt |
-| 💻 OJ | createdAt |
-| 🧠 코드 읽기 | createdAt |
-
-### 공통 헬퍼
-- `firebase.js` 의 `_moveItemBy(dbPath, items, id, direction)` 함수 한 곳에 정의
-- 인접 두 아이템의 정렬 키만 swap (DB 스키마 변경 없음)
-- createdAt 우선, 없으면 uploadedAt 자동 감지
-
-### 각 view 에 ▲▼ 버튼
-- `js/views/shared.js` noticeCard
-- `js/views/teacher.js` vTcBoard
-- `js/views/notebook.js` vTcNotebook
-- `js/views/mission.js` vMissionList (isTeacher 분기)
-- `js/views/coderead.js` vTcCRList
-- `js/views/oj.js` vTcOJList
-
-### 핸들러
-- `js/events/actions.js` — 공지/게시판/노트북
-- `js/events/mission.js` — 미션
-- `js/events/coderead.js` — 코드 읽기
-- `js/events/oj-actions.js` — OJ
-
----
-
-## 6. 📓 노트북 두 가지 큰 개선
-
-### 6-1. input() 프롬프트 표시
-이전엔 `input("이름")` 호출해도 노란 박스에 안내가 없었음.
-- `notebook-worker.js` 에서 `builtins.input` 을 Python 측에서 직접 오버라이드
-- `_nb_js_request_input(prompt)` 가 prompt 받아 메인에 그대로 전달
-- Colab과 동일하게 노란 박스에 "이름" 표시
-
-### 6-2. 선생님 수정 → 학생 자동 반영 (학생 작업 보존) ⭐ 새 기능
-선생님이 노트북 셀 편집하면 **학생 진도에 자동 머지**:
-
-#### 선생님 측 (`scheduleNBSave` 분기 확장)
-- 선생님 + 본인 노트북 → `notebooks/{cid}/{nbId}` 의 cells 자동 갱신 (1.5초 debounce)
-- 학생 진도 보기 모드 (`NB_VIEWING_STUDENT`) 에선 저장 안 함 (다른 학생 데이터 보호)
-- 학생 → 본인 진도 (기존 동작)
-
-#### 학생 측 (`_mergeNotebookCells`)
-셀 ID 기반 머지:
-- 학생 진도에 같은 ID 셀이 있으면 → 학생 source 그대로 보존
-- 학생 진도에 없는 원본 셀 (선생님이 새로 추가) → 원본 그대로 끼움
-- 학생만 가진 셀 (학생 추가 or 선생님이 삭제) → 끝에 보존 (작업 손실 방지)
-- 새 셀 감지 시 토스트: "🆕 선생님이 노트북을 업데이트했어요"
-
-#### 한계
-선생님이 **기존 셀의 source만 편집** 한 경우, 학생이 이미 진도 저장했으면 학생 source 우선 (작업 보존이 최우선이라 의도된 동작).
-강제 반영 필요 시 학생이 **↺ 원본 복원** 누르거나 추후 별도 메뉴 추가 검토.
-
----
-
-## 7. 🔧 자잘한 수정 / 잡픽스
-
-### 7-1. Pretendard 폰트 URL 수정
-- 이전: `fonts.googleapis.com/css2?family=Pretendard:...` → **항상 400 에러** (Pretendard는 Google Fonts에 없음)
-- 변경: `cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/...` (공식 CDN)
-- 부수 효과: 한국어가 실제 Pretendard로 렌더링됨 + COEP/CORP 환경 호환
-
-### 7-2. favicon 추가
-- 이전: 브라우저가 `/favicon.ico` 자동 요청 → 404
-- 변경: index.html `<link rel="icon">` 에 인라인 SVG (📂 이모지)
-
-### 7-3. 코드 읽기 메뉴 시각 다듬기
-- 탭 아이콘 🧠 → 🔍 (사용자 피드백 "뇌 아이콘 징그러")
-- 예제 묶음을 카드 그리드 (`cr-pack-card`) 로 정리
-- 차시 표기 → "다루는 개념" 으로 일관화
-
-### 7-4. OJ 문제 ValueError 친절 안내
-- `friendlyOJError` 패턴 추가:
-  - `RuntimeError: 실시간 input` → 새로고침 안내
-  - `ValueError: invalid literal for int() with base N: ''` → "입력 박스 못 보셨나요?" 안내
-
----
-
-# 🗂️ 파일 변경 요약
-
-## 새 파일 (이 세션에서 생성)
+## 📂 수행평가 파일
 | 파일 | 역할 |
 |---|---|
-| `js/views/coderead.js` | 코드 읽기 학생/교사 뷰 |
-| `js/events/coderead.js` | 코드 읽기 이벤트 + 예제 묶음 데이터 |
-| `js/coderead-runner.js` | 코드 읽기 워커 호출 헬퍼 |
-| `js/coderead-worker.js` | Pyodide + settrace 워커 |
-| `js/games/lockerdrop.js` | 떨어지는 사물함 게임 엔진 |
-| `js/visual-widgets.js` | 비주얼 OJ 위젯 라이브러리 |
-| `js/oj-problems-data.js` | OJ 23문제 일괄 등록 데이터 |
-| `OJ_20_PROBLEMS_PROPOSAL.md` | 23문제 설계 제안서 (사용자 수정용) |
-| `SESSION_HANDOFF.md` | **이 문서** |
+| `js/views/assessment.js` | 학생/선생님 뷰 전체 |
+| `js/events/assessment.js` | 핸들러 + 워커 호출 + 세션 저장 |
+| `js/asmt-worker.js` | Pyodide 실행 워커 (2차시 ⑤ 문항) |
+| `js/state.js` | `ASMT_*` 상태 변수 |
+| `js/firebase.js` | `loadAsmtPhase/setAsmtPhase`, `load/saveAsmtSession`, `loadAllAsmtSessions`, `loadAllAsmtScores/saveAsmtScore` |
 
-## 삭제된 파일
-- `js/games/lockermaster.js` — 사물함 마스터 (떨어지는 사물함으로 대체)
+## 🔧 Phase 모델 (반별 단계 — 선생님 제어)
+- DB: `assessment/phase/{cid}` = `'off'` | `'prep'`(1차시) | `'eval'`(2차시)
+- 선생님 화면: 3단계 세그먼트 버튼 `[🔒비활성] [1️⃣1차시] [2️⃣2차시]`
+- 학생 탭 노출 조건: `ASMT_PHASE[cid] !== 'off'`
 
-## 주요 수정 파일
-- `index.html` — 신규 스크립트 로드, Pretendard CDN, favicon
-- `js/state.js` — `CR_*` 변수들 추가
-- `js/firebase.js` — `loadCodeReadings`, `_moveItemBy`, OJ description 메타 디코드
-- `js/render.js` — applyWrapWidth (coderead 추가), 비주얼 OJ 캔버스 초기 그림
-- `js/views/student.js`, `js/views/teacher.js` — 🔍 코드 읽기 탭
-- `js/views/oj.js` — visualType 분기, ▲▼, 사전 코드, 다른 반 복사
-- `js/views/notebook.js` — 선생님도 저장 표시
-- `js/views/shared.js` — noticeCard ▲▼
-- `js/views/mission.js` — lockerdrop GAME_TYPES, 이모지 팔레트
-- `js/events/notebook.js` — 머지 로직, 선생님 자동 저장
-- `js/events/oj-actions.js` — SAB input, 23문제·비주얼 로드, ▲▼, 사전 코드 인코딩
-- `js/events/mission.js` — lockerdrop 분기, copy-emoji
-- `js/events/coderead.js` — cr-* 핸들러
-- `js/events/actions.js` — 노트북/공지/게시판 ▲▼
-- `js/oj-worker.js` — SAB + builtins.input 오버라이드
-- `js/notebook-worker.js` — builtins.input 오버라이드
-- `database.rules.json` — codeReadings + codeReadingProgress
-- `css/styles.css` — cr-*, mi-emoji-*, oj-live-*, oj-visual-* 등
+## 👩‍🎓 학생 흐름
+- **1차시(prep)**: 진입 카드(💡있어요/🤔모르겠어요/📚예시보기, 3분 무동작 시 AI 자동 인사) → AI 채팅(좌 채팅/우 코드, 30턴 한도 `ASMT_TURN_LIMIT`) → **"📋 이 코드로 1차시 제출"**
+  - 제출 시 `_asmtCheckControl` 로 if + for/while 둘 다 있는지 검사, 없으면 alert+차단
+  - 제출 후 `prep-done` 대기 화면(제출 코드 미리보기)
+- **2차시(eval)**: 자기 1차시 코드 보며 **서술형 5문항**(`vStAsmtDescribe`) → 제출 → `done`
+  - 1차시 코드 없는 학생(결석): `eval-nocode` 안내
+- `_asmtInitialStudentView(phase, sess)` 가 탭 진입 시 화면 자동 결정
 
----
+## 📝 2차시 서술형 5문항 (`ASMT_QUESTIONS`, 최신 — `62c81fc`)
+좌측 내 코드 + 우측 5문항. 각 문항 = 채점 평가요소 1:1 매핑:
+1. 🎯 이 프로그램은 무엇을 하나요? → ① 문제 추상화
+2. 📦 변수와 자료형은? → ② 자료형
+3. ⌨️ 무엇을 입력받고 출력? → ③ 입출력
+4. 🔀 조건문·반복문 역할? → ④ 제어구조
+5. 🧪 이 값 넣으면 결과는? (▶ 직접 실행 가능) → ⑤ 결과
+- "자세히 쓸수록 점수" / 일부만 답해도 제출 가능(0점 방지) / 진행률 N/5
+- state: `ASMT_ANSWERS{purpose,vars,io,control,result}`, `ASMT_RESULT_STDIN`
+- **(구) 줄별 설명(explain) + 변형 과제(modify)는 이번에 전면 제거됨** — 25~30줄 줄별 설명이 중하위권에 가혹 + 변형 부담 피드백
 
-# ⚠️ 새 세션에서 알아야 할 운영 사항
+## 👨‍🏫 선생님 화면
+- Phase 세그먼트 + 학생별 진행 현황 표(단계/대화수/마지막활동/점수) + 📤 CSV 내보내기
+- "상세" → `vTcAsmtStudent`: 1차시 코드 + 5문항 답(평가요소 칩) + 1차시 AI 대화 로그 + **채점(5요소×5점 라디오 + 코멘트)**
+  - 채점 즉시 저장 `assessment/scores/{cid}/{학번}` = `{algo,dataType,io,control,result,comment,scoredAt}`
+  - `ASMT_RUBRIC` = algo/dataType/io/control/result
+- CSV: 학번/이름/단계/대화수/항목별점수/총점/코멘트/제출시각 (BOM UTF-8, NEIS 활용)
 
-## A. Firebase 규칙 미게시 시 동작
-새 메뉴(코드 읽기)는 `database.rules.json` 에 규칙이 추가돼야 정상 동작. 콘솔에서 안 게시하면:
-- `loadCodeReadings` 는 try/catch로 빈 배열 반환 → 다른 기능은 정상
-- 코드 읽기 등록 시 PERMISSION_DENIED → 사용자에게 게시 안내
-
-## B. 메타 인코딩 패턴 (DB 스키마 변경 없이 옵션 필드 추가)
-**OJ 문제** 의 `description` 첫 줄에 HTML 주석으로 메타 데이터:
+## 🗄️ DB 스키마 (수행평가)
 ```
-<!-- visual:playlist-bars -->
-<!-- starter:base64인코딩된코드 -->
-## 실제 문제 설명
-...
+assessment/phase/{cid}              : 'off'|'prep'|'eval'
+assessment/sessions/{cid}/{학번}     : { messages, code, turnCount, prepSubmitted,
+                                         answers:{purpose,vars,io,control,result},
+                                         view, submittedAt, updatedAt }
+assessment/scores/{cid}/{학번}       : { algo,dataType,io,control,result,comment,scoredAt }
+assessment/active/{cid}             : (구버전 bool, 미사용 — phase로 대체)
 ```
-- `loadOJProblems` 가 자동으로 떼어내서 `obj.visualType` / `obj.starterCode` 로 복원
-- description 표시 시엔 주석이 제거되어 깔끔
-- 새 메타 필드 추가도 같은 패턴 (firebase.js 의 메타 디코드 부분에 추가)
-
-## C. 워커 캐시 무효화
-워커 코드 변경 시 사용자 브라우저에 새 워커 강제 로드:
-- 노트북: `events/notebook.js` 의 `NB_WORKER_VER` 상수
-- OJ: `events/oj-actions.js` 의 `OJ_WORKER_VER` 상수
-바꾸면 워커 URL에 `?v=` 쿼리가 새 값으로 → 캐시 우회
-
-## D. 다중 반 등록 / 다른 반 복사
-- **OJ 신규 등록**: `multiClassPicker('oj', ...)` → 선택한 모든 반에 새 ID로 등록
-- **OJ 수정**: 현재 반은 update, 추가 체크한 반은 새 ID로 set (이 세션에서 추가)
-- 다른 메뉴 (노트북·미션·공지 등) 도 같은 패턴
-
-## E. 컬러 톤 / UI 일관성
-- 정답·성공: `var(--ok)` 초록
-- 경고: `var(--warn-bg)` / `var(--warn-bd)` 노랑
-- 위험·오답: `var(--danger)` 빨강
-- 강조 입력 박스: 노란 톤 (코드 읽기 stdin / 노트북 input / OJ live-input 모두 같은 노란 톤)
-
-## F. 한국어 톤 (사용자 선호)
-- 친근하지만 가르치는 톤 ("~해 보세요" / "~할까요?")
-- 학생 실수 = 학습 기회 — 친절하게
-- 정답 강요 X, 자유로운 실험
-- 마크다운 사용 (코드 백틱, 굵게, 표)
 
 ---
 
-# 🚧 알려진 한계 / 향후 개선
-
-## 노트북 머지의 한계
-- 선생님이 **기존 셀 source 만 편집** 한 경우 학생 진도 우선 (학생 작업 보존 위해 의도된 동작)
-- 강제 반영 메뉴 추가 가능 (예: "선생님 변경 모두 적용" 버튼)
-
-## 비주얼 OJ
-- 위젯 1개만 구현됨 (playlist-bars)
-- md 파일 `OJ_20_PROBLEMS_PROPOSAL.md` 에 추가 위젯 후보 5종 메모됨 (막대그래프·상자·격자·트랙·레시피)
-- 새 위젯 추가 시 `js/visual-widgets.js` 에 함수 등록만 하면 끝
-
-## OJ 한방 등록의 사전 코드
-- 23문제 데이터(`js/oj-problems-data.js`) 의 모든 split·map 부분에 한국어 주석 부착됨
-- 사용자가 등록 후 OJ에서 ✏️ 수정으로 직접 다듬을 수 있음
-- 원본 데이터 수정은 `OJ_20_PROBLEMS_PROPOSAL.md` 또는 `js/oj-problems-data.js` 직접 편집
-
-## 미션 시스템 — 다음 후보
-이 세션 초반에 미션 시스템 총평하면서 *ROI 순으로 추천* 한 개선들:
-1. **실시간 변수 패널 + print 콘솔** — 디버깅 지옥 해결, 모든 미션 학습 효과 ↑
-2. **거북이(turtle) 그림 게임** — 새 학습 스타일 학생 포섭
-3. **친구 코드 갤러리** (단계 통과 후 익명 공유) — 또래 학습
-4. **무한루프 5초 타임아웃** (Worker 분리) — 미션 안정성
-5. **선생님 학습 통계 대시보드** — 학생들이 어디서 막히는지
-
-## 코드 읽기 — 다음 확장 후보
-- 🧩 코드 정렬 (Parsons) — 섞인 줄 드래그로 순서 맞추기
-- 🐛 버그 찾기 — 잘못된 줄 찾아 수정
+# ⚠️ Firebase 규칙 — 매번 콘솔 게시 필요 (자주 빠뜨림!)
+`database.rules.json` 은 GitHub Pages 배포와 **별개**. 규칙 변경 시 **Firebase 콘솔 → Realtime Database → 규칙 → 게시** 필수. 안 하면 `PERMISSION_DENIED`.
+- 이번 세션에 추가된 경로: `assessment/phase`, `assessment/scores`, `codeReadings`(검증 완화)
+- 전체 동기화 URL: https://raw.githubusercontent.com/JunRepos/informatics/main/database.rules.json
+- **이번 세션에서 PERMISSION_DENIED 가 3번 발생**(active→phase, codeReadings 5유형 확장, scores) — 전부 콘솔 미게시가 원인. 새 경로 추가하면 반드시 게시 안내할 것.
 
 ---
 
-# 🎯 새 세션에서 시작할 때 추천 단계
+# 🐛 이번 세션에서 잡은 버그
+- 빈칸 채우기 빈칸이 줄 전체로 깨짐(`7c4194b`): 전역 `input[type=text]{width:100%}` 가 `.quiz-cloze-blank` 를 우선순위로 이김 → `input.quiz-cloze-blank` 로 specificity 올려 해결
+- 퀴즈 5유형 저장 시 PERMISSION_DENIED(`e83d1c7`): `codeReadings` 규칙이 predict/trace만 허용 + `$other:false` → 필수필드(title/type/createdAt)만 검증으로 완화
+- 출제 설명(description)이 학생 화면에 약하게 표시(`d188ce1`): `.cr-desc-box` 강조 + 출제 폼 라벨에 "학생 화면에 표시됨" 안내
 
-1. **PROJECT_CONTEXT.md** 읽기 (전체 프로젝트 맥락)
-2. **이 문서(SESSION_HANDOFF.md)** 읽기 (최근 작업 컨텍스트)
-3. `git log --oneline -30` 으로 최근 커밋 확인
-4. 사용자의 새 요청에 따라 작업
-5. 큰 작업 마무리 시 이 핸드오프 문서 업데이트 권장
+---
 
-## 작업 흐름 (이미 자리잡은 패턴)
-- 코드 변경 → 커밋 → `git push origin <branch>:main` → GitHub Pages 자동 배포
-- 배포 확인: `until curl -s "https://junrepos.github.io/informatics/<바뀐파일>" | grep -q "<바뀐 키워드>"; do sleep 15; done` (background)
-- Firebase 규칙 변경 시 사용자에게 콘솔 게시 안내
-- 사용자 선호: **"배포까지 직접 처리"** — Claude가 변경 후 사용자에게 떠넘기지 말기
+# 🚧 진행 중 / 다음 작업 (사용자가 새 세션에서 이어갈 것)
+
+## 수행평가 2차시 — **추가 수정 예정** (사용자 명시)
+- 현재 서술형 5문항(`62c81fc`)까지 완성·배포됨. 사용자가 **"더 수정이 필요하다"** 며 새 세션으로 넘어감.
+- 손볼 후보(미확정): 문항 문구·순서·힌트 조정, ②③ 통합 여부, 채점 기준 세부, 학생 안내 톤 등
+- **새 세션에서는 사용자에게 "2차시 어디를 수정할지" 부터 물을 것.**
+
+## 미착수 (이전에 논의됨)
+- 학생용 수행평가 안내서(7섹션: 한줄요약/일정/루브릭/예시/AI규칙/진로가이드/이의신청) — PDF 1~2장
+- 출력 예측 등 추가 퀴즈 활용
+
+---
+
+# ✅ 전체 메뉴 현황 (정보반 기준)
+| 메뉴 | 상태 |
+|---|---|
+| 📢 공지 / 📖 수업 / 📋 게시판 / 🗓️ 출결 / 👥 학생관리 | 안정 |
+| 📓 노트북 | 안정 (셀 툴바 좌측) |
+| 🎮 미션 | 그리드 카드 + 단계 텍스트 편집만 (만들기 없음) |
+| 💻 OJ | Markdown 업로드/내보내기 + 비주얼 OJ |
+| 🧩 퀴즈 | 5유형 (predict/trace/mcq/cloze/bugfix) |
+| 📝 수행평가 | **신규** — phase(1/2차시) + AI채팅 + 서술형 5문항 + 채점/CSV |
+| 📅 진도계획 | 안정 (전역) |
+
+---
+
+# 🎯 새 세션 시작 추천 순서
+1. **PROJECT_CONTEXT.md** 읽기 (전체 맥락 — 단, 수행평가·퀴즈·미션은 이 문서가 최신)
+2. **이 문서** 읽기 (이번 세션 전체 + 수행평가 인프라)
+3. `git log --oneline -40` 확인
+4. 사용자에게 **"수행평가 2차시 어디를 수정할지"** 부터 확인 (이게 다음 작업)
+
+## 작업 흐름 (자리잡은 패턴)
+- 코드 변경 → 워크트리에서 커밋 → `git push origin claude/musing-kapitsa-488f5f:main`
+- 배포 확인: `until curl -s ".../<파일>?v=$(date +%s)" | grep -q "<키워드>"; do sleep 15; done`
+- **새 DB 경로/규칙 추가 시 Firebase 콘솔 게시 안내 필수**
+- 워커(시스템 프롬프트) 수정 시 Cloudflare 대시보드 안내 (레포에 없음)
+- 사용자 선호: **"배포까지 직접 처리"** / 토론하며 단계적으로 / 한국어 친근한 톤
