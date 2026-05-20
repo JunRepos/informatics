@@ -336,23 +336,24 @@ async function loadAllCodeReadingProgress(cid, rdId){
 }
 
 // ── 수행평가 (Assessment) ──
-// 반별 활성화 토글: assessment/active/{cid} = true/false
-async function loadAsmtActive(cid){
+// 반별 단계: assessment/phase/{cid} = 'off' | 'prep' | 'eval'
+async function loadAsmtPhase(cid){
   try {
-    const s = await db.ref(`assessment/active/${cid}`).get();
-    const v = s.exists() ? !!s.val() : false;
-    ASMT_ACTIVE[cid] = v;
-    return v;
+    const s = await db.ref(`assessment/phase/${cid}`).get();
+    const v = s.exists() ? String(s.val()) : 'off';
+    const phase = (v === 'prep' || v === 'eval') ? v : 'off';
+    ASMT_PHASE[cid] = phase;
+    return phase;
   } catch(err){
-    console.warn('[수행평가] 활성화 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
-    ASMT_ACTIVE[cid] = false;
-    return false;
+    console.warn('[수행평가] phase 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    ASMT_PHASE[cid] = 'off';
+    return 'off';
   }
 }
 
-async function setAsmtActive(cid, active){
-  await db.ref(`assessment/active/${cid}`).set(!!active);
-  ASMT_ACTIVE[cid] = !!active;
+async function setAsmtPhase(cid, phase){
+  await db.ref(`assessment/phase/${cid}`).set(phase);
+  ASMT_PHASE[cid] = phase;
 }
 
 // 학생 세션: assessment/sessions/{cid}/{studentNum}
@@ -414,7 +415,7 @@ async function loadAllClassData(cid){
     loadNotebooks(cid),
     loadMissions(cid),
     loadCodeReadings(cid),
-    loadAsmtActive(cid)
+    loadAsmtPhase(cid)
   ]);
 }
 

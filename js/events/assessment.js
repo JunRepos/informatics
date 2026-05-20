@@ -141,6 +141,7 @@ function _saveAsmtSession(){
         messages: ASMT_MESSAGES,
         code: ASMT_CODE,
         turnCount: ASMT_TURN_COUNT,
+        prepSubmitted: ASMT_PREP_SUBMITTED || null,
         lineExplains: ASMT_LINE_EXPLAINS,
         view: ASMT_VIEW,
         modCode: ASMT_MOD_CODE || null,
@@ -154,6 +155,20 @@ function _saveAsmtSession(){
       console.warn('[수행평가] 세션 저장 실패:', err);
     }
   }, 1000);
+}
+
+// 코드에 조건문/반복문이 들어있는지 검사 (주석·문자열 제외)
+function _asmtCheckControl(code){
+  const stripped = (code || '')
+    .replace(/#.*$/gm, '')
+    .replace(/'''[\s\S]*?'''/g, '')
+    .replace(/"""[\s\S]*?"""/g, '')
+    .replace(/'[^'\n]*'/g, "''")
+    .replace(/"[^"\n]*"/g, '""');
+  return {
+    hasIf:   /\bif\b/.test(stripped),
+    hasLoop: /\b(for|while)\b/.test(stripped)
+  };
 }
 
 // 코멘트 debounce
@@ -259,14 +274,25 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: "이 코드로 진행" → 줄별 설명 모드 진입 (채팅 잠금)
-  if(act.action === 'asmt-proceed-explain'){
-    if(!ASMT_CODE){ toast('아직 코드가 없어요.', 'err'); return; }
-    if(!confirm('이 코드로 진행할까요?\n\n진행 후에는 AI와 더 이상 대화할 수 없어요. 코드를 더 다듬고 싶다면 "취소"를 눌러주세요.')) return;
-    ASMT_VIEW = 'explain';
-    ASMT_LINE_EXPLAINS = ASMT_LINE_EXPLAINS || {};
+  // 학생: "이 코드로 1차시 제출" → 조건+반복 검증 후 제출
+  if(act.action === 'asmt-submit-prep'){
+    if(!ASMT_CODE){ toast('아직 코드가 없어요. AI와 대화해서 코드를 먼저 만들어주세요.', 'err'); return; }
+    const chk = _asmtCheckControl(ASMT_CODE);
+    if(!chk.hasIf || !chk.hasLoop){
+      const missing = [];
+      if(!chk.hasIf)   missing.push('조건문(if)');
+      if(!chk.hasLoop) missing.push('반복문(for 또는 while)');
+      alert(`⚠️ 이 코드에는 ${missing.join(' 과 ')} 이(가) 없어요.\n\n` +
+            `이번 수행평가는 조건문과 반복문이 모두 들어가야 해요.\n` +
+            `채팅창에서 AI에게 "${missing.join(' 과 ')} 도 넣어주세요" 라고 요청한 다음 다시 제출해주세요.`);
+      return;
+    }
+    if(!confirm('이 코드로 1차시를 제출할까요?\n\n제출 후에는 이번 시간에 더 수정할 수 없어요.\n다음 시간에 이 코드로 평가 활동(줄별 의미 적기·변형)을 진행합니다.')) return;
+    ASMT_PREP_SUBMITTED = true;
+    ASMT_VIEW = 'prep-done';
     render();
     _saveAsmtSession();
+    toast('1차시 제출 완료! 수고하셨어요 🎉', 'ok');
     return;
   }
 
@@ -390,6 +416,33 @@ document.addEventListener('click', async e => {
     toast('✓ CSV 파일 다운로드 시작', 'ok');
     return;
   }
+
+  // 선생님: phase 변경 (off / prep / eval)
+  if(act.action === 'asmt-set-phase'){
+    const cid = TC_CLS?.id;
+    if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
+    const next = act.phase;
+    if(!['off','prep','eval'].includes(next)) return;
+    if((ASMT_PHASE[cid] || 'off') === next) return; // 이미 그 단계
+    const msg = ({
+      'off':  '수행평가를 비활성화할까요? 학생 화면에서 메뉴가 사라집니다. (세션·점수는 보존)',
+      'prep': '1차시(코드 만들기)를 시작할까요? 학생들이 AI와 코드를 만들 수 있게 됩니다.',
+      'eval': '2차시(평가)를 시작할까요?\n\n학생들은 자기 1차시 코드로 줄별 설명·변형 과제를 하게 되고,\nAI 채팅은 잠깁니다. 1차시 제출을 못 한 학생은 평가 활동을 할 수 없어요.'
+    })[next];
+    if(!confirm(msg)) return;
+    try {
+      await setAsmtPhase(cid, next);
+      toast(({
+        'off':'비활성화됐어요.',
+        'prep':'✓ 1차시 시작! 학생들이 코드를 만들 수 있어요.',
+        'eval':'✓ 2차시 시작! 학생들이 평가 활동을 할 수 있어요.'
+      })[next], 'ok');
+      render();
+    } catch(err){
+      toast('변경 실패: ' + (err.message || err), 'err');
+    }
+    return;
+  }
 });
 
 // ── change 이벤트: 활성화 토글 ──
@@ -426,26 +479,6 @@ document.addEventListener('change', async e => {
     return;
   }
 
-  if(act.action === 'asmt-toggle-active'){
-    const cid = TC_CLS?.id;
-    if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
-    const checked = el.checked;
-    el.disabled = true;
-    try {
-      await setAsmtActive(cid, checked);
-      toast(checked
-        ? `✓ 수행평가가 활성화됐어요. 학생 화면에 메뉴가 표시됩니다.`
-        : `수행평가가 비활성화됐어요. (저장된 학생 세션은 그대로 유지)`,
-        'ok');
-      render();
-    } catch(err){
-      toast('변경 실패: ' + (err.message || err), 'err');
-      el.checked = !checked;
-    } finally {
-      el.disabled = false;
-    }
-    return;
-  }
 });
 
 // ── 키보드: Enter 전송 ──

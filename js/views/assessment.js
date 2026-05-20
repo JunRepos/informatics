@@ -12,7 +12,31 @@
 //  학생 뷰
 // ══════════════════════════════════════
 
+// 탭 진입 시 phase + 세션 상태로 학생의 첫 화면 결정
+function _asmtInitialStudentView(phase, sess){
+  if(phase === 'prep'){
+    // 1차시: 제출했으면 대기, 아니면 진행 중 화면 (이어가기)
+    if(sess?.prepSubmitted) return 'prep-done';
+    if(sess?.messages?.length) return 'chat';
+    return 'entry';
+  }
+  if(phase === 'eval'){
+    // 2차시: 평가 제출 완료면 done, 아니면 줄별 설명부터
+    if(sess?.submittedAt) return 'done';
+    if(!sess?.code) return 'eval-nocode';   // 1차시 코드가 없는 학생 (결석 등)
+    // 변형까지 작성 중이었으면 그 단계, 아니면 explain
+    return (sess?.view === 'modify') ? 'modify' : 'explain';
+  }
+  return 'off';
+}
+
 function vStAssessment(){
+  const phase = SEL_CLS ? ASMT_PHASE[SEL_CLS.id] : 'off';
+  // phase 우선 가드
+  if(!phase || phase === 'off') return vStAsmtClosed();
+  if(ASMT_VIEW === 'prep-done')  return vStAsmtPrepDone();
+  if(ASMT_VIEW === 'eval-nocode')return vStAsmtNoCode();
+
   if(ASMT_VIEW === 'entry')    return vStAsmtEntry();
   if(ASMT_VIEW === 'examples') return vStAsmtExamples();
   if(ASMT_VIEW === 'chat')     return vStAsmtChat();
@@ -20,6 +44,40 @@ function vStAssessment(){
   if(ASMT_VIEW === 'modify')   return vStAsmtModify();
   if(ASMT_VIEW === 'done')     return vStAsmtDone();
   return vStAsmtEntry();
+}
+
+// phase=off 일 때 (직접 접근 등)
+function vStAsmtClosed(){
+  return emptyBox('🔒', '수행평가가 아직 시작되지 않았어요. 선생님 안내를 기다려주세요.');
+}
+
+// 1차시 제출 완료 → 2차시 대기 화면
+function vStAsmtPrepDone(){
+  const codeLines = (ASMT_CODE || '').split('\n');
+  const codeHtml = codeLines.map((ln, i) =>
+    `<div class="cr-code-line"><span class="cr-line-no">${i+1}</span><span class="cr-line-src">${esc(ln) || ' '}</span></div>`
+  ).join('');
+  return `
+    <div class="asmt-done-wrap">
+      <div class="asmt-done-card">
+        <div class="asmt-done-icon">✅</div>
+        <div class="asmt-done-title">1차시 제출 완료!</div>
+        <div class="asmt-done-sub">AI와 함께 만든 코드를 잘 제출했어요.<br>다음 시간에 이 코드로 평가 활동을 진행합니다.</div>
+      </div>
+      <div class="asmt-prepdone-codebox">
+        <div class="asmt-prepdone-codehead">📄 내가 제출한 코드</div>
+        <pre class="cr-code-box">${codeHtml}</pre>
+      </div>
+      <div class="asmt-done-note">
+        💡 다음 시간 전까지 이 코드를 한 번씩 읽어보면, 2차시 활동(줄별 의미 적기·변형)이 훨씬 수월해요.
+      </div>
+    </div>
+  `;
+}
+
+// 2차시인데 1차시 코드가 없는 학생 (결석 등)
+function vStAsmtNoCode(){
+  return emptyBox('📭', '1차시에 만든 코드가 없어요. 선생님께 문의해주세요. (결석 등으로 1차시에 참여하지 못한 경우)');
 }
 
 // 코드의 의미있는 줄(빈 줄·공백만인 줄 제외) 인덱스 배열
@@ -166,7 +224,7 @@ function vStAsmtChat(){
   const codePanel = ASMT_CODE
     ? `<div class="asmt-code-head">
          <span>💻 AI가 만든 코드 (${ASMT_CODE.split('\n').length}줄)</span>
-         <button class="btn-p btn-sm" data-action="asmt-proceed-explain" ${ASMT_LOADING ? 'disabled' : ''}>📝 이 코드로 진행</button>
+         <button class="btn-p btn-sm" data-action="asmt-submit-prep" ${ASMT_LOADING ? 'disabled' : ''}>📋 이 코드로 1차시 제출</button>
        </div>
        <pre class="asmt-code-body"><code>${esc(ASMT_CODE)}</code></pre>`
     : `<div class="asmt-code-empty">
@@ -228,11 +286,37 @@ function _renderAsmtAssistant(text){
   return esc(stripped).replace(/\n/g, '<br>');
 }
 
-// AI 응답에서 첫 번째 python 코드 블록 추출 (없으면 null)
+// AI 응답에서 첫 번째 python 코드 블록 추출 (없으면 null) + 주석 자동 제거
 function _extractAsmtCode(text){
   if(!text) return null;
   const m = text.match(/```(?:python|py)?\n([\s\S]*?)```/);
-  return m ? m[1].replace(/\n$/, '') : null;
+  if(!m) return null;
+  return _stripPyComments(m[1].replace(/\n$/, ''));
+}
+
+// 파이썬 코드에서 주석(#) 제거 — 학생이 직접 의미를 적어야 하므로 AI 주석은 차단.
+// 문자열 리터럴 안의 # 은 보존. 줄 전체가 주석이던 줄은 통째로 삭제.
+function _stripPyComments(code){
+  const out = [];
+  for(const line of (code || '').split('\n')){
+    let inStr = false, strCh = '', cut = -1;
+    for(let i = 0; i < line.length; i++){
+      const c = line[i];
+      if(inStr){
+        if(c === strCh) inStr = false;
+      } else if(c === '"' || c === "'"){
+        inStr = true; strCh = c;
+      } else if(c === '#'){
+        cut = i; break;
+      }
+    }
+    if(cut === -1){ out.push(line); continue; }
+    const head = line.slice(0, cut).replace(/\s+$/, '');
+    // 줄 전체가 주석이었으면 (코드 부분이 비어있으면) 그 줄은 버림
+    if(head.trim() === '') continue;
+    out.push(head);
+  }
+  return out.join('\n');
 }
 
 // ── 학생: 줄별 설명 모드 (채팅 잠금) ──
@@ -456,21 +540,23 @@ function _asmtScoreTotal(s){
 
 function vTcAsmtManage(){
   const cid = TC_CLS.id;
-  const active = !!ASMT_ACTIVE[cid];
+  const phase = ASMT_PHASE[cid] || 'off';
   const sessions = ASMT_ALL_SESSIONS || {};
   const scores = ASMT_ALL_SCORES || {};
 
   // 학생별 진행 단계 요약
   const stuRows = STUDENTS.map(st => {
     const s = sessions[st.number] || null;
-    const stage = s?.view || (s?.messages?.length ? 'chat' : '-');
-    const stageLabel = ({
-      'entry':   '시작 전',
-      'chat':    '1️⃣ AI 대화',
-      'explain': '2️⃣ 줄별 설명',
-      'modify':  '3️⃣ 변형 과제',
-      'done':    '✓ 제출 완료',
-    })[stage] || '-';
+    let stageLabel = '-';
+    if(s){
+      if(s.submittedAt)        stageLabel = '✅ 2차시 제출';
+      else if(s.view === 'modify')  stageLabel = '🛠️ 변형 과제 중';
+      else if(s.view === 'explain') stageLabel = '✍️ 줄별 설명 중';
+      else if(s.prepSubmitted) stageLabel = '📋 1차시 제출';
+      else if(s.code)          stageLabel = '💻 코드 작성됨';
+      else if(s.messages?.length) stageLabel = '💬 AI 대화 중';
+      else stageLabel = '시작 전';
+    }
     const turns = s?.turnCount || 0;
     const updatedAt = s?.updatedAt ? fmtDt(s.updatedAt) : '-';
     const sc = scores[st.number];
@@ -478,7 +564,7 @@ function vTcAsmtManage(){
     const scoreCell = total != null
       ? `<span class="asmt-score-chip">${total}/25</span>`
       : (sc ? `<span class="asmt-score-chip partial">미완</span>` : `<span class="asmt-score-chip none">-</span>`);
-    const canView = !!(s && (s.messages?.length || 0) > 0);
+    const canView = !!(s && ((s.messages?.length || 0) > 0 || s.code));
     return `<tr>
       <td>${esc(st.number)}</td>
       <td>${esc(st.name)}</td>
@@ -490,33 +576,37 @@ function vTcAsmtManage(){
     </tr>`;
   }).join('');
 
-  const submittedCount = STUDENTS.filter(st => sessions[st.number]?.view === 'done').length;
-  const inProgressCount = STUDENTS.filter(st => {
-    const s = sessions[st.number];
-    return s && s.view !== 'done' && (s.messages?.length || 0) > 0;
-  }).length;
+  const prepDoneCount = STUDENTS.filter(st => sessions[st.number]?.prepSubmitted).length;
+  const evalDoneCount = STUDENTS.filter(st => sessions[st.number]?.submittedAt).length;
   const scoredCount = STUDENTS.filter(st => _asmtScoreTotal(scores[st.number]) != null).length;
 
+  // Phase 토글 (3단계 세그먼트)
+  const phaseSeg = `
+    <div class="asmt-phase-seg">
+      <button class="asmt-phase-btn ${phase==='off'?'on':''}"  data-action="asmt-set-phase" data-phase="off">🔒 비활성</button>
+      <button class="asmt-phase-btn ${phase==='prep'?'on prep':''}" data-action="asmt-set-phase" data-phase="prep">1️⃣ 1차시 (코드 만들기)</button>
+      <button class="asmt-phase-btn ${phase==='eval'?'on eval':''}" data-action="asmt-set-phase" data-phase="eval">2️⃣ 2차시 (평가)</button>
+    </div>`;
+
+  const phaseDesc = ({
+    'off':  '<b style="color:var(--text3)">● 비활성</b> — 학생 화면에 메뉴가 보이지 않습니다.',
+    'prep': '<b style="color:var(--accent)">● 1차시 진행 중</b> — 학생들이 AI와 코드를 만들고 제출합니다.',
+    'eval': '<b style="color:var(--ok)">● 2차시 진행 중</b> — 학생들이 1차시 코드로 줄별 설명·변형 과제를 합니다.'
+  })[phase];
+
   return `
-    <div class="asmt-tc-toggle-row">
-      <div class="asmt-tc-toggle-info">
-        <div class="asmt-tc-toggle-title">📝 수행평가 활성화</div>
-        <div class="asmt-tc-toggle-desc">
-          ${active
-            ? '<b style="color:var(--ok)">● 활성화됨</b> — 정보반 학생 화면에 "📝 수행평가" 탭이 보입니다.'
-            : '<b style="color:var(--text3)">● 비활성</b> — 토글을 켜면 학생들이 시작할 수 있어요.'}
-        </div>
+    <div class="asmt-phase-row">
+      <div class="asmt-phase-info">
+        <div class="asmt-phase-title">📝 수행평가 단계</div>
+        <div class="asmt-phase-cur">${phaseDesc}</div>
       </div>
-      <label class="asmt-toggle-switch">
-        <input type="checkbox" data-action="asmt-toggle-active" ${active ? 'checked' : ''}/>
-        <span class="asmt-toggle-slider"></span>
-      </label>
+      ${phaseSeg}
     </div>
 
     <div class="asmt-stat-grid">
       <div class="stat-card"><div class="stat-num">${STUDENTS.length}</div><div class="stat-label">전체 학생</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${inProgressCount}</div><div class="stat-label">진행 중</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${submittedCount}</div><div class="stat-label">제출 완료</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${prepDoneCount}</div><div class="stat-label">1차시 제출</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${evalDoneCount}</div><div class="stat-label">2차시 제출</div></div>
       <div class="stat-card"><div class="stat-num" style="color:#a855f7">${scoredCount}</div><div class="stat-label">채점 완료</div></div>
     </div>
 
@@ -534,13 +624,13 @@ function vTcAsmtManage(){
     }
 
     <div class="asmt-tc-help">
-      <b>📖 운영 안내</b>
+      <b>📖 운영 안내 (2차시 구성)</b>
       <ul>
-        <li>활성화 토글을 켜면 학생 화면에 메뉴가 즉시 나타납니다 (학생 새로고침 필요).</li>
-        <li>평가 종료 후 토글을 끄면 메뉴가 사라져 학생이 추가 시도를 못 합니다 (저장된 세션은 보존).</li>
-        <li>학생당 AI 와의 메시지 교환은 최대 <b>${ASMT_TURN_LIMIT}회</b> 입니다.</li>
-        <li>"상세" 버튼으로 학생 답안 전체를 한 화면에서 확인하고 5개 항목(각 5점)으로 채점할 수 있어요.</li>
-        <li>📤 CSV 내보내기 — 채점 결과를 NEIS 옮길 때 활용하세요.</li>
+        <li><b>1차시</b>: "1차시" 버튼을 누르면 학생들이 AI와 대화하며 <b>조건문+반복문이 든 코드</b>를 만들고 제출합니다. (조건/반복 없으면 제출 자동 차단)</li>
+        <li><b>2차시</b>: "2차시" 버튼을 누르면 학생들이 <b>자기 1차시 코드</b>로 줄별 의미 적기·변형 과제를 합니다. 이 단계부터 AI 채팅은 잠깁니다.</li>
+        <li>평가가 끝나면 "비활성"으로 돌려 메뉴를 숨기세요. (저장된 세션·점수는 보존)</li>
+        <li>학생당 AI 메시지는 최대 <b>${ASMT_TURN_LIMIT}회</b>.</li>
+        <li>"상세"로 학생 답안 전체를 보고 5개 항목(각 5점)으로 채점 → 📤 CSV로 내보내 NEIS에 활용.</li>
       </ul>
     </div>
   `;

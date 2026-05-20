@@ -96,14 +96,22 @@ let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
 let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
 let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
 
-// 수행평가 (Assessment) — AI 기반 코딩 수행평가
+// 수행평가 (Assessment) — AI 기반 코딩 수행평가 (2차시 구성)
 // 백엔드: Cloudflare Worker (informatics-ai.chlwns1023.workers.dev) → Gemini API
-let ASMT_ACTIVE      = {};     // { [classId]: boolean } — 반별 활성화 상태 캐시
-let ASMT_VIEW        = 'entry';// 학생: 'entry'|'chat'|'explain'|'modify'|'done', 선생님: 'manage'|'student'
+//
+// Phase (반별 단계, 선생님이 제어):
+//   'off'  — 비활성 (학생 메뉴 안 보임)
+//   'prep' — 1차시: 학생이 AI와 코드 만들고 제출
+//   'eval' — 2차시: 학생이 자기 코드로 평가 활동 (줄별 설명 + 변형 과제)
+let ASMT_PHASE       = {};     // { [classId]: 'off'|'prep'|'eval' } 캐시
+let ASMT_VIEW        = 'entry';// 학생 화면 단계 / 선생님 'manage'|'student'
+//   1차시: 'entry'|'examples'|'chat'|'prep-done'
+//   2차시: 'explain'|'modify'|'done'
 let ASMT_MESSAGES    = [];     // 채팅 메시지 [{role:'user'|'assistant', content, ts}]
-let ASMT_CODE        = '';     // 우측 패널의 현재 코드 (AI가 만든 마지막 코드)
+let ASMT_CODE        = '';     // 1차시에 학생이 확정한 코드 (AI가 만든 것)
 let ASMT_TURN_COUNT  = 0;      // 학생 메시지 누적 (30턴 제한)
 let ASMT_LOADING     = false;  // AI 응답 대기 중
+let ASMT_PREP_SUBMITTED = false; // 1차시 제출 완료 여부 (학생 본인)
 let ASMT_LINE_EXPLAINS = {};   // 줄별 설명 모드에서 { [lineIdx]: explanation }
 let ASMT_AUTO_TIMER  = null;   // 진입 화면 3분 자동 인사 타이머 ID
 let ASMT_TC_SEL_SNUM = null;   // 선생님이 보고 있는 학생 학번

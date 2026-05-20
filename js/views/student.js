@@ -20,7 +20,7 @@ function vStudent(){
     ${isInfo ? tab('🎮 미션','mission',ST_TAB,"setST('mission')") : ''}
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
-    ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
+    ${isInfo && ASMT_PHASE[SEL_CLS?.id] && ASMT_PHASE[SEL_CLS?.id] !== 'off' ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -64,29 +64,34 @@ function setST(t){
       render();
     });
   } else if(t === 'asmt' && SEL_CLS && ST_USER){
-    // 수행평가 탭 — 진입 화면(entry)으로, 저장된 세션이 있으면 이어가기
-    ASMT_VIEW = 'entry';
+    // 수행평가 탭 — phase + 저장 세션으로 적절한 화면 결정
     ASMT_MESSAGES = [];
     ASMT_CODE = '';
     ASMT_TURN_COUNT = 0;
+    ASMT_PREP_SUBMITTED = false;
     ASMT_LINE_EXPLAINS = {};
     ASMT_MOD_CODE = '';
     ASMT_MOD_REASON = '';
     ASMT_MOD_STDIN = '';
     ASMT_RUN_RESULT = null;
     ASMT_SUBMITTED_AT = null;
-    loadAsmtSession(SEL_CLS.id, ST_USER.number).then(s => {
+    ASMT_VIEW = 'entry';
+    Promise.all([
+      loadAsmtPhase(SEL_CLS.id),
+      loadAsmtSession(SEL_CLS.id, ST_USER.number)
+    ]).then(([phase, s]) => {
       if(s){
         ASMT_MESSAGES = Array.isArray(s.messages) ? s.messages : [];
         ASMT_CODE = s.code || '';
         ASMT_TURN_COUNT = s.turnCount || 0;
+        ASMT_PREP_SUBMITTED = !!s.prepSubmitted;
         ASMT_LINE_EXPLAINS = s.lineExplains || {};
         ASMT_MOD_CODE = s.modCode || '';
         ASMT_MOD_REASON = s.modReason || '';
         ASMT_MOD_STDIN = s.modStdin || '';
         ASMT_SUBMITTED_AT = s.submittedAt || null;
-        ASMT_VIEW = s.view || (ASMT_MESSAGES.length ? 'chat' : 'entry');
       }
+      ASMT_VIEW = _asmtInitialStudentView(phase, s);
       render();
     });
   } else if(t === 'mission' && SEL_CLS && ST_USER){

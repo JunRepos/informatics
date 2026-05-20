@@ -1102,6 +1102,23 @@ details[open] .cb-stdin-summary::before{transform:rotate(90deg);color:var(--cb-a
 
 .asmt-entry-note{margin-top:18px;font-size:11.5px;color:var(--text3);text-align:center;background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px}
 
+/* 선생님 — phase 세그먼트 토글 */
+.asmt-phase-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:var(--sh)}
+.asmt-phase-info{flex:1;min-width:200px}
+.asmt-phase-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.asmt-phase-cur{font-size:12.5px;color:var(--text2)}
+.asmt-phase-seg{display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.asmt-phase-btn{border:none;background:var(--surface2);color:var(--text2);font-size:12.5px;font-weight:600;padding:9px 14px;cursor:pointer;border-right:1px solid var(--border);transition:background .12s,color .12s;white-space:nowrap}
+.asmt-phase-btn:last-child{border-right:none}
+.asmt-phase-btn:hover{background:var(--bg)}
+.asmt-phase-btn.on{background:var(--text3);color:#fff}
+.asmt-phase-btn.on.prep{background:var(--accent)}
+.asmt-phase-btn.on.eval{background:var(--ok)}
+
+/* 1차시 제출 완료 — 코드 표시 박스 */
+.asmt-prepdone-codebox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--sh)}
+.asmt-prepdone-codehead{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px}
+
 /* 선생님 관리 화면 */
 .asmt-tc-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:var(--sh)}
 .asmt-tc-toggle-info{flex:1;min-width:0}
