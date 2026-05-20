@@ -89,10 +89,10 @@ function vStCRSolve(){
         <button class="btn-sm" data-action="cr-back">← 목록</button>
       </div>
     </div>
-    ${r.description ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
+    ${(r.description && type !== 'cloze') ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
   `;
 
-  // 유형별 본문 분기
+  // 유형별 본문 분기 (cloze 는 설명을 코드 바로 위에 직접 표시 → 상단 배너 생략)
   if(type === 'mcq')    return headerBar + vStQuizMcq(r);
   if(type === 'cloze')  return headerBar + vStQuizCloze(r);
   if(type === 'bugfix') return headerBar + vStQuizBugfix(r);
@@ -222,7 +222,9 @@ function vStQuizCloze(r){
   return `
     <div class="quiz-cloze-wrap">
       <div class="cr-q-title">🧩 빈칸에 알맞은 값을 채워주세요</div>
-      <div class="cr-q-desc">아래 코드의 <b>노란 칸</b>에 들어갈 값을 채워주세요. 다른 줄(예: <code>print</code>)을 보면 힌트를 얻을 수 있어요. (빈칸 ${blanks.length}개)</div>
+      ${r.description
+        ? `<div class="cr-desc-box">${esc(r.description)}</div>`
+        : `<div class="cr-q-desc">아래 코드의 <b>노란 칸</b>에 들어갈 값을 채워주세요. (빈칸 ${blanks.length}개)</div>`}
       <pre class="cr-code-box cr-code-box-full">${lines}</pre>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
         <button class="btn-p" data-action="cr-submit-cloze">제출</button>
