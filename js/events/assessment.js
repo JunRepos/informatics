@@ -103,10 +103,10 @@ document.addEventListener('click', async e => {
     if(ASMT_EXAM){
       ASMT_EDIT = JSON.parse(JSON.stringify(ASMT_EXAM));
     } else {
-      ASMT_EDIT = { active:false, weights:{predict:5,trace:5,cloze:5,implement:10}, predict:[], trace:[], cloze:[], implement:[] };
+      ASMT_EDIT = { active:false, weights:{predict:5,explain:5,cloze:5,implement:10}, predict:[], explain:[], cloze:[], implement:[] };
     }
-    for(const p of ['predict','trace','cloze','implement']) if(!Array.isArray(ASMT_EDIT[p])) ASMT_EDIT[p] = [];
-    if(!ASMT_EDIT.weights) ASMT_EDIT.weights = {predict:5,trace:5,cloze:5,implement:10};
+    for(const p of ['predict','explain','cloze','implement']) if(!Array.isArray(ASMT_EDIT[p])) ASMT_EDIT[p] = [];
+    if(!ASMT_EDIT.weights) ASMT_EDIT.weights = {predict:5,explain:5,cloze:5,implement:10};
     ASMT_EDIT_PART = 'predict';
     ASMT_VIEW = 'edit';
     render();
@@ -130,7 +130,7 @@ document.addEventListener('click', async e => {
     if(!ASMT_EDIT) return;
     const id = genId();
     if(part === 'predict')        ASMT_EDIT.predict.push({id, code:'', stdin:'', expected:null});
-    else if(part === 'trace')     ASMT_EDIT.trace.push({id, code:'', stdin:'', vars:null});
+    else if(part === 'explain')   ASMT_EDIT.explain.push({id, code:'', highlight:[], prompt:'', answer:''});
     else if(part === 'cloze')     ASMT_EDIT.cloze.push({id, code:'', blanks:[], desc:''});
     else if(part === 'implement') ASMT_EDIT.implement.push({id, title:'', desc:'', starter:'', tests:[]});
     render();
@@ -178,14 +178,6 @@ document.addEventListener('click', async e => {
         alert('⚠️ 코드 실행 중 오류가 있어요. 정답을 추출할 수 없습니다:\n\n' + r.error);
       } else if(part === 'predict'){
         q.expected = r.output || '';
-      } else if(part === 'trace'){
-        const traces = r.traces || [];
-        const last = traces.length ? traces[traces.length - 1] : null;
-        const vars = (last && last.locals) ? last.locals : {};
-        if(!Object.keys(vars).length){
-          alert('추적할 변수를 찾지 못했어요. 코드에 변수 할당이 있는지 확인해주세요.');
-        }
-        q.vars = vars;
       }
     } catch(err){
       alert('분석 실패: ' + (err.message || err));
@@ -262,11 +254,9 @@ document.addEventListener('input', e => {
     ASMT_ANSWERS.predict[t.dataset.qid] = t.value;
     return;
   }
-  if(a === 'asmt-ans-trace'){
-    if(!ASMT_ANSWERS.trace) ASMT_ANSWERS.trace = {};
-    const qid = t.dataset.qid;
-    if(!ASMT_ANSWERS.trace[qid]) ASMT_ANSWERS.trace[qid] = {};
-    ASMT_ANSWERS.trace[qid][t.dataset.var] = t.value;
+  if(a === 'asmt-ans-explain'){
+    if(!ASMT_ANSWERS.explain) ASMT_ANSWERS.explain = {};
+    ASMT_ANSWERS.explain[t.dataset.qid] = t.value;
     return;
   }
   if(a === 'asmt-ans-cloze'){
@@ -287,6 +277,13 @@ document.addEventListener('input', e => {
     const part = ASMT_EDIT_PART;
     const q = _asmtEditFind(part, t.dataset.qid);
     if(q) q[t.dataset.field] = t.value;
+    return;
+  }
+  if(a === 'asmt-edit-highlight'){
+    const q = _asmtEditFind('explain', t.dataset.qid);
+    if(q){
+      q.highlight = (t.value || '').split(',').map(s => parseInt(s.trim())).filter(n => Number.isInteger(n) && n > 0);
+    }
     return;
   }
   if(a === 'asmt-edit-blanks'){
@@ -340,8 +337,8 @@ async function _asmtSubmitExam(){
   const answers = ASMT_ANSWERS;
   const autoScore = {};
 
-  // 동기 채점 파트
-  for(const part of ['predict','trace','cloze']){
+  // 동기 자동채점 파트 (predict/cloze). explain 은 서술형 → 선생님 수동 채점이라 제외.
+  for(const part of ['predict','cloze']){
     autoScore[part] = _asmtGradeSyncPart(part, _asmtPartList(exam, part), answers);
   }
 
@@ -391,8 +388,8 @@ async function _asmtSaveExam(){
   const warns = [];
   const pr = _asmtPartList(ASMT_EDIT, 'predict').filter(q => q.expected == null);
   if(pr.length) warns.push(`출력예측 ${pr.length}문제: 자동 분석(정답)이 없습니다.`);
-  const tr = _asmtPartList(ASMT_EDIT, 'trace').filter(q => !q.vars || !Object.keys(q.vars).length);
-  if(tr.length) warns.push(`변수추적 ${tr.length}문제: 자동 분석(변수)이 없습니다.`);
+  const ex = _asmtPartList(ASMT_EDIT, 'explain').filter(q => !(q.prompt || '').trim());
+  if(ex.length) warns.push(`코드해석 ${ex.length}문제: 질문/지시가 비어 있습니다.`);
   const cl = _asmtPartList(ASMT_EDIT, 'cloze').filter(q => (String(q.code||'').match(/___/g)||[]).length !== (q.blanks||[]).length);
   if(cl.length) warns.push(`빈칸 ${cl.length}문제: 빈칸 수와 정답 수가 다릅니다.`);
   const im = _asmtPartList(ASMT_EDIT, 'implement').filter(q => !(q.tests||[]).length);

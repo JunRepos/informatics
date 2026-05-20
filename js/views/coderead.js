@@ -15,7 +15,7 @@
 
 const QUIZ_TYPES = [
   {id:'predict', label:'🔮 출력 예측',   desc:'코드 실행 결과를 텍스트로 맞히기 (Pyodide 자동 정답)'},
-  {id:'trace',   label:'🔍 변수 추적',   desc:'단계별로 변수 값 맞히기 (Pyodide 자동 정답)'},
+  {id:'explain', label:'📝 코드 해석',   desc:'코드의 표시된 부분을 학생이 직접 설명 (서술형 · 자가확인)'},
   {id:'mcq',     label:'✅ 객관식',       desc:'4지선다 — 코드 결과·개념·문법 자유 출제'},
   {id:'cloze',   label:'🧩 빈칸 채우기', desc:'코드의 ___ 부분을 학생이 채워 정답과 비교'},
   {id:'bugfix',  label:'🐛 버그 찾기',   desc:'잘못된 줄 번호를 클릭해 찾기'}
@@ -89,12 +89,13 @@ function vStCRSolve(){
         <button class="btn-sm" data-action="cr-back">← 목록</button>
       </div>
     </div>
-    ${(r.description && type !== 'cloze') ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
+    ${(r.description && type !== 'cloze' && type !== 'explain') ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
   `;
 
-  // 유형별 본문 분기 (cloze 는 설명을 코드 바로 위에 직접 표시 → 상단 배너 생략)
+  // 유형별 본문 분기 (cloze/explain 은 설명을 코드 바로 위에 직접 표시 → 상단 배너 생략)
   if(type === 'mcq')    return headerBar + vStQuizMcq(r);
   if(type === 'cloze')  return headerBar + vStQuizCloze(r);
+  if(type === 'explain')return headerBar + vStQuizExplain(r);
   if(type === 'bugfix') return headerBar + vStQuizBugfix(r);
   // 기본 — predict / trace (코드 + 우측 질문 패널)
   return headerBar + vStQuizCodeSplit(r);
@@ -235,6 +236,35 @@ function vStQuizCloze(r){
   `;
 }
 
+// 코드 해석 (서술형 — 표시된 부분 설명 → 제출 후 모범답안 자가확인)
+function vStQuizExplain(r){
+  const set = new Set((r.highlight || []).map(Number));
+  const lines = (r.code || '').split('\n').map((ln, i) =>
+    `<div class="cr-code-line${set.has(i+1) ? ' hl' : ''}"><span class="cr-line-no">${i+1}</span><span class="cr-line-src">${esc(ln) || ' '}</span></div>`
+  ).join('');
+  const res = CR_LAST_RESULT;
+  const modelBox = (res && res.explainModel !== undefined) ? `
+    <div class="cr-result cr-result-pass">
+      <div class="cr-result-title">📝 제출 완료 — 모범답안과 비교해 보세요</div>
+      <div class="cr-result-body"><b>모범답안</b><br>${res.explainModel ? esc(res.explainModel).replace(/\n/g,'<br>') : '(등록된 모범답안이 없어요)'}</div>
+    </div>` : '';
+  return `
+    <div class="quiz-explain-wrap">
+      <div class="cr-q-title">📝 표시된 부분을 설명해 주세요</div>
+      ${r.description
+        ? `<div class="cr-desc-box">${esc(r.description)}</div>`
+        : `<div class="cr-q-desc">아래 코드에서 ${set.size ? '<b>강조된 부분</b>이' : '코드가'} 하는 일을 설명해 보세요.</div>`}
+      <pre class="cr-code-box cr-code-box-full">${lines}</pre>
+      <textarea id="cr-explain-input" class="cr-explain-input" placeholder="표시된 부분이 어떤 역할을 하는지, 왜 그렇게 동작하는지 자세히 설명해 주세요." spellcheck="false">${esc(CR_ANSWER || '')}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+        <button class="btn-p" data-action="cr-submit-explain">제출</button>
+        <button class="btn-sm" data-action="cr-back">← 목록</button>
+      </div>
+      ${modelBox}
+    </div>
+  `;
+}
+
 // 버그 찾기 (줄 클릭)
 function vStQuizBugfix(r){
   const lines = (r.code || '').split('\n').map((ln, i) =>
@@ -313,6 +343,7 @@ function vTcCRList(){
     const typeLabel = _quizTypeMeta(r.type).label;
     let stepInfo = '';
     if(r.type === 'trace')  stepInfo = `${(r.traces || []).length}단계`;
+    else if(r.type === 'explain') stepInfo = '서술형';
     else if(r.type === 'cloze') stepInfo = `${(r.blanks || []).length}개 빈칸`;
     else stepInfo = '1문항';
     return `<div class="list-row">
@@ -363,6 +394,23 @@ function vTcCREdit(){
       <div class="box-info" style="margin-top:8px;font-size:12px">
         💡 <b>자동 분석</b>은 Pyodide로 코드를 실제 실행해서 정답을 추출합니다.
         등록 시에도 자동으로 분석되어 정답이 저장돼요.
+      </div>
+    `;
+  } else if(type === 'explain'){
+    const hlStr = (r.highlight || []).join(', ');
+    typeFields = `
+      <div class="field"><label>Python 코드</label>
+        <textarea id="cr-e-code" class="cr-code-textarea" placeholder="score = 80&#10;if score >= 60:&#10;    print('합격')" style="min-height:160px;font-family:monospace;font-size:13px">${esc(r.code || '')}</textarea>
+      </div>
+      <div class="field"><label>강조할 줄 번호 <span style="font-weight:400;color:var(--accent);font-size:11px">— 학생이 설명할 부분 (쉼표로, 예: 2,3 / 비우면 전체)</span></label>
+        <input id="cr-e-highlight" type="text" placeholder="예: 2,3" value="${esc(hlStr)}"/>
+      </div>
+      <div class="field"><label>모범답안 <span style="font-weight:400;color:var(--text3);font-size:11px">— 학생이 제출한 뒤 자가확인용으로 보여줍니다</span></label>
+        <textarea id="cr-e-answer" placeholder="표시된 부분이 하는 일을 모범적으로 설명" style="min-height:70px">${esc(r.answer || '')}</textarea>
+      </div>
+      <div class="box-info" style="margin-top:6px;font-size:12px">
+        💡 코드 해석은 <b>서술형</b>이라 자동 채점되지 않아요. 학생은 제출 후 <b>모범답안과 스스로 비교</b>합니다.
+        (질문/지시는 위의 "설명/안내" 칸에 적어주세요.)
       </div>
     `;
   } else if(type === 'mcq'){

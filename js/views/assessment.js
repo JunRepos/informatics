@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════
    views/assessment.js — 📝 수행평가 (4파트 자동채점 시험)
 
-   ① 출력예측(predict) ② 변수추적(trace) ③ 빈칸(cloze) ④ 구현(implement)
+   ① 출력예측(predict) ② 코드해석(explain·서술형) ③ 빈칸(cloze) ④ 구현(implement)
    - AI 없음. 전부 Pyodide 자동 채점.
    - 5평가요소(25점) 환산: 예측→결과 / 추적→자료형 / 빈칸→제어 / 구현→추상화+입출력
    - 학생: 4파트 자유 이동 → 최종 제출 1회 → 자동 채점
@@ -16,7 +16,7 @@ function _asmtWeights(exam){
   const num = (v, d) => (typeof v === 'number' && isFinite(v) && v >= 0) ? v : d;
   return {
     predict:   num(w.predict, 5),
-    trace:     num(w.trace, 5),
+    explain:   num(w.explain, 5),
     cloze:     num(w.cloze, 5),
     implement: num(w.implement, 10),
   };
@@ -31,14 +31,16 @@ function _asmtInitialStudentView(exam, sub){
   if(sub && sub.submittedAt) return 'done';
   return 'exam';
 }
-// 코드 줄번호 렌더 (읽기 전용)
-function _asmtCodeLines(code){
+// 코드 줄번호 렌더 (읽기 전용). hl = 강조할 1-based 줄번호 배열(선택)
+function _asmtCodeLines(code, hl){
+  const set = new Set((hl || []).map(Number));
   return String(code || '').split('\n').map((src, i) =>
-    `<div class="cr-code-line"><span class="cr-line-no">${i+1}</span><span class="cr-line-src">${esc(src) || ' '}</span></div>`
+    `<div class="cr-code-line${set.has(i+1) ? ' hl' : ''}"><span class="cr-line-no">${i+1}</span><span class="cr-line-src">${esc(src) || ' '}</span></div>`
   ).join('');
 }
 
-// 한 파트의 (정답수, 전체수) — predict/trace/cloze 동기 채점. implement 는 별도(비동기).
+// 한 파트의 (정답수, 전체수) — predict/cloze 동기 자동채점.
+// (explain 은 서술형 → 선생님 수동 채점, implement 는 코드 실행 → 비동기)
 function _asmtGradeSyncPart(part, list, answers){
   let correct = 0, total = 0;
   const ans = (answers && answers[part]) || {};
@@ -47,12 +49,6 @@ function _asmtGradeSyncPart(part, list, answers){
       total++;
       const g = _normalizeAns(ans[q.id]);
       if(g && g === _normalizeAns(q.expected)) correct++;
-    }
-  } else if(part === 'trace'){
-    for(const q of list){
-      const vars = q.vars || {};
-      const a = ans[q.id] || {};
-      for(const k of Object.keys(vars)){ total++; if(_matchTraceValue(a[k], vars[k])) correct++; }
     }
   } else if(part === 'cloze'){
     for(const q of list){
@@ -70,9 +66,10 @@ function _asmt5(exam, autoScore){
   const has = (p) => _asmtPartList(exam, p).length > 0;
   const ratio = (p) => { const a = autoScore && autoScore[p]; return (a && a.total) ? a.correct / a.total : 0; };
   const implMax = w.implement / 2;
+  // explain(코드해석)은 서술형 → 자동 점수 0, 선생님이 수동 입력(자료형 요소)
   return {
     result:   { score: has('predict')   ? w.predict * ratio('predict')   : 0, max: has('predict')   ? w.predict : 0 },
-    dataType: { score: has('trace')     ? w.trace   * ratio('trace')     : 0, max: has('trace')     ? w.trace   : 0 },
+    dataType: { score: 0,                                                      max: has('explain')   ? w.explain : 0 },
     control:  { score: has('cloze')     ? w.cloze   * ratio('cloze')     : 0, max: has('cloze')     ? w.cloze   : 0 },
     algo:     { score: has('implement') ? implMax   * ratio('implement') : 0, max: has('implement') ? implMax   : 0 },
     io:       { score: has('implement') ? implMax   * ratio('implement') : 0, max: has('implement') ? implMax   : 0 },
@@ -85,8 +82,7 @@ function _asmtPartProgress(part, list){
   const ans = ASMT_ANSWERS[part] || {};
   let done = 0;
   for(const q of list){
-    if(part === 'predict' || part === 'implement'){ if((ans[q.id] || '').trim()) done++; }
-    else if(part === 'trace'){ const a = ans[q.id] || {}; if(Object.keys(q.vars || {}).some(k => (a[k] || '').trim())) done++; }
+    if(part === 'predict' || part === 'implement' || part === 'explain'){ if((ans[q.id] || '').trim()) done++; }
     else if(part === 'cloze'){ const a = ans[q.id] || []; if((q.blanks || []).some((_, b) => (a[b] || '').trim())) done++; }
   }
   return { done, total: list.length };
@@ -123,7 +119,7 @@ function vStAsmtExam(){
     </button>`;
   }).join('');
 
-  const bodyFn = { predict: _vStAsmtPredict, trace: _vStAsmtTrace, cloze: _vStAsmtCloze, implement: _vStAsmtImplement }[cur];
+  const bodyFn = { predict: _vStAsmtPredict, explain: _vStAsmtExplain, cloze: _vStAsmtCloze, implement: _vStAsmtImplement }[cur];
   const body = bodyFn ? bodyFn(exam) : '';
 
   const submitting = ASMT_RUNNING === 'grading';
@@ -163,23 +159,15 @@ function _vStAsmtPredict(exam){
   }).join('');
 }
 
-function _vStAsmtTrace(exam){
-  const list = _asmtPartList(exam, 'trace');
-  const ans = ASMT_ANSWERS.trace || {};
+function _vStAsmtExplain(exam){
+  const list = _asmtPartList(exam, 'explain');
+  const ans = ASMT_ANSWERS.explain || {};
   return list.map((q, i) => {
-    const a = ans[q.id] || {};
-    const vars = q.vars || {};
-    const rows = Object.keys(vars).map(k => `
-      <div class="asmt-trace-row">
-        <label class="asmt-trace-var">${esc(k)}</label>
-        <input class="asmt-trace-input" data-action="asmt-ans-trace" data-qid="${esc(q.id)}" data-var="${esc(k)}" value="${esc(a[k] || '')}" placeholder="최종 값" autocomplete="off" spellcheck="false"/>
-      </div>`).join('');
-    const stdinBox = q.stdin ? `<div class="asmt-stdin-box"><span>⌨️ 입력값</span><pre>${esc(q.stdin)}</pre></div>` : '';
+    const prompt = q.prompt || '아래 코드에서 표시된 부분이 하는 일을 설명해 보세요.';
     return `<div class="asmt-q-card">
-      <div class="asmt-q-head"><span class="asmt-q-num">${i+1}</span><span class="asmt-q-text">코드를 끝까지 실행했을 때, 각 변수의 <b>최종 값</b>을 적어보세요.</span></div>
-      <pre class="cr-code-box">${_asmtCodeLines(q.code)}</pre>
-      ${stdinBox}
-      <div class="asmt-trace-grid">${rows || '<i>추적할 변수가 없습니다.</i>'}</div>
+      <div class="asmt-q-head"><span class="asmt-q-num">${i+1}</span><span class="asmt-q-text">${esc(prompt)}</span></div>
+      <pre class="cr-code-box">${_asmtCodeLines(q.code, q.highlight)}</pre>
+      <textarea class="asmt-q-answer" data-action="asmt-ans-explain" data-qid="${esc(q.id)}" placeholder="표시된 부분이 어떤 역할을 하는지, 왜 그렇게 동작하는지 자세히 설명해 주세요." spellcheck="false">${esc(ans[q.id] || '')}</textarea>
     </div>`;
   }).join('');
 }
@@ -336,7 +324,7 @@ function vTcAsmtManage(){
       <span class="asmt-psum-w">${_asmtRound(w[p.id])}점</span>
     </div>`;
   }).join('');
-  const totalW = w.predict + w.trace + w.cloze + w.implement;
+  const totalW = w.predict + w.explain + w.cloze + w.implement;
 
   const toggle = `
     <div class="asmt-phase-seg">
@@ -425,9 +413,9 @@ function vTcAsmtEdit(){
       <span>${p.icon} ${esc(p.label)}</span>
       <input type="number" min="0" step="0.5" class="asmt-w-input" data-action="asmt-weight" data-part="${p.id}" value="${_asmtRound(w[p.id])}"/>점
     </label>`).join('');
-  const totalW = w.predict + w.trace + w.cloze + w.implement;
+  const totalW = w.predict + w.explain + w.cloze + w.implement;
 
-  const bodyFn = { predict: _vTcEditPredict, trace: _vTcEditTrace, cloze: _vTcEditCloze, implement: _vTcEditImplement }[cur];
+  const bodyFn = { predict: _vTcEditPredict, explain: _vTcEditExplain, cloze: _vTcEditCloze, implement: _vTcEditImplement }[cur];
   const body = bodyFn ? bodyFn(edit) : '';
   const curMeta = ASMT_PARTS.find(p => p.id === cur);
 
@@ -471,26 +459,24 @@ function _vTcEditPredict(edit){
     </div>`).join('');
 }
 
-function _vTcEditTrace(edit){
-  const list = _asmtPartList(edit, 'trace');
-  if(!list.length) return emptyBox('🔍', '아직 문제가 없어요. 아래 "+ 문제 추가"로 등록하세요.');
+function _vTcEditExplain(edit){
+  const list = _asmtPartList(edit, 'explain');
+  if(!list.length) return emptyBox('📝', '아직 문제가 없어요. 아래 "+ 문제 추가"로 등록하세요.');
   return list.map((q, i) => {
-    const vars = q.vars || {};
-    const varHtml = Object.keys(vars).length
-      ? `<div class="asmt-eq-expected"><b>최종 변수 값(정답):</b>${Object.keys(vars).map(k => `<div class="asmt-trace-ans"><code>${esc(k)}</code> = <code>${esc(vars[k])}</code></div>`).join('')}</div>`
-      : '<span class="asmt-eq-warn">⚠️ 자동 분석을 눌러 변수와 최종 값을 추출하세요.</span>';
+    const hlStr = (q.highlight || []).join(', ');
     return `
     <div class="asmt-eq" data-qid="${esc(q.id)}">
-      <div class="asmt-eq-head"><b>변수추적 ${i+1}</b>
-        <button class="btn-xs danger" data-action="asmt-del-q" data-part="trace" data-qid="${esc(q.id)}">🗑 삭제</button></div>
+      <div class="asmt-eq-head"><b>코드해석 ${i+1}</b>
+        <button class="btn-xs danger" data-action="asmt-del-q" data-part="explain" data-qid="${esc(q.id)}">🗑 삭제</button></div>
       <label class="asmt-eq-lb">코드</label>
-      <textarea class="asmt-eq-code" data-action="asmt-edit-field" data-qid="${esc(q.id)}" data-field="code" spellcheck="false" placeholder="실행할 파이썬 코드">${esc(q.code || '')}</textarea>
-      <label class="asmt-eq-lb">입력값(stdin) — 선택</label>
-      <input class="asmt-eq-stdin" data-action="asmt-edit-field" data-qid="${esc(q.id)}" data-field="stdin" value="${esc(q.stdin || '')}" placeholder="여러 개면 쉼표 또는 줄바꿈"/>
-      <div class="asmt-eq-analyze">
-        <button class="btn-sm" data-action="asmt-analyze" data-part="trace" data-qid="${esc(q.id)}" ${ASMT_ANALYZING ? 'disabled' : ''}>${ASMT_ANALYZING === q.id ? '⏳ 분석 중...' : '🪄 자동 분석 (변수 추출)'}</button>
-        ${varHtml}
-      </div>
+      <textarea class="asmt-eq-code" data-action="asmt-edit-field" data-qid="${esc(q.id)}" data-field="code" spellcheck="false" placeholder="학생이 읽고 해석할 파이썬 코드">${esc(q.code || '')}</textarea>
+      <label class="asmt-eq-lb">강조할 줄 번호 — 학생이 설명할 부분 (쉼표로, 예: 2,3)</label>
+      <input class="asmt-eq-stdin" data-action="asmt-edit-highlight" data-qid="${esc(q.id)}" value="${esc(hlStr)}" placeholder="비우면 전체 코드 설명"/>
+      <label class="asmt-eq-lb">질문/지시 — 학생에게 보일 문제</label>
+      <input class="asmt-eq-stdin" data-action="asmt-edit-field" data-qid="${esc(q.id)}" data-field="prompt" value="${esc(q.prompt || '')}" placeholder="예: 표시된 반복문이 하는 일을 설명하세요"/>
+      <label class="asmt-eq-lb">모범답안 — 채점 참고용 (학생에겐 안 보임)</label>
+      <textarea class="asmt-eq-code" data-action="asmt-edit-field" data-qid="${esc(q.id)}" data-field="answer" spellcheck="false" placeholder="채점 시 참고할 모범 설명">${esc(q.answer || '')}</textarea>
+      <div class="asmt-eq-analyze"><span class="asmt-eq-ok">ℹ️ 서술형이라 자동 채점되지 않아요. 제출 후 학생 답을 보고 <b>자료형 점수</b>를 직접 매기면 됩니다.</span></div>
     </div>`;
   }).join('');
 }
@@ -590,14 +576,17 @@ function vTcAsmtStudent(){
           <div class="asmt-tcs-cmp"><div><b>학생 답</b><pre>${esc(g) || '(무응답)'}</pre></div><div><b>정답</b><pre>${esc(q.expected || '')}</pre></div></div>
         </div>`;
       }).join('');
-    } else if(p.id === 'trace'){
+    } else if(p.id === 'explain'){
       inner = list.map((q, i) => {
-        const av = a[q.id] || {};
-        const rows = Object.keys(q.vars || {}).map(k => {
-          const ok = _matchTraceValue(av[k], q.vars[k]);
-          return `<div class="asmt-trace-ans"><code>${esc(k)}</code> — 학생: <code>${esc(av[k] || '(무응답)')}</code> / 정답: <code>${esc(q.vars[k])}</code> ${ok ? '✅' : '❌'}</div>`;
-        }).join('');
-        return `<div class="asmt-tcs-ans"><div class="asmt-tcs-ans-q">${i+1}. 변수추적</div><pre class="asmt-tcs-code-pre">${_asmtCodeLines(q.code)}</pre>${rows}</div>`;
+        const txt = a[q.id] || '';
+        return `<div class="asmt-tcs-ans">
+          <div class="asmt-tcs-ans-q">${i+1}. ${esc(q.prompt || '코드 해석')}</div>
+          <pre class="asmt-tcs-code-pre">${_asmtCodeLines(q.code, q.highlight)}</pre>
+          <div class="asmt-tcs-cmp">
+            <div><b>학생 답</b><pre>${esc(txt) || '(무응답)'}</pre></div>
+            <div><b>모범답안</b><pre>${esc(q.answer || '(없음)')}</pre></div>
+          </div>
+        </div>`;
       }).join('');
     } else if(p.id === 'cloze'){
       inner = list.map((q, i) => {

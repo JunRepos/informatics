@@ -223,6 +223,18 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // ── 학생: 코드 해석 제출 (서술형 → 모범답안 자가확인) ──
+  if(act.action === 'cr-submit-explain'){
+    if(!CR_SEL || CR_SEL.type !== 'explain') return;
+    const txt = document.getElementById('cr-explain-input')?.value || '';
+    CR_ANSWER = txt;
+    if(!txt.trim()){ toast('설명을 입력한 뒤 제출하세요.', 'err'); return; }
+    CR_LAST_RESULT = { pass: true, explainModel: CR_SEL.answer || '' };
+    await _recordCRAttempt(true);
+    render();
+    return;
+  }
+
   // ── 학생: 버그 찾기 줄 선택 (제출은 별도 버튼) ──
   if(act.action === 'cr-bug-select'){
     if(!CR_SEL || CR_SEL.type !== 'bugfix') return;
@@ -280,6 +292,7 @@ document.addEventListener('click', async e => {
     };
     if(qtype === 'mcq')    CR_EDITING.choices = ['', '', '', ''], CR_EDITING.correctIndex = 0;
     if(qtype === 'cloze')  CR_EDITING.blanks = [];
+    if(qtype === 'explain') CR_EDITING.highlight = [], CR_EDITING.answer = '';
     if(qtype === 'bugfix') CR_EDITING.buggyLine = 1;
     CR_VIEW = 'edit';
     render();
@@ -393,6 +406,22 @@ document.addEventListener('click', async e => {
           choices: choices.map(c => c || ''),
           correctIndex,
           explanation,
+          createdAt: meta.createdAt || new Date().toISOString()
+        };
+
+      } else if(meta.type === 'explain'){
+        if(!meta.code.trim()){ setErr('코드를 입력하세요.'); el.disabled = false; el.textContent = origLabel; return; }
+        const totalLines = meta.code.split('\n').length;
+        const highlight = (document.getElementById('cr-e-highlight')?.value || '')
+          .split(',').map(s => parseInt(s.trim())).filter(n => Number.isInteger(n) && n >= 1 && n <= totalLines);
+        const answer = (document.getElementById('cr-e-answer')?.value || '').trim();
+        data = {
+          title: meta.title,
+          description: meta.description || '',
+          code: meta.code,
+          type: 'explain',
+          highlight,
+          answer,
           createdAt: meta.createdAt || new Date().toISOString()
         };
 
