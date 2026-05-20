@@ -335,52 +335,75 @@ async function loadAllCodeReadingProgress(cid, rdId){
   }
 }
 
-// ── 수행평가 (Assessment) ──
-// 반별 단계: assessment/phase/{cid} = 'off' | 'prep' | 'eval'
-async function loadAsmtPhase(cid){
+// ── 수행평가 (Assessment) — 4파트 자동채점 시험 ──
+// 시험 정의: assessment/exam/{cid} = { active, weights, predict[], trace[], cloze[], implement[], updatedAt }
+
+// 탭 노출용 — active 플래그만 가볍게 읽기
+async function loadAsmtActive(cid){
   try {
-    const s = await db.ref(`assessment/phase/${cid}`).get();
-    const v = s.exists() ? String(s.val()) : 'off';
-    const phase = (v === 'prep' || v === 'eval') ? v : 'off';
-    ASMT_PHASE[cid] = phase;
-    return phase;
+    const s = await db.ref(`assessment/exam/${cid}/active`).get();
+    const on = s.exists() ? !!s.val() : false;
+    ASMT_ACTIVE[cid] = on;
+    return on;
   } catch(err){
-    console.warn('[수행평가] phase 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
-    ASMT_PHASE[cid] = 'off';
-    return 'off';
+    console.warn('[수행평가] active 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    ASMT_ACTIVE[cid] = false;
+    return false;
   }
 }
 
-async function setAsmtPhase(cid, phase){
-  await db.ref(`assessment/phase/${cid}`).set(phase);
-  ASMT_PHASE[cid] = phase;
-}
-
-// 학생 세션: assessment/sessions/{cid}/{studentNum}
-// = { messages, code, turnCount, lineExplains, view, updatedAt }
-async function loadAsmtSession(cid, studentNum){
+// 시험 정의 전체 로드
+async function loadAsmtExam(cid){
   try {
-    const s = await db.ref(`assessment/sessions/${cid}/${studentNum}`).get();
-    return s.exists() ? s.val() : null;
+    const s = await db.ref(`assessment/exam/${cid}`).get();
+    const exam = s.exists() ? s.val() : null;
+    ASMT_ACTIVE[cid] = !!(exam && exam.active);
+    return exam;
   } catch(err){
-    console.warn('[수행평가] 세션 로드 실패:', err.message || err);
+    console.warn('[수행평가] 시험 로드 실패:', err.message || err);
     return null;
   }
 }
 
-async function saveAsmtSession(cid, studentNum, data){
-  await db.ref(`assessment/sessions/${cid}/${studentNum}`).set({
-    ...data,
+async function saveAsmtExam(cid, exam){
+  await db.ref(`assessment/exam/${cid}`).set({
+    ...exam,
     updatedAt: new Date().toISOString()
+  });
+  ASMT_ACTIVE[cid] = !!exam.active;
+}
+
+// active 플래그만 토글 (시험 정의는 그대로)
+async function setAsmtExamActive(cid, on){
+  await db.ref(`assessment/exam/${cid}/active`).set(!!on);
+  ASMT_ACTIVE[cid] = !!on;
+  if(ASMT_EXAM) ASMT_EXAM.active = !!on;
+}
+
+// 학생 제출: assessment/submissions/{cid}/{학번} = { answers, autoScore, submittedAt }
+async function loadAsmtSubmission(cid, studentNum){
+  try {
+    const s = await db.ref(`assessment/submissions/${cid}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[수행평가] 제출 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+async function saveAsmtSubmission(cid, studentNum, data){
+  await db.ref(`assessment/submissions/${cid}/${studentNum}`).set({
+    ...data,
+    submittedAt: new Date().toISOString()
   });
 }
 
-async function loadAllAsmtSessions(cid){
+async function loadAllAsmtSubmissions(cid){
   try {
-    const s = await db.ref(`assessment/sessions/${cid}`).get();
+    const s = await db.ref(`assessment/submissions/${cid}`).get();
     return s.exists() ? s.val() : {};
   } catch(err){
-    console.warn('[수행평가] 전체 세션 로드 실패:', err.message || err);
+    console.warn('[수행평가] 전체 제출 로드 실패:', err.message || err);
     return {};
   }
 }
@@ -463,7 +486,7 @@ async function loadAllClassData(cid){
     loadNotebooks(cid),
     loadMissions(cid),
     loadCodeReadings(cid),
-    loadAsmtPhase(cid),
+    loadAsmtActive(cid),
     loadAicActive(cid)
   ]);
 }

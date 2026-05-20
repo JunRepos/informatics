@@ -84,15 +84,17 @@ function setTC(t){
       render();
     });
   } else if(t === 'asmt' && TC_CLS){
-    // 수행평가 탭 — phase + 전체 학생 세션 + 점수 미리 로드
+    // 수행평가 탭 — 시험 정의 + 전체 제출 + 점수 미리 로드
     ASMT_VIEW = 'manage';
     ASMT_TC_SEL_SNUM = null;
+    ASMT_EDIT = null;
     Promise.all([
-      loadAsmtPhase(TC_CLS.id),
-      loadAllAsmtSessions(TC_CLS.id),
+      loadAsmtExam(TC_CLS.id),
+      loadAllAsmtSubmissions(TC_CLS.id),
       loadAllAsmtScores(TC_CLS.id)
-    ]).then(([_phase, sessions, scores]) => {
-      ASMT_ALL_SESSIONS = sessions || {};
+    ]).then(([exam, subs, scores]) => {
+      ASMT_EXAM = exam;
+      ASMT_ALL_SUBS = subs || {};
       ASMT_ALL_SCORES = scores || {};
       render();
     });

@@ -34,7 +34,7 @@ function applyWrapWidth(){
   } else if(VIEW === 'teacher'){
     if(TC_TAB === 'notebook' || TC_TAB === 'mission') cls = 'full';
     else if(TC_TAB === 'oj' || TC_TAB === 'curriculum' || TC_TAB === 'coderead') cls = 'wide';
-    else if(TC_TAB === 'asmt' && ASMT_VIEW === 'student') cls = 'full';
+    else if(TC_TAB === 'asmt' && (ASMT_VIEW === 'student' || ASMT_VIEW === 'edit')) cls = 'full';
     else if(TC_TAB === 'asmt') cls = 'wide';
     else if(TC_TAB === 'aicode' && AIC_VIEW === 'student') cls = 'full';
     else if(TC_TAB === 'aicode') cls = 'wide';
@@ -42,8 +42,7 @@ function applyWrapWidth(){
     if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
-    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'chat') cls = 'full';
-    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'describe') cls = 'full';
+    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'exam') cls = 'full';
     else if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
