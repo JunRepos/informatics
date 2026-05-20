@@ -41,7 +41,7 @@ function applyWrapWidth(){
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
     else if(ST_TAB === 'asmt' && ASMT_VIEW === 'chat') cls = 'full';
-    else if(ST_TAB === 'asmt' && (ASMT_VIEW === 'explain' || ASMT_VIEW === 'modify')) cls = 'wide';
+    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'describe') cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
 }

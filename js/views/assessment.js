@@ -21,11 +21,10 @@ function _asmtInitialStudentView(phase, sess){
     return 'entry';
   }
   if(phase === 'eval'){
-    // 2차시: 평가 제출 완료면 done, 아니면 줄별 설명부터
+    // 2차시: 제출 완료면 done, 아니면 서술형 문항(describe)
     if(sess?.submittedAt) return 'done';
     if(!sess?.code) return 'eval-nocode';   // 1차시 코드가 없는 학생 (결석 등)
-    // 변형까지 작성 중이었으면 그 단계, 아니면 explain
-    return (sess?.view === 'modify') ? 'modify' : 'explain';
+    return 'describe';
   }
   return 'off';
 }
@@ -40,11 +39,29 @@ function vStAssessment(){
   if(ASMT_VIEW === 'entry')    return vStAsmtEntry();
   if(ASMT_VIEW === 'examples') return vStAsmtExamples();
   if(ASMT_VIEW === 'chat')     return vStAsmtChat();
-  if(ASMT_VIEW === 'explain')  return vStAsmtExplain();
-  if(ASMT_VIEW === 'modify')   return vStAsmtModify();
+  if(ASMT_VIEW === 'describe') return vStAsmtDescribe();
   if(ASMT_VIEW === 'done')     return vStAsmtDone();
   return vStAsmtEntry();
 }
+
+// 2차시 서술형 5문항 (각 문항 = 채점 평가요소 1개)
+const ASMT_QUESTIONS = [
+  {id:'purpose', icon:'🎯', rubric:'문제 추상화',
+   q:'이 프로그램은 무엇을 하나요?',
+   hint:'전체 동작을 순서대로 설명해 보세요. (예: 점수 5개를 입력받아 평균을 구하고, 60점 이상이면 합격을 출력합니다)'},
+  {id:'vars', icon:'📦', rubric:'자료형',
+   q:'어떤 변수를 썼고, 각각 어떤 자료형인가요?',
+   hint:'변수 이름과 함께 정수(int)·실수(float)·문자열(str) 중 무엇인지 적어 보세요.'},
+  {id:'io', icon:'⌨️', rubric:'입출력',
+   q:'무엇을 입력받고, 무엇을 출력하나요?',
+   hint:'input()으로 받는 값과 print()로 나오는 값을 적어 보세요.'},
+  {id:'control', icon:'🔀', rubric:'제어구조',
+   q:'조건문(if)과 반복문(for/while)은 각각 어떤 역할을 하나요?',
+   hint:'if는 어떤 상황에서 무엇을 하고, 반복문은 무엇을 몇 번 반복하는지 적어 보세요.'},
+  {id:'result', icon:'🧪', rubric:'결과',
+   q:'특정 값을 입력하면 결과가 어떻게 나올까요?',
+   hint:'예상 결과를 적어 보세요. 아래에서 직접 실행해 확인할 수도 있어요.', hasRun:true},
+];
 
 // phase=off 일 때 (직접 접근 등)
 function vStAsmtClosed(){
@@ -319,79 +336,22 @@ function _stripPyComments(code){
   return out.join('\n');
 }
 
-// ── 학생: 줄별 설명 모드 (채팅 잠금) ──
-function vStAsmtExplain(){
-  const lines = (ASMT_CODE || '').split('\n');
-  const meaningfulIdxs = _asmtMeaningfulLines(ASMT_CODE);
-  const total = meaningfulIdxs.length;
-  const done = meaningfulIdxs.filter(i => (ASMT_LINE_EXPLAINS[i] || '').trim()).length;
-  const pct = total ? Math.round(done / total * 100) : 0;
-  const allDone = done >= total && total > 0;
 
-  // 코드 줄 한 줄씩 + 옆에 설명 입력란
-  const rows = lines.map((src, i) => {
-    const isMeaningful = !!src.trim();
-    const saved = ASMT_LINE_EXPLAINS[i] || '';
-    return `<div class="asmt-line-row${isMeaningful ? '' : ' empty'}">
-      <div class="asmt-line-code">
-        <span class="asmt-line-no">${i + 1}</span>
-        <span class="asmt-line-src">${esc(src) || ' '}</span>
-      </div>
-      ${isMeaningful ? `
-        <input
-          class="asmt-line-explain ${saved.trim() ? 'filled' : ''}"
-          type="text"
-          data-action="asmt-line-input"
-          data-idx="${i}"
-          value="${esc(saved)}"
-          placeholder="이 줄의 의미를 자기 말로 적어주세요..."
-          autocomplete="off"
-          spellcheck="false"
-        />
-      ` : `<div class="asmt-line-explain-empty">(빈 줄)</div>`}
-    </div>`;
-  }).join('');
-
-  return `
-    <div class="asmt-explain-wrap">
-      <div class="asmt-explain-bar">
-        <div class="asmt-explain-title">📝 2단계 — 줄별 의미 적기</div>
-        <div class="asmt-explain-progress">
-          <span class="asmt-explain-count">${done} / ${total} 줄 완료</span>
-          <div class="asmt-explain-bar-track"><div class="asmt-explain-bar-fill" style="width:${pct}%"></div></div>
-        </div>
-        <button class="btn-p btn-sm" data-action="asmt-proceed-modify" ${allDone ? '' : 'disabled'}>
-          ${allDone ? '다음: 변형 과제 →' : `${total - done}줄 더 채우기`}
-        </button>
-      </div>
-
-      <div class="asmt-explain-info">
-        🤖 AI 채팅은 잠겼어요. 코드를 보면서 각 줄이 어떤 일을 하는지 <b>자기 말로</b> 적어주세요.
-        틀려도 괜찮으니 자신 있게 적어보세요. 헷갈리는 줄은 자기 생각을 그대로 써도 OK 예요.
-      </div>
-
-      <div class="asmt-explain-list">${rows}</div>
-    </div>
-  `;
-}
-
-// ── 학생: 변형 과제 (조건문/반복문 활용 + 코드 실행) ──
-function vStAsmtModify(){
-  const origCode = ASMT_CODE || '';
-  const curCode = ASMT_MOD_CODE || origCode;
-  const codeDiff = curCode !== origCode;
-  const reasonFilled = (ASMT_MOD_REASON || '').trim().length >= 10;
-  const canSubmit = codeDiff && reasonFilled;
-
-  // 원본 코드 좌측 (참고용)
-  const origLines = origCode.split('\n').map((src, i) =>
-    `<div class="asmt-mod-orig-line"><span class="asmt-line-no">${i+1}</span><span class="asmt-line-src">${esc(src) || ' '}</span></div>`
+// ── 학생: 2차시 서술형 5문항 (코드 좌측 + 문항 우측) ──
+function vStAsmtDescribe(){
+  const code = ASMT_CODE || '';
+  const codeLines = code.split('\n').map((src, i) =>
+    `<div class="cr-code-line"><span class="cr-line-no">${i+1}</span><span class="cr-line-src">${esc(src) || ' '}</span></div>`
   ).join('');
 
-  // 실행 결과 영역
+  const answered = ASMT_QUESTIONS.filter(q => (ASMT_ANSWERS[q.id] || '').trim()).length;
+  const total = ASMT_QUESTIONS.length;
+  const pct = Math.round(answered / total * 100);
+
+  // 실행 결과 (⑤ 문항용)
   let runBlock = '';
   if(ASMT_RUNNING){
-    runBlock = `<div class="asmt-mod-run-loading">⏳ 실행 중... (첫 실행은 Pyodide 로딩으로 10~15초 걸려요)</div>`;
+    runBlock = `<div class="asmt-mod-run-loading">⏳ 실행 중... (첫 실행은 10~15초 걸려요)</div>`;
   } else if(ASMT_RUN_RESULT){
     const r = ASMT_RUN_RESULT;
     runBlock = `<div class="asmt-mod-run-result ${r.success ? 'ok' : 'err'}">
@@ -401,78 +361,58 @@ function vStAsmtModify(){
     </div>`;
   }
 
-  return `
-    <div class="asmt-mod-wrap">
-      <div class="asmt-mod-bar">
-        <div class="asmt-mod-title">🛠️ 3단계 — 변형 과제</div>
-        <button class="btn-p btn-sm" data-action="asmt-submit-final" ${canSubmit ? '' : 'disabled'}>
-          ${canSubmit ? '✓ 제출' : (codeDiff ? '변경 이유를 적어주세요' : '코드를 수정해주세요')}
-        </button>
-      </div>
-
-      <div class="asmt-mod-task">
-        <div class="asmt-mod-task-label">📝 과제</div>
-        <div class="asmt-mod-task-body">
-          위 AI가 만든 코드를 수정해서 <b>조건문(if/elif/else)</b> 또는 <b>반복문(for/while)</b> 중
-          <b>한 가지를 새로 활용</b> 해 보세요.
-          이미 그 문법이 코드에 있다면 <b>한 번 더 추가</b> 해 주세요.
-          어떤 응용을 할지는 본인이 자유롭게 결정합니다.
+  const questionBlocks = ASMT_QUESTIONS.map((q, i) => {
+    const saved = ASMT_ANSWERS[q.id] || '';
+    const runUI = q.hasRun ? `
+      <div class="asmt-q-run">
+        <div class="asmt-q-run-row">
+          <input type="text" class="asmt-q-stdin" data-action="asmt-result-stdin" value="${esc(ASMT_RESULT_STDIN)}" placeholder="실행에 쓸 입력값 (input이 여러 개면 한 줄에 하나씩은 어려우니 쉼표로: 3,5)" autocomplete="off"/>
+          <button class="btn-sm" data-action="asmt-run-result" ${ASMT_RUNNING ? 'disabled' : ''}>${ASMT_RUNNING ? '⏳' : '▶ 실행'}</button>
         </div>
-      </div>
-
-      <div class="asmt-mod-split">
-        <div class="asmt-mod-orig">
-          <div class="asmt-mod-orig-head">📖 원본 코드 (수정 전 — 참고용)</div>
-          <pre class="asmt-mod-orig-body">${origLines}</pre>
+        ${runBlock}
+      </div>` : '';
+    return `
+      <div class="asmt-q-card">
+        <div class="asmt-q-head">
+          <span class="asmt-q-icon">${q.icon}</span>
+          <span class="asmt-q-num">${i+1}.</span>
+          <span class="asmt-q-text">${esc(q.q)}</span>
+          ${saved.trim() ? '<span class="asmt-q-check">✓</span>' : ''}
         </div>
-
-        <div class="asmt-mod-edit">
-          <div class="asmt-mod-edit-head">
-            ✏️ 내가 수정한 코드 ${codeDiff ? '<span class="asmt-mod-changed">변경됨</span>' : ''}
-          </div>
-          <textarea
-            id="asmt-mod-code"
-            class="asmt-mod-code-area"
-            spellcheck="false"
-            placeholder="여기에 코드를 수정하세요..."
-            data-action="asmt-mod-code-input"
-          >${esc(curCode)}</textarea>
-        </div>
-      </div>
-
-      <div class="asmt-mod-run-row">
-        <div class="asmt-mod-stdin">
-          <label>📥 실행 시 입력값 (input() 호출 1줄에 하나씩)</label>
-          <textarea
-            id="asmt-mod-stdin"
-            class="asmt-mod-stdin-area"
-            spellcheck="false"
-            placeholder="코드에 input()이 없으면 비워두세요"
-            data-action="asmt-mod-stdin-input"
-          >${esc(ASMT_MOD_STDIN)}</textarea>
-        </div>
-        <div class="asmt-mod-run-actions">
-          <button class="btn-p" data-action="asmt-run-mod" ${ASMT_RUNNING ? 'disabled' : ''}>
-            ${ASMT_RUNNING ? '⏳ 실행 중...' : '▶ 실행'}
-          </button>
-          <button class="btn-sm" data-action="asmt-reset-mod" title="원본 코드로 되돌리기">↺ 원본으로</button>
-        </div>
-      </div>
-
-      ${runBlock}
-
-      <div class="asmt-mod-reason">
-        <label>💬 어떤 부분을 어떻게 바꿨고, 왜 그렇게 바꿨나요? (최소 10자)</label>
+        <div class="asmt-q-hint">${esc(q.hint)}</div>
         <textarea
-          id="asmt-mod-reason"
-          class="asmt-mod-reason-area"
+          class="asmt-q-answer"
+          data-action="asmt-answer-input"
+          data-qid="${q.id}"
+          placeholder="여기에 답을 적어주세요. 자세히 쓸수록 점수가 높아요!"
           spellcheck="false"
-          placeholder="예: 13번째 줄에 if 문을 추가해서, 점수가 90 이상이면 '훌륭해요!'라는 추가 메시지가 출력되도록 했어요. 학생의 성취감을 높여주기 위해서요."
-          data-action="asmt-mod-reason-input"
-        >${esc(ASMT_MOD_REASON)}</textarea>
-        <div class="asmt-mod-reason-count">
-          ${(ASMT_MOD_REASON || '').trim().length} / 최소 10자
+        >${esc(saved)}</textarea>
+        ${runUI}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="asmt-desc-wrap">
+      <div class="asmt-desc-bar">
+        <div class="asmt-desc-title">📝 2차시 — 내 코드 설명하기</div>
+        <div class="asmt-explain-progress">
+          <span class="asmt-explain-count">${answered} / ${total} 문항 작성</span>
+          <div class="asmt-explain-bar-track"><div class="asmt-explain-bar-fill" style="width:${pct}%"></div></div>
         </div>
+        <button class="btn-p btn-sm" data-action="asmt-submit-describe">제출하기</button>
+      </div>
+
+      <div class="asmt-desc-info">
+        🤖 AI 채팅은 잠겼어요. 1차시에 만든 <b>내 코드</b>를 보면서 아래 질문에 답해 주세요.
+        <b>정답을 외울 필요 없어요</b> — 코드를 보고 이해한 만큼, <b>자세히 설명할수록 높은 점수</b>를 받아요.
+      </div>
+
+      <div class="asmt-desc-split">
+        <div class="asmt-desc-code">
+          <div class="asmt-desc-code-head">📄 내 코드 (1차시에 만든 것)</div>
+          <pre class="cr-code-box">${codeLines}</pre>
+        </div>
+        <div class="asmt-desc-questions">${questionBlocks}</div>
       </div>
     </div>
   `;
@@ -481,7 +421,7 @@ function vStAsmtModify(){
 // ── 학생: 제출 완료 화면 ──
 function vStAsmtDone(){
   const submittedAt = ASMT_SUBMITTED_AT ? fmtDt(ASMT_SUBMITTED_AT) : '';
-  const lineExplainsCount = Object.values(ASMT_LINE_EXPLAINS || {}).filter(v => (v||'').trim()).length;
+  const answeredCount = ASMT_QUESTIONS ? ASMT_QUESTIONS.filter(q => (ASMT_ANSWERS[q.id]||'').trim()).length : 0;
   return `
     <div class="asmt-done-wrap">
       <div class="asmt-done-card">
@@ -494,10 +434,8 @@ function vStAsmtDone(){
       <div class="asmt-done-summary">
         <div class="asmt-done-summary-title">📋 제출 내역 요약</div>
         <table class="asmt-done-table">
-          <tr><td>AI 와의 대화</td><td>${ASMT_MESSAGES.length}개 메시지</td></tr>
-          <tr><td>줄별 의미 적기</td><td>${lineExplainsCount}줄 설명 완료</td></tr>
-          <tr><td>변형 과제 코드</td><td>${(ASMT_MOD_CODE || '').split('\n').length}줄 수정 완료</td></tr>
-          <tr><td>변경 이유</td><td>${(ASMT_MOD_REASON || '').length}자 작성</td></tr>
+          <tr><td>1차시 — AI와 만든 코드</td><td>${(ASMT_CODE||'').split('\n').length}줄</td></tr>
+          <tr><td>2차시 — 설명 문항 작성</td><td>${answeredCount} / ${ASMT_QUESTIONS ? ASMT_QUESTIONS.length : 5}문항</td></tr>
         </table>
       </div>
 
@@ -647,10 +585,7 @@ function vTcAsmtStudent(){
   }
   const messages = Array.isArray(sess.messages) ? sess.messages : [];
   const code = sess.code || '';
-  const lineExplains = sess.lineExplains || {};
-  const modCode = sess.modCode || '';
-  const modReason = sess.modReason || '';
-  const modStdin = sess.modStdin || '';
+  const answers = sess.answers || {};
   const submittedAt = sess.submittedAt ? fmtDt(sess.submittedAt) : null;
   const totalScore = _asmtScoreTotal(sc);
 
@@ -693,50 +628,29 @@ function vTcAsmtStudent(){
       ${emptyBox('💬','학생이 아직 AI와 대화를 시작하지 않았어요.')}
     </section>`;
 
-  // ② 학생이 정한 코드 + ③ 줄별 설명 (같이 표시)
+  // ② 1차시 코드
   const codeSec = code ? `
     <section class="asmt-tcs-sec">
-      <div class="asmt-tcs-sec-head">📝 2단계 — AI 코드 + 줄별 학생 설명</div>
-      <div class="asmt-tcs-code-explain">
-        ${code.split('\n').map((src, i) => {
-          const exp = lineExplains[i];
-          const hasExp = (exp || '').trim();
-          return `<div class="asmt-tcs-line${src.trim() ? '' : ' empty'}">
-            <div class="asmt-tcs-line-code">
-              <span class="asmt-line-no">${i+1}</span>
-              <span class="asmt-line-src">${esc(src) || ' '}</span>
-            </div>
-            <div class="asmt-tcs-line-exp ${hasExp ? 'filled' : 'missing'}">
-              ${hasExp ? esc(exp) : (src.trim() ? '<i>(설명 없음)</i>' : '')}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
+      <div class="asmt-tcs-sec-head">💻 1차시 — AI와 만든 코드</div>
+      <pre class="asmt-tcs-code-pre">${esc(code)}</pre>
     </section>` : '';
 
-  // ④ 변형 코드 + ⑤ 변경 이유
-  const modSec = modCode ? `
+  // ③ 2차시 서술형 5문항 답 (채점 기준 매핑 표시)
+  const QMAP = (typeof ASMT_QUESTIONS !== 'undefined') ? ASMT_QUESTIONS : [];
+  const answerSec = `
     <section class="asmt-tcs-sec">
-      <div class="asmt-tcs-sec-head">🛠️ 3단계 — 변형 과제 (조건문/반복문 활용)</div>
-      <div class="asmt-tcs-mod-grid">
-        <div>
-          <div class="asmt-tcs-sub-head">원본 코드</div>
-          <pre class="asmt-tcs-code-pre">${esc(code)}</pre>
-        </div>
-        <div>
-          <div class="asmt-tcs-sub-head">학생이 수정한 코드</div>
-          <pre class="asmt-tcs-code-pre">${esc(modCode)}</pre>
-        </div>
-      </div>
-      ${modStdin ? `<div class="asmt-tcs-stdin">
-        <div class="asmt-tcs-sub-head">📥 실행 시 입력값</div>
-        <pre class="asmt-tcs-code-pre">${esc(modStdin)}</pre>
-      </div>` : ''}
-      <div class="asmt-tcs-reason">
-        <div class="asmt-tcs-sub-head">💬 변경 이유 (${(modReason||'').length}자)</div>
-        <div class="asmt-tcs-reason-body">${esc(modReason || '(작성하지 않음)').replace(/\n/g,'<br>')}</div>
-      </div>
-    </section>` : '';
+      <div class="asmt-tcs-sec-head">✍️ 2차시 — 코드 설명 (서술형 5문항)</div>
+      ${QMAP.map((q, i) => {
+        const a = (answers[q.id] || '').trim();
+        return `<div class="asmt-tcs-ans">
+          <div class="asmt-tcs-ans-q">
+            <span>${q.icon} ${i+1}. ${esc(q.q)}</span>
+            <span class="asmt-tcs-ans-rubric">→ ${esc(q.rubric)}</span>
+          </div>
+          <div class="asmt-tcs-ans-body ${a ? '' : 'empty'}">${a ? esc(a).replace(/\n/g,'<br>') : '<i>(답하지 않음)</i>'}</div>
+        </div>`;
+      }).join('')}
+    </section>`;
 
   // ⑥ 채점 입력
   const rubricRows = ASMT_RUBRIC.map(r => {
@@ -776,9 +690,9 @@ function vTcAsmtStudent(){
 
   return `<div class="asmt-tcs-wrap">
     ${header}
-    ${dialogSec}
     ${codeSec}
-    ${modSec}
+    ${answerSec}
+    ${dialogSec}
     ${scoreSec}
   </div>`;
 }

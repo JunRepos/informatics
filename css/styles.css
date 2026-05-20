@@ -1293,6 +1293,43 @@ input.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 
   .asmt-mod-run-row{grid-template-columns:1fr}
 }
 
+/* ───── 2차시 서술형 5문항 ───── */
+.asmt-desc-wrap{max-width:1180px;margin:0 auto}
+.asmt-desc-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);position:sticky;top:0;z-index:10}
+.asmt-desc-title{font-size:14px;font-weight:700;color:var(--text);flex-shrink:0}
+.asmt-desc-info{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;line-height:1.6}
+[data-theme="dark"] .asmt-desc-info{background:#2a1a08;border-color:#7c2d12;color:#fdba74}
+.asmt-desc-split{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:14px;align-items:start}
+.asmt-desc-code{position:sticky;top:64px}
+.asmt-desc-code-head{font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.asmt-desc-questions{display:flex;flex-direction:column;gap:12px}
+
+.asmt-q-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.asmt-q-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.asmt-q-icon{font-size:16px}
+.asmt-q-num{color:var(--accent)}
+.asmt-q-text{flex:1}
+.asmt-q-check{color:var(--ok);font-weight:800}
+.asmt-q-hint{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+.asmt-q-answer{width:100%;min-height:70px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13.5px;line-height:1.6;resize:vertical;outline:none;box-sizing:border-box}
+.asmt-q-answer:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lt)}
+.asmt-q-run{margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px}
+.asmt-q-run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.asmt-q-stdin{flex:1;min-width:160px;font-family:monospace;font-size:12.5px}
+
+@media (max-width: 900px){
+  .asmt-desc-split{grid-template-columns:1fr}
+  .asmt-desc-code{position:static}
+}
+
+/* 선생님 상세 — 서술형 답안 표시 */
+.asmt-tcs-ans{padding:10px 0;border-bottom:1px dashed var(--border)}
+.asmt-tcs-ans:last-child{border-bottom:none}
+.asmt-tcs-ans-q{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+.asmt-tcs-ans-rubric{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 8px;border-radius:8px;white-space:nowrap}
+.asmt-tcs-ans-body{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.asmt-tcs-ans-body.empty{color:var(--text3)}
+
 /* ───── 제출 완료 ───── */
 .asmt-done-wrap{max-width:680px;margin:0 auto}
 .asmt-done-card{text-align:center;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:1.5px solid #f59e0b;border-radius:14px;padding:34px 24px;margin-bottom:18px}

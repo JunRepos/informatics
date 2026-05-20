@@ -69,10 +69,8 @@ function setST(t){
     ASMT_CODE = '';
     ASMT_TURN_COUNT = 0;
     ASMT_PREP_SUBMITTED = false;
-    ASMT_LINE_EXPLAINS = {};
-    ASMT_MOD_CODE = '';
-    ASMT_MOD_REASON = '';
-    ASMT_MOD_STDIN = '';
+    ASMT_ANSWERS = {};
+    ASMT_RESULT_STDIN = '';
     ASMT_RUN_RESULT = null;
     ASMT_SUBMITTED_AT = null;
     ASMT_VIEW = 'entry';
@@ -85,10 +83,7 @@ function setST(t){
         ASMT_CODE = s.code || '';
         ASMT_TURN_COUNT = s.turnCount || 0;
         ASMT_PREP_SUBMITTED = !!s.prepSubmitted;
-        ASMT_LINE_EXPLAINS = s.lineExplains || {};
-        ASMT_MOD_CODE = s.modCode || '';
-        ASMT_MOD_REASON = s.modReason || '';
-        ASMT_MOD_STDIN = s.modStdin || '';
+        ASMT_ANSWERS = s.answers || {};
         ASMT_SUBMITTED_AT = s.submittedAt || null;
       }
       ASMT_VIEW = _asmtInitialStudentView(phase, s);

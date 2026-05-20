@@ -142,11 +142,8 @@ function _saveAsmtSession(){
         code: ASMT_CODE,
         turnCount: ASMT_TURN_COUNT,
         prepSubmitted: ASMT_PREP_SUBMITTED || null,
-        lineExplains: ASMT_LINE_EXPLAINS,
+        answers: (ASMT_ANSWERS && Object.keys(ASMT_ANSWERS).length) ? ASMT_ANSWERS : null,
         view: ASMT_VIEW,
-        modCode: ASMT_MOD_CODE || null,
-        modReason: ASMT_MOD_REASON || null,
-        modStdin: ASMT_MOD_STDIN || null,
         submittedAt: ASMT_SUBMITTED_AT || null
       };
       // null 값은 Firebase 에서 자동 제거됨
@@ -296,30 +293,15 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: 줄별 설명 → 변형 과제 진입
-  if(act.action === 'asmt-proceed-modify'){
-    const meaningful = _asmtMeaningfulLines(ASMT_CODE);
-    const done = meaningful.filter(i => (ASMT_LINE_EXPLAINS[i] || '').trim()).length;
-    if(done < meaningful.length){
-      toast(`아직 ${meaningful.length - done}줄이 비어 있어요.`, 'err');
-      return;
-    }
-    ASMT_VIEW = 'modify';
-    ASMT_MOD_CODE = ASMT_MOD_CODE || ASMT_CODE; // 첫 진입 시 원본 코드를 초깃값으로
-    ASMT_RUN_RESULT = null;
-    render();
-    _saveAsmtSession();
-    return;
-  }
-
-  // 학생: 변형 코드 실행
-  if(act.action === 'asmt-run-mod'){
+  // 학생: ⑤ 결과 문항 — 내 코드 직접 실행 (입력값 쉼표 또는 줄바꿈 구분)
+  if(act.action === 'asmt-run-result'){
     if(ASMT_RUNNING) return;
-    const code = document.getElementById('asmt-mod-code')?.value || '';
-    const stdin = document.getElementById('asmt-mod-stdin')?.value || '';
-    if(!code.trim()){ toast('실행할 코드가 비어 있어요.', 'err'); return; }
-    ASMT_MOD_CODE = code;
-    ASMT_MOD_STDIN = stdin;
+    const code = ASMT_CODE || '';
+    if(!code.trim()){ toast('실행할 코드가 없어요.', 'err'); return; }
+    const raw = document.querySelector('.asmt-q-stdin')?.value || '';
+    ASMT_RESULT_STDIN = raw;
+    // 쉼표 또는 줄바꿈을 입력 구분자로 → 줄 단위 stdin 으로 변환
+    const stdin = raw.split(/[,\n]/).map(s => s.trim()).join('\n');
     ASMT_RUNNING = true;
     ASMT_RUN_RESULT = null;
     render();
@@ -327,33 +309,19 @@ document.addEventListener('click', async e => {
     ASMT_RUNNING = false;
     ASMT_RUN_RESULT = result;
     render();
-    _saveAsmtSession();
     return;
   }
 
-  // 학생: 변형 코드 원본으로 되돌리기
-  if(act.action === 'asmt-reset-mod'){
-    if(!confirm('수정한 코드를 모두 지우고 원본으로 되돌릴까요?')) return;
-    ASMT_MOD_CODE = ASMT_CODE;
-    ASMT_RUN_RESULT = null;
-    render();
-    _saveAsmtSession();
-    return;
-  }
-
-  // 학생: 최종 제출
-  if(act.action === 'asmt-submit-final'){
-    const code = document.getElementById('asmt-mod-code')?.value || ASMT_MOD_CODE || '';
-    const reason = document.getElementById('asmt-mod-reason')?.value || ASMT_MOD_REASON || '';
-    if(code.trim() === (ASMT_CODE || '').trim()){
-      toast('원본 코드와 다르게 수정한 부분이 없어요.', 'err'); return;
-    }
-    if(reason.trim().length < 10){
-      toast('변경 이유를 10자 이상 적어주세요.', 'err'); return;
-    }
-    if(!confirm('제출하시겠어요?\n제출 후에는 수정할 수 없어요.')) return;
-    ASMT_MOD_CODE = code;
-    ASMT_MOD_REASON = reason;
+  // 학생: 2차시 제출
+  if(act.action === 'asmt-submit-describe'){
+    const answered = (typeof ASMT_QUESTIONS !== 'undefined' ? ASMT_QUESTIONS : [])
+      .filter(q => (ASMT_ANSWERS[q.id] || '').trim()).length;
+    const totalQ = (typeof ASMT_QUESTIONS !== 'undefined' ? ASMT_QUESTIONS.length : 5);
+    if(answered === 0){ toast('적어도 한 문항은 답해주세요.', 'err'); return; }
+    const warn = answered < totalQ
+      ? `아직 ${totalQ - answered}개 문항이 비어 있어요.\n그래도 제출할까요? (제출 후에는 수정할 수 없어요)`
+      : '제출할까요? 제출 후에는 수정할 수 없어요.';
+    if(!confirm(warn)) return;
     ASMT_VIEW = 'done';
     ASMT_SUBMITTED_AT = new Date().toISOString();
     render();
@@ -499,29 +467,28 @@ document.addEventListener('input', e => {
   if(!t || !t.dataset) return;
   const a = t.dataset.action;
 
-  // 줄별 설명 입력
-  if(a === 'asmt-line-input'){
-    const idx = parseInt(t.dataset.idx);
-    const v = t.value || '';
-    ASMT_LINE_EXPLAINS[idx] = v;
-    if(v.trim()){ t.classList.add('filled'); } else { t.classList.remove('filled'); }
-    _updateAsmtExplainProgress();
+  // 2차시 서술형 — 문항 답 입력
+  if(a === 'asmt-answer-input'){
+    const qid = t.dataset.qid;
+    if(!qid) return;
+    ASMT_ANSWERS[qid] = t.value || '';
+    // 진행률·체크 표시는 포커스 보존 위해 DOM 직접 갱신
+    _updateAsmtDescribeProgress();
+    const card = t.closest('.asmt-q-card');
+    const head = card?.querySelector('.asmt-q-head');
+    if(head){
+      const has = (t.value || '').trim();
+      let chk = head.querySelector('.asmt-q-check');
+      if(has && !chk){ const s = document.createElement('span'); s.className='asmt-q-check'; s.textContent='✓'; head.appendChild(s); }
+      else if(!has && chk){ chk.remove(); }
+    }
     _saveAsmtSession();
     return;
   }
 
-  // 변형 과제 — 코드 입력
-  if(a === 'asmt-mod-code-input'){
-    ASMT_MOD_CODE = t.value || '';
-    _updateAsmtModButtons();
-    _saveAsmtSession();
-    return;
-  }
-
-  // 변형 과제 — stdin 입력
-  if(a === 'asmt-mod-stdin-input'){
-    ASMT_MOD_STDIN = t.value || '';
-    _saveAsmtSession();
+  // 2차시 ⑤ 실행 입력값
+  if(a === 'asmt-result-stdin'){
+    ASMT_RESULT_STDIN = t.value || '';
     return;
   }
 
@@ -539,61 +506,19 @@ document.addEventListener('input', e => {
     return;
   }
 
-  // 변형 과제 — 변경 이유 입력
-  if(a === 'asmt-mod-reason-input'){
-    ASMT_MOD_REASON = t.value || '';
-    _updateAsmtModButtons();
-    // 글자 수 카운트 즉시 갱신
-    const cntEl = document.querySelector('.asmt-mod-reason-count');
-    if(cntEl) cntEl.textContent = `${(ASMT_MOD_REASON||'').trim().length} / 최소 10자`;
-    _saveAsmtSession();
-    return;
-  }
 });
 
-// 변형 과제 화면 — 제출 버튼/변경됨 표시 갱신 (포커스 보존)
-function _updateAsmtModButtons(){
-  if(ASMT_VIEW !== 'modify') return;
-  const codeDiff = (ASMT_MOD_CODE || '') !== (ASMT_CODE || '');
-  const reasonFilled = (ASMT_MOD_REASON || '').trim().length >= 10;
-  const canSubmit = codeDiff && reasonFilled;
-  const btn = document.querySelector('[data-action="asmt-submit-final"]');
-  if(btn){
-    btn.disabled = !canSubmit;
-    btn.textContent = canSubmit ? '✓ 제출' : (codeDiff ? '변경 이유를 적어주세요' : '코드를 수정해주세요');
-  }
-  // "변경됨" 칩 토글
-  const head = document.querySelector('.asmt-mod-edit-head');
-  if(head){
-    const chip = head.querySelector('.asmt-mod-changed');
-    if(codeDiff && !chip){
-      const span = document.createElement('span');
-      span.className = 'asmt-mod-changed';
-      span.textContent = '변경됨';
-      head.appendChild(span);
-    } else if(!codeDiff && chip){
-      chip.remove();
-    }
-  }
-}
-
-function _updateAsmtExplainProgress(){
-  if(ASMT_VIEW !== 'explain') return;
-  const meaningful = _asmtMeaningfulLines(ASMT_CODE);
-  const total = meaningful.length;
-  const done = meaningful.filter(i => (ASMT_LINE_EXPLAINS[i] || '').trim()).length;
+// 2차시 서술형 진행률 갱신 (포커스 보존 — re-render 없이 DOM 직접)
+function _updateAsmtDescribeProgress(){
+  if(ASMT_VIEW !== 'describe') return;
+  if(typeof ASMT_QUESTIONS === 'undefined') return;
+  const total = ASMT_QUESTIONS.length;
+  const done = ASMT_QUESTIONS.filter(q => (ASMT_ANSWERS[q.id] || '').trim()).length;
   const pct = total ? Math.round(done / total * 100) : 0;
   const countEl = document.querySelector('.asmt-explain-count');
   const fillEl = document.querySelector('.asmt-explain-bar-fill');
-  if(countEl) countEl.textContent = `${done} / ${total} 줄 완료`;
+  if(countEl) countEl.textContent = `${done} / ${total} 문항 작성`;
   if(fillEl) fillEl.style.width = pct + '%';
-  // 다음 버튼 활성화
-  const nextBtn = document.querySelector('[data-action="asmt-proceed-modify"]');
-  if(nextBtn){
-    const allDone = done >= total && total > 0;
-    nextBtn.disabled = !allDone;
-    nextBtn.textContent = allDone ? '다음: 변형 과제 →' : `${total - done}줄 더 채우기`;
-  }
 }
 
 // ── render 후 처리: 채팅 모드에서 스크롤·포커스 + 진입 화면 타이머 ──
