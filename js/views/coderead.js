@@ -342,8 +342,8 @@ function vTcCREdit(){
     <div class="field"><label>제목</label>
       <input id="cr-e-title" type="text" placeholder="예: for 루프와 누적합" value="${esc(r.title || '')}"/>
     </div>
-    <div class="field"><label>설명 / 안내 (선택)</label>
-      <textarea id="cr-e-desc" placeholder="학생에게 보여줄 안내 (예: 'range와 += 연산을 익혀봅시다')" style="min-height:50px">${esc(r.description || '')}</textarea>
+    <div class="field"><label>설명 / 안내 <span style="font-weight:400;color:var(--accent);font-size:11px">— 학생 풀이 화면 맨 위에 📋 안내 박스로 표시됩니다</span></label>
+      <textarea id="cr-e-desc" placeholder="학생이 무엇을 해야 하는지 알려주세요. 예) '아래 빈칸에는 print에서 출력하는 변수와 같은 이름이 들어갑니다' / '거북이가 50만큼 앞으로 가게 if문 조건을 채우세요'" style="min-height:60px">${esc(r.description || '')}</textarea>
     </div>
   `;
 

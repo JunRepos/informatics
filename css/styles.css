@@ -1023,7 +1023,8 @@ input.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 
 .cr-solve-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:10px;box-shadow:var(--sh)}
 .cr-solve-bar > div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 
-.cr-desc-box{background:var(--info-bg);border:1px solid var(--info-bd);color:var(--info-txt);padding:10px 14px;border-radius:var(--r-md);font-size:13px;margin-bottom:10px}
+.cr-desc-box{background:var(--info-bg);border:1px solid var(--info-bd);border-left:4px solid var(--accent);color:var(--info-txt);padding:12px 16px;border-radius:var(--r-md);font-size:14px;line-height:1.6;margin-bottom:12px;font-weight:500}
+.cr-desc-box::before{content:'📋 선생님 안내  ';font-weight:800;font-size:12px;opacity:.8}
 
 .cr-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:900px){.cr-split{grid-template-columns:1fr}}
