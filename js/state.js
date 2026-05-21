@@ -112,6 +112,14 @@ let ASMT_ALL_SUBS = {};        // { [학번]: submission }
 let ASMT_ALL_SCORES = {};      // { [학번]: { a,b,c,d, comment, scoredAt } }
 let ASMT_TC_SEL_SNUM = null;   // 선생님: 보고 있는 학생 학번
 
+// 📖 수행평가 안내(연습) — 정의는 assessment-data.js ASMT_GUIDE_DEF. 제출·채점 없음(로컬 연습).
+let AG_STAGE   = 1;
+let AG_ANS     = { a: '', b: {}, blanks: {} };
+let AG_RUN     = null;
+let AG_TEST    = null;
+let AG_RUNNING = false;
+let AG_STDIN   = '';
+
 // 채점 항목 (PDF 배점) — 선생님 수동 입력
 const ASMT_RUBRIC = [
   { id: 'a', label: 'A. 문제 분석·추상화', max: 5 },

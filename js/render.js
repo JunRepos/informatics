@@ -42,6 +42,7 @@ function applyWrapWidth(){
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
     else if(ST_TAB === 'asmt' && ASMT_STAGE === 2) cls = 'wide';
+    else if(ST_TAB === 'asmt-guide' && AG_STAGE === 2) cls = 'wide';
     else if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');

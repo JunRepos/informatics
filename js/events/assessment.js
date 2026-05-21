@@ -34,14 +34,17 @@ function _asmtRunCode(code, stdin){
 }
 
 // 빈칸/정답을 합쳐 실행 가능한 코드로 조립. blanks 미지정 시 학생 작성중(ASMT_ANS) 사용
-function _asmtAssemble(blanks){
+function _asmtAssemble(blanks, def){
+  def = def || ASMT_DEF;
   blanks = blanks || ASMT_ANS.blanks || {};
-  const c = ASMT_DEF.stage2.c;
+  const c = def.stage2.c;
+  const ans = {};
+  c.blanks.forEach(b => { ans[b.id] = b.answer; });
   let code = '';
   for(const tok of c.tokens){
     if(tok.t != null){ code += tok.t; continue; }
     const st = blanks[tok.b] || {};
-    code += st.gaveUp ? (ASMT_BLANK_ANSWER[tok.b] || '') : (st.v || '');
+    code += st.gaveUp ? (ans[tok.b] || '') : (st.v || '');
   }
   return code;
 }
@@ -66,9 +69,10 @@ function _asmtNormCode(s){
 }
 
 // 모든 테스트케이스 실행 → 결과 배열
-async function _asmtRunTests(code){
+async function _asmtRunTests(code, def){
+  def = def || ASMT_DEF;
   const out = [];
-  for(const t of ASMT_DEF.stage2.d.tests){
+  for(const t of def.stage2.d.tests){
     const r = await _asmtRunCode(code, t.input);
     out.push({
       input: t.input,
@@ -162,6 +166,51 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // ── 안내(연습) 탭: 빈칸 모름 토글 ──
+  if(act.action === 'ag-blank-x'){
+    const bid = act.bid;
+    const cur = AG_ANS.blanks[bid] || {};
+    AG_ANS.blanks[bid] = { ...cur, gaveUp: !cur.gaveUp };
+    render();
+    return;
+  }
+  // ── 안내(연습): 자유 실행 ──
+  if(act.action === 'ag-run'){
+    if(AG_RUNNING) return;
+    const code = _asmtAssemble(AG_ANS.blanks, ASMT_GUIDE_DEF);
+    AG_RUNNING = 'run'; AG_RUN = null;
+    render();
+    const r = await _asmtRunCode(code, _asmtToStdin(AG_STDIN));
+    AG_RUNNING = false; AG_RUN = r;
+    render();
+    return;
+  }
+  // ── 안내(연습): 테스트 실행 ──
+  if(act.action === 'ag-test'){
+    if(AG_RUNNING) return;
+    const code = _asmtAssemble(AG_ANS.blanks, ASMT_GUIDE_DEF);
+    AG_RUNNING = 'test'; AG_TEST = null;
+    render();
+    AG_TEST = await _asmtRunTests(code, ASMT_GUIDE_DEF);
+    AG_RUNNING = false;
+    render();
+    return;
+  }
+  // ── 안내(연습): 2단계로 ──
+  if(act.action === 'ag-to-stage2'){
+    if(AG_STAGE === 2) return;
+    AG_STAGE = 2; AG_RUN = null; AG_TEST = null;
+    render();
+    return;
+  }
+  // ── 안내(연습): 처음부터 다시 ──
+  if(act.action === 'ag-reset'){
+    AG_STAGE = 1; AG_ANS = { a: '', b: {}, blanks: {} };
+    AG_RUN = null; AG_TEST = null; AG_RUNNING = false; AG_STDIN = '';
+    render();
+    return;
+  }
+
   // ══ 선생님 ══
 
   // 활성 토글
@@ -246,6 +295,21 @@ document.addEventListener('input', e => {
     ASMT_STDIN = t.value;
     return;
   }
+
+  // 안내(연습) 탭 입력
+  if(a === 'ag-a'){ AG_ANS.a = t.value; return; }
+  if(a === 'ag-b'){
+    if(!AG_ANS.b || typeof AG_ANS.b !== 'object') AG_ANS.b = {};
+    AG_ANS.b[t.dataset.bid] = t.value;
+    return;
+  }
+  if(a === 'ag-blank-in'){
+    const bid = t.dataset.bid;
+    const cur = AG_ANS.blanks[bid] || {};
+    AG_ANS.blanks[bid] = { ...cur, v: t.value, gaveUp: false };
+    return;
+  }
+  if(a === 'ag-stdin'){ AG_STDIN = t.value; return; }
 });
 
 // ══════════════════════════════════════

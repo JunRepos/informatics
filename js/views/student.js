@@ -21,6 +21,7 @@ function vStudent(){
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
+    ${isInfo ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
@@ -36,6 +37,7 @@ function vStudent(){
   else if(ST_TAB === 'oj')      body = vStOJ();
   else if(ST_TAB === 'coderead')body = vStCodeRead();
   else if(ST_TAB === 'aicode')  body = vStAiCode();
+  else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
   else if(ST_TAB === 'mine')    body = vStMine();
   return tabs + body;
@@ -85,6 +87,11 @@ function setST(t){
       AIC_VIEW = _aicInitialStudentView(s);
       render();
     });
+  } else if(t === 'asmt-guide'){
+    // 수행평가 안내(연습) — 매 진입 시 새로 시작 (제출·저장 없음)
+    AG_STAGE = 1; AG_ANS = { a: '', b: {}, blanks: {} };
+    AG_RUN = null; AG_TEST = null; AG_RUNNING = false; AG_STDIN = '';
+    render();
   } else if(t === 'asmt' && SEL_CLS && ST_USER){
     // 수행평가 — 내 제출(진행상황) 로드 후 적절한 단계/화면 결정
     ASMT_ANS = { a: '', b: {}, blanks: {} };

@@ -9,12 +9,13 @@
 ═══════════════════════════════════════ */
 
 // 문제 상황 (두 단계 모두 상단에 표시)
-function _asmtSituation(){
+function _asmtSituation(def){
+  def = def || ASMT_DEF;
   return `<div class="asmt-situation">
-    <div class="asmt-sit-title">📦 문제 상황 · ${esc(ASMT_DEF.subtitle)}</div>
-    <div class="asmt-sit-body">${esc(ASMT_DEF.situation)}</div>
-    <ul class="asmt-sit-needs">${ASMT_DEF.resultNeeds.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
-    <div class="asmt-sit-body">${esc(ASMT_DEF.situationTail)}</div>
+    <div class="asmt-sit-title">📦 문제 상황 · ${esc(def.subtitle)}</div>
+    <div class="asmt-sit-body">${esc(def.situation)}</div>
+    <ul class="asmt-sit-needs">${def.resultNeeds.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+    <div class="asmt-sit-body">${esc(def.situationTail)}</div>
   </div>`;
 }
 
@@ -34,62 +35,79 @@ function _asmtHighlight(src){
   return out;
 }
 
-// 코드 + 인라인 빈칸 렌더 (학생 작성용)
-function _asmtRenderCodeEditable(){
-  const c = ASMT_DEF.stage2.c;
+// 코드 + 인라인 빈칸 렌더 (def/answers/prefix 매개변수화)
+function _asmtRenderCode(def, ans, P){
+  const c = def.stage2.c;
   let html = '';
   for(const tok of c.tokens){
     if(tok.t != null){ html += _asmtHighlight(tok.t); continue; }
     const b = c.blanks.find(x => x.id === tok.b);
-    const st = ASMT_ANS.blanks[b.id] || {};
+    const st = (ans.blanks || {})[b.id] || {};
     if(st.gaveUp){
       html += `<span class="asmt-blank gaveup"><span class="asmt-blank-hidden">모름 처리됨</span>` +
-        `<button class="asmt-blank-x on" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="다시 직접 풀기">↩ 되돌리기</button></span>`;
+        `<button class="asmt-blank-x on" data-action="${P}-blank-x" data-bid="${esc(b.id)}" title="다시 직접 풀기">↩ 되돌리기</button></span>`;
     } else {
-      html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="asmt-blank-in" data-bid="${esc(b.id)}" value="${esc(st.v || '')}" size="${b.size}" spellcheck="false" autocomplete="off"/>` +
-        `<button class="asmt-blank-x" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="모르면 누르세요 — 정답이 자동으로 채워져 실행할 수 있어요">모름</button></span>`;
+      html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="${P}-blank-in" data-bid="${esc(b.id)}" value="${esc(st.v || '')}" size="${b.size}" spellcheck="false" autocomplete="off"/>` +
+        `<button class="asmt-blank-x" data-action="${P}-blank-x" data-bid="${esc(b.id)}" title="모르면 누르세요 — 정답이 자동으로 채워져 실행할 수 있어요">모름</button></span>`;
     }
   }
   return `<pre class="asmt-code">${html}</pre>`;
 }
 
-// ══════════════════════════════════════
-//  학생 뷰
-// ══════════════════════════════════════
-
-function vStAssessment(){
-  if(!ASMT_ACTIVE[SEL_CLS?.id] || ASMT_VIEW === 'closed')
-    return emptyBox('🔒', '수행평가가 아직 시작되지 않았어요. 선생님 안내를 기다려주세요.');
-  if(ASMT_VIEW === 'done') return _vStAsmtDone();
-  return ASMT_STAGE === 2 ? _vStAsmtStage2() : _vStAsmtStage1();
-}
-
-function _asmtExamHeader(stageLabel){
+function _asmtExamHeader(def, stage){
   return `<div class="asmt-exam-bar">
-    <div class="asmt-exam-title">📝 ${esc(ASMT_DEF.title)}</div>
+    <div class="asmt-exam-title">📝 ${esc(def.title)}</div>
     <div class="asmt-stage-chips">
-      <span class="asmt-stage-chip ${ASMT_STAGE === 1 ? 'on' : 'done'}">1단계 · 분석/자료형</span>
+      <span class="asmt-stage-chip ${stage === 1 ? 'on' : 'done'}">1단계 · 분석/자료형</span>
       <span class="asmt-stage-arrow">→</span>
-      <span class="asmt-stage-chip ${ASMT_STAGE === 2 ? 'on' : ''}">2단계 · 구현/테스트</span>
+      <span class="asmt-stage-chip ${stage === 2 ? 'on' : ''}">2단계 · 구현/테스트</span>
     </div>
   </div>`;
 }
 
-// ── 1단계: A 서술 + B 자료형 ──
-function _vStAsmtStage1(){
-  const a = ASMT_DEF.stage1.a, b = ASMT_DEF.stage1.b;
-  const aVal = Array.isArray(ASMT_ANS.a) ? ASMT_ANS.a.filter(Boolean).join('\n') : (ASMT_ANS.a || '');
-  const aBox = `<textarea class="asmt-a-input asmt-a-big" data-action="asmt-a" rows="8" spellcheck="false">${esc(aVal)}</textarea>`;
+function _asmtGuideIntro(){
+  return `<div class="asmt-guide-intro">
+    <b>📖 수행평가 안내 (연습)</b>
+    <div>실제 수행평가가 어떻게 진행되는지 미리 연습해보는 곳이에요. 아래는 <b>실제 시험이 아닌 예시 문제</b>예요.
+    똑같은 방식으로 <b>1단계(분석·자료형) → 2단계(코드 빈칸·테스트)</b> 순서로 풀게 돼요.
+    빈칸을 채워 <b>▶ 실행</b>하거나 <b>🧪 테스트</b>로 확인하고, 모르는 빈칸은 <b>[모름]</b>을 눌러 넘어갈 수 있어요.</div>
+  </div>`;
+}
 
+// ══════════════════════════════════════
+//  학생 뷰 — 실제/안내 공유 렌더러
+//   def: 문제 정의, st: 상태{stage,ans,run,test,running,stdin}, P: 액션 접두사, opts.isGuide
+// ══════════════════════════════════════
+function vStAssessment(){
+  if(!ASMT_ACTIVE[SEL_CLS?.id] || ASMT_VIEW === 'closed')
+    return emptyBox('🔒', '수행평가가 아직 시작되지 않았어요. 선생님 안내를 기다려주세요.');
+  if(ASMT_VIEW === 'done') return _vStAsmtDone();
+  return _asmtExamView(ASMT_DEF, { stage: ASMT_STAGE, ans: ASMT_ANS, run: ASMT_RUN, test: ASMT_TEST, running: ASMT_RUNNING, stdin: ASMT_STDIN }, 'asmt', {});
+}
+
+function vStAsmtGuide(){
+  return _asmtExamView(ASMT_GUIDE_DEF, { stage: AG_STAGE, ans: AG_ANS, run: AG_RUN, test: AG_TEST, running: AG_RUNNING, stdin: AG_STDIN }, 'ag', { isGuide: true });
+}
+
+function _asmtExamView(def, st, P, opts){
+  opts = opts || {};
+  return st.stage === 2 ? _asmtStage2(def, st, P, opts) : _asmtStage1(def, st, P, opts);
+}
+
+function _asmtStage1(def, st, P, opts){
+  const a = def.stage1.a, b = def.stage1.b, ans = st.ans;
+  const aVal = Array.isArray(ans.a) ? ans.a.filter(Boolean).join('\n') : (ans.a || '');
+  const aBox = `<textarea class="asmt-a-input asmt-a-big" data-action="${P}-a" rows="8" spellcheck="false">${esc(aVal)}</textarea>`;
   const bRows = b.fields.map(f => `
     <div class="asmt-b-row">
       <label class="asmt-b-label">${esc(f.label)}</label>
-      <input class="asmt-b-input" data-action="asmt-b" data-bid="${esc(f.id)}" value="${esc((ASMT_ANS.b || {})[f.id] || '')}" spellcheck="false" autocomplete="off"/>
+      <input class="asmt-b-input" data-action="${P}-b" data-bid="${esc(f.id)}" value="${esc((ans.b || {})[f.id] || '')}" spellcheck="false" autocomplete="off"/>
     </div>`).join('');
 
   return `<div class="asmt-exam-wrap">
-    ${_asmtExamHeader()}
-    ${_asmtSituation()}
+    ${opts.isGuide ? _asmtGuideIntro() : ''}
+    ${_asmtExamHeader(def, 1)}
+    ${_asmtSituation(def)}
 
     <section class="asmt-part">
       <div class="asmt-part-head"><b>${esc(a.title)}</b> <span class="asmt-pt">${a.points}점</span></div>
@@ -108,35 +126,32 @@ function _vStAsmtStage1(){
 
     <div class="asmt-stage-foot">
       <div class="asmt-stage-warn">⚠️ <b>2단계로 넘어가면 1단계로 되돌아올 수 없어요.</b> 1단계 답을 다 확인했으면 넘어가세요.</div>
-      <button class="btn-p" data-action="asmt-to-stage2">2단계로 넘어가기 →</button>
+      <button class="btn-p" data-action="${P}-to-stage2">2단계로 넘어가기 →</button>
     </div>
   </div>`;
 }
 
-// ── 2단계: C 코드 빈칸 + D 테스트 ──
-function _vStAsmtStage2(){
-  const c = ASMT_DEF.stage2.c, d = ASMT_DEF.stage2.d;
+function _asmtStage2(def, st, P, opts){
+  const c = def.stage2.c, d = def.stage2.d;
 
-  // 실행 결과
   let runBlock = '';
-  if(ASMT_RUNNING === 'run'){
+  if(st.running === 'run'){
     runBlock = `<div class="asmt-run-loading">⏳ 실행 중... (첫 실행은 10~15초 걸려요)</div>`;
-  } else if(ASMT_RUN){
-    runBlock = `<div class="asmt-run-result ${ASMT_RUN.success ? 'ok' : 'err'}">
-      <div class="asmt-run-head">${ASMT_RUN.success ? '✅ 실행 결과' : '⚠️ 실행 오류'}</div>
-      ${ASMT_RUN.output ? `<pre class="asmt-run-out">${esc(ASMT_RUN.output)}</pre>` : ''}
-      ${ASMT_RUN.error ? `<pre class="asmt-run-err">${esc(ASMT_RUN.error)}</pre>` : ''}
+  } else if(st.run){
+    runBlock = `<div class="asmt-run-result ${st.run.success ? 'ok' : 'err'}">
+      <div class="asmt-run-head">${st.run.success ? '✅ 실행 결과' : '⚠️ 실행 오류'}</div>
+      ${st.run.output ? `<pre class="asmt-run-out">${esc(st.run.output)}</pre>` : ''}
+      ${st.run.error ? `<pre class="asmt-run-err">${esc(st.run.error)}</pre>` : ''}
     </div>`;
   }
 
-  // 테스트 결과
   let testBlock = '';
-  if(ASMT_RUNNING === 'test'){
+  if(st.running === 'test'){
     testBlock = `<div class="asmt-run-loading">⏳ ${d.tests.length}개 테스트케이스 실행 중...</div>`;
-  } else if(ASMT_TEST){
-    const passCount = ASMT_TEST.filter(t => t.pass).length;
-    testBlock = `<div class="asmt-test-summary ${passCount === ASMT_TEST.length ? 'ok' : ''}">테스트 통과 ${passCount} / ${ASMT_TEST.length}</div>
-      <div class="asmt-test-list">${ASMT_TEST.map((t, i) => `
+  } else if(st.test){
+    const passCount = st.test.filter(t => t.pass).length;
+    testBlock = `<div class="asmt-test-summary ${passCount === st.test.length ? 'ok' : ''}">테스트 통과 ${passCount} / ${st.test.length}</div>
+      <div class="asmt-test-list">${st.test.map((t, i) => `
         <div class="asmt-test-item ${t.pass ? 'ok' : 'err'}">
           <div class="asmt-test-h">${t.pass ? '✅' : '❌'} 테스트 ${i+1}</div>
           <div class="asmt-test-row"><span>입력</span><pre>${esc(t.input.replace(/\n/g, ' '))}</pre></div>
@@ -145,22 +160,33 @@ function _vStAsmtStage2(){
         </div>`).join('')}</div>`;
   }
 
-  return `<div class="asmt-exam-wrap">
-    ${_asmtExamHeader()}
-    ${_asmtSituation()}
+  const foot = opts.isGuide
+    ? `<div class="asmt-stage-foot">
+        <div class="asmt-stage-warn">📌 여기까지가 수행평가 진행 방식이에요. 실제 시험에서는 다 풀고 <b>제출하기</b>를 누르면 끝나요. (이 안내 탭은 연습이라 제출·채점이 없어요.)</div>
+        <button class="btn-sm" data-action="ag-reset">↩ 처음부터 다시 연습</button>
+      </div>`
+    : `<div class="asmt-stage-foot">
+        <div class="asmt-stage-warn">제출 후에는 수정할 수 없어요. 다 풀었으면 제출하세요.</div>
+        <button class="btn-p" data-action="asmt-submit" ${st.running ? 'disabled' : ''}>제출하기</button>
+      </div>`;
 
-    <div class="asmt-locked-note">🔒 1단계(분석·자료형)는 제출되어 수정할 수 없어요.</div>
+  return `<div class="asmt-exam-wrap">
+    ${opts.isGuide ? _asmtGuideIntro() : ''}
+    ${_asmtExamHeader(def, 2)}
+    ${_asmtSituation(def)}
+
+    <div class="asmt-locked-note">🔒 1단계(분석·자료형)는 ${opts.isGuide ? '넘어와서' : '제출되어'} 수정할 수 없어요.</div>
 
     <section class="asmt-part">
       <div class="asmt-part-head"><b>${esc(c.title)}</b> <span class="asmt-pt">${c.points}점</span></div>
       <div class="asmt-part-desc">${esc(c.desc)}</div>
-      ${_asmtRenderCodeEditable()}
+      ${_asmtRenderCode(def, st.ans, P)}
 
       <div class="asmt-run-area">
-        <label class="asmt-run-label">▶ 직접 실행해보기 — 5명의 수거량을 입력하세요 (띄어쓰기 또는 줄바꿈)</label>
+        <label class="asmt-run-label">▶ 직접 실행해보기 — 5명의 입력값을 넣어보세요 (띄어쓰기 또는 줄바꿈)</label>
         <div class="asmt-run-row">
-          <input class="asmt-stdin" data-action="asmt-stdin" value="${esc(ASMT_STDIN)}" autocomplete="off"/>
-          <button class="btn-sm" data-action="asmt-run" ${ASMT_RUNNING ? 'disabled' : ''}>▶ 실행</button>
+          <input class="asmt-stdin" data-action="${P}-stdin" value="${esc(st.stdin)}" autocomplete="off"/>
+          <button class="btn-sm" data-action="${P}-run" ${st.running ? 'disabled' : ''}>▶ 실행</button>
         </div>
         ${runBlock}
       </div>
@@ -168,19 +194,16 @@ function _vStAsmtStage2(){
 
     <section class="asmt-part">
       <div class="asmt-part-head"><b>${esc(d.title)}</b> <span class="asmt-pt">${d.points}점</span></div>
-      <div class="asmt-part-desc">아래 버튼을 누르면 모든 테스트케이스가 자동으로 입력되어 채점돼요. 어떤 케이스에서 틀렸는지 확인하고 빈칸을 고쳐보세요.</div>
+      <div class="asmt-part-desc">아래 버튼을 누르면 모든 테스트케이스가 자동으로 입력돼요. 어떤 케이스에서 틀렸는지 확인하고 빈칸을 고쳐보세요.</div>
       <table class="asmt-d-table">
         <thead><tr><th>입력값</th><th>기대 출력</th></tr></thead>
         <tbody>${d.tests.map(t => `<tr><td>${esc(t.input.replace(/\n/g, ' '))}</td><td>${esc(t.expected)}</td></tr>`).join('')}</tbody>
       </table>
-      <button class="btn-p btn-sm" data-action="asmt-test" ${ASMT_RUNNING ? 'disabled' : ''}>🧪 테스트 실행</button>
+      <button class="btn-p btn-sm" data-action="${P}-test" ${st.running ? 'disabled' : ''}>🧪 테스트 실행</button>
       ${testBlock}
     </section>
 
-    <div class="asmt-stage-foot">
-      <div class="asmt-stage-warn">제출 후에는 수정할 수 없어요. 다 풀었으면 제출하세요.</div>
-      <button class="btn-p" data-action="asmt-submit" ${ASMT_RUNNING ? 'disabled' : ''}>제출하기</button>
-    </div>
+    ${foot}
   </div>`;
 }
 
