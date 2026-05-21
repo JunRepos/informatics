@@ -183,7 +183,7 @@ function _asmtStage2(def, st, P, opts){
       ${_asmtRenderCode(def, st.ans, P)}
 
       <div class="asmt-run-area">
-        <label class="asmt-run-label">▶ 직접 실행해보기 — 5명의 입력값을 넣어보세요 (띄어쓰기 또는 줄바꿈)</label>
+        <label class="asmt-run-label">▶ 직접 실행해보기 — ${esc(def.stage2.runHint || '입력값을 넣어보세요 (띄어쓰기 또는 줄바꿈)')}</label>
         <div class="asmt-run-row">
           <input class="asmt-stdin" data-action="${P}-stdin" value="${esc(st.stdin)}" autocomplete="off"/>
           <button class="btn-sm" data-action="${P}-run" ${st.running ? 'disabled' : ''}>▶ 실행</button>
