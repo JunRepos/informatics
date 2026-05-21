@@ -99,7 +99,7 @@ const CR_PRACTICE_PACK = [
     tests:[ {input:'4\n1\n2\n3\n4', expected:'6'}, {input:'3\n5\n7\n9', expected:'0'}, {input:'5\n10\n3\n6\n1\n8', expected:'24'} ] },
   { type:'codetest', title:'코드 완성: 가장 큰 수 찾기',
     description:'N개의 수를 입력받아 가장 큰 수를 찾아 출력해요. max()를 쓰지 않고 직접 비교합니다.',
-    code:'nums = []\nn = int(input())\nfor i in range(n):\n    nums.append(int(input()))\nbiggest = nums[0]\nfor x in nums:\n    if x > ___:\n        biggest = ___\nprint(biggest)',
+    code:'nums = []\nn = int(input())\nfor i in range(n):\n    num = int(input())\n    nums.append(num)\nbiggest = nums[0]\nfor x in nums:\n    if x > ___:\n        biggest = ___\nprint(biggest)',
     blanks:['biggest','x'],
     tests:[ {input:'3\n4\n9\n2', expected:'9'}, {input:'4\n10\n10\n3\n7', expected:'10'}, {input:'1\n5', expected:'5'} ] },
   { type:'codetest', title:'코드 완성: 1~N 중 3의 배수 개수와 합',
