@@ -1537,3 +1537,86 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
   .asmt-etc-row{grid-template-columns:1fr}
 }
 
+/* ═══ 수행평가 PET병 챌린지 (2단계) ═══ */
+/* 문제 상황 */
+.asmt-situation{background:var(--surface2,rgba(99,102,241,.06));border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r-md);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.asmt-sit-title{font-size:15px;font-weight:700}
+.asmt-sit-body{font-size:13.5px;line-height:1.7;color:var(--text)}
+.asmt-sit-needs{margin:2px 0;padding-left:22px;display:flex;flex-direction:column;gap:3px;font-size:13.5px;line-height:1.5}
+.asmt-sit-needs li{list-style:disc}
+/* 단계 칩 */
+.asmt-stage-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.asmt-stage-chip{font-size:12px;padding:4px 11px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);color:var(--text3)}
+.asmt-stage-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.asmt-stage-chip.done{background:var(--ok,#16a34a);border-color:var(--ok,#16a34a);color:#fff}
+.asmt-stage-arrow{color:var(--text3)}
+/* 파트 섹션 */
+.asmt-part{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:10px}
+.asmt-part-head{font-size:15px}
+.asmt-part-head .asmt-pt{font-size:11.5px;color:#fff;background:var(--accent);padding:2px 9px;border-radius:10px;margin-left:6px;font-weight:600}
+.asmt-part-desc{font-size:13px;line-height:1.6;color:var(--text2)}
+/* A 서술 */
+.asmt-a-list{display:flex;flex-direction:column;gap:8px}
+.asmt-a-row{display:flex;align-items:flex-start;gap:9px}
+.asmt-a-num{font-size:16px;flex-shrink:0;padding-top:6px}
+.asmt-a-input{flex:1;min-height:38px;padding:8px 11px;font-size:13.5px;line-height:1.5;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);resize:vertical;box-sizing:border-box;font-family:inherit}
+.asmt-a-input:focus{border-color:var(--accent);outline:none}
+.asmt-guide{background:var(--surface2,rgba(0,0,0,.03));border:1px dashed var(--border);border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--text2);line-height:1.6}
+.asmt-guide ul{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+/* B 자료형 */
+.asmt-b-list{display:flex;flex-direction:column;gap:10px}
+.asmt-b-row{display:flex;flex-direction:column;gap:4px}
+.asmt-b-label{font-size:13px;font-weight:600;color:var(--text2)}
+.asmt-b-input{padding:8px 11px;font-size:13.5px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);box-sizing:border-box}
+.asmt-b-input:focus{border-color:var(--accent);outline:none}
+/* 단계 하단 액션 */
+.asmt-stage-foot{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:14px 0 4px}
+.asmt-stage-warn{font-size:12.5px;color:var(--text2);background:var(--warn-bg,rgba(250,204,21,.12));border:1px solid var(--warn-bd,rgba(250,204,21,.4));border-radius:8px;padding:9px 13px;line-height:1.6;width:100%;box-sizing:border-box}
+.asmt-locked-note{font-size:12.5px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 13px}
+/* C 코드 + 인라인 빈칸 */
+.asmt-code{margin:4px 0 0;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:'Consolas','Roboto Mono',monospace;font-size:13.5px;line-height:2;white-space:pre-wrap;color:var(--text);overflow-x:auto}
+.asmt-blank{display:inline-flex;align-items:center;gap:2px;vertical-align:baseline}
+.asmt-blank-in{font-family:'Consolas',monospace;font-size:13px;padding:1px 6px;border:none;border-bottom:2px solid var(--accent);background:var(--accent-lt,rgba(99,102,241,.12));color:var(--text);border-radius:4px 4px 0 0;min-width:30px}
+.asmt-blank-in:focus{outline:none;background:var(--accent-lt,rgba(99,102,241,.24))}
+.asmt-blank-x{font-size:10.5px;padding:1px 6px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);border-radius:9px;cursor:pointer;white-space:nowrap}
+.asmt-blank-x:hover{border-color:var(--danger,#ef4444);color:var(--danger,#ef4444)}
+.asmt-blank-x.on{background:var(--danger,#ef4444);border-color:var(--danger,#ef4444);color:#fff}
+.asmt-blank.gaveup .asmt-blank-ans{font-family:'Consolas',monospace;font-size:13px;padding:1px 6px;background:var(--surface2);color:var(--text3);border-radius:4px;text-decoration:line-through;text-decoration-color:var(--danger,#ef4444)}
+/* 실행 영역 */
+.asmt-run-area{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+.asmt-run-label{font-size:12.5px;font-weight:600;color:var(--text2)}
+.asmt-run-row{display:flex;gap:8px;flex-wrap:wrap}
+.asmt-stdin{flex:1;min-width:180px;font-family:'Consolas',monospace;font-size:13px;padding:7px 11px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text)}
+.asmt-stdin:focus{border-color:var(--accent);outline:none}
+.asmt-run-loading{font-size:13px;color:var(--text2);padding:10px 0}
+.asmt-run-result{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px}
+.asmt-run-result.ok{border-color:var(--ok,#16a34a)}
+.asmt-run-result.err{border-color:var(--danger,#ef4444)}
+.asmt-run-head{padding:7px 12px;font-size:12.5px;font-weight:600;background:var(--surface2)}
+.asmt-run-out,.asmt-run-err{margin:0;padding:11px 13px;font-family:'Consolas',monospace;font-size:13px;line-height:1.55;white-space:pre-wrap;background:var(--bg)}
+.asmt-run-err{color:var(--danger,#ef4444)}
+/* D 테스트 */
+.asmt-d-table{width:100%;border-collapse:collapse;font-size:13px;margin:2px 0}
+.asmt-d-table th,.asmt-d-table td{border:1px solid var(--border);padding:7px 11px;text-align:center;font-family:'Consolas',monospace}
+.asmt-d-table th{background:var(--surface2);font-family:inherit;font-weight:600}
+.asmt-test-summary{font-size:13.5px;font-weight:700;padding:9px 13px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-top:10px}
+.asmt-test-summary.ok{background:var(--ok-bg,rgba(22,163,74,.12));border-color:var(--ok,#16a34a);color:var(--ok,#16a34a)}
+.asmt-test-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.asmt-test-item{border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:5px}
+.asmt-test-item.ok{border-color:var(--ok,#16a34a);background:var(--ok-bg,rgba(22,163,74,.06))}
+.asmt-test-item.err{border-color:var(--danger,#ef4444);background:rgba(239,68,68,.05)}
+.asmt-test-h{font-size:13px;font-weight:700}
+.asmt-test-row{display:flex;gap:9px;align-items:flex-start;font-size:12.5px}
+.asmt-test-row>span{flex-shrink:0;width:48px;color:var(--text3);font-weight:600}
+.asmt-test-row pre{margin:0;font-family:'Consolas',monospace;white-space:pre-wrap;color:var(--text)}
+/* 선생님 — 학생 빈칸 표 */
+.asmt-tcs-cnote{font-size:13px;color:var(--text2);margin:4px 0 8px}
+.asmt-tcs-blank-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.asmt-tcs-blank-table th,.asmt-tcs-blank-table td{border:1px solid var(--border);padding:6px 9px;text-align:left}
+.asmt-tcs-blank-table th{background:var(--surface2);font-weight:600}
+.asmt-tcs-testrun{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.asmt-mk{font-size:11px;padding:1px 8px;border-radius:9px;font-weight:600}
+.asmt-mk.ok{background:var(--ok,#16a34a);color:#fff}
+.asmt-mk.no{background:var(--danger,#ef4444);color:#fff}
+.asmt-mk.gave{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+

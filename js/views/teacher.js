@@ -83,6 +83,18 @@ function setTC(t){
       AIC_ALL_SESSIONS = sessions || {};
       render();
     });
+  } else if(t === 'asmt' && TC_CLS){
+    // 수행평가 — 전체 제출 + 점수 로드
+    ASMT_TC_VIEW = 'manage';
+    ASMT_TC_SEL_SNUM = null;
+    Promise.all([
+      loadAllAsmtSubmissions(TC_CLS.id),
+      loadAllAsmtScores(TC_CLS.id)
+    ]).then(([subs, scores]) => {
+      ASMT_ALL_SUBS = subs || {};
+      ASMT_ALL_SCORES = scores || {};
+      render();
+    });
   } else if(t === 'coderead' && TC_CLS){
     CR_VIEW = 'list';
     CR_SEL = null;

@@ -291,6 +291,31 @@
       }
     },
 
+    // ── 📝 수행평가 (Assessment) — PET병 챌린지 ──
+    //   active/{cid}            : bool — 선생님이 켜야 학생에게 응시 노출
+    //   submissions/{cid}/{학번} : { stage, a[], b{}, blanks{}, submittedAt }
+    //   scores/{cid}/{학번}      : { a, b, c, d, comment, scoredAt }
+    "assessment": {
+      "active": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "submissions": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "scores": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      }
+    },
+
     // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
     //   active/{cid}        : bool — 선생님이 켜야 학생에게 노출
     //   sessions/{cid}/{학번}: { messages, code, turnCount, updatedAt }

@@ -335,6 +335,73 @@ async function loadAllCodeReadingProgress(cid, rdId){
   }
 }
 
+// ── 📝 수행평가 (Assessment) — PET병 챌린지 ──
+//   active/{cid}            : bool — 선생님이 켜야 학생에게 응시 노출
+//   submissions/{cid}/{학번} : { stage, a[], b{}, blanks{}, submittedAt }
+//   scores/{cid}/{학번}      : { a, b, c, d, comment, scoredAt }
+async function loadAsmtActive(cid){
+  try {
+    const s = await db.ref(`assessment/active/${cid}`).get();
+    const on = s.exists() ? !!s.val() : false;
+    ASMT_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[수행평가] active 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    ASMT_ACTIVE[cid] = false;
+    return false;
+  }
+}
+
+async function setAsmtActive(cid, on){
+  await db.ref(`assessment/active/${cid}`).set(!!on);
+  ASMT_ACTIVE[cid] = !!on;
+}
+
+async function loadAsmtSubmission(cid, studentNum){
+  try {
+    const s = await db.ref(`assessment/submissions/${cid}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[수행평가] 제출 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+// 부분 저장(1단계 넘어갈 때) / 최종 제출 모두 set (전체 덮어쓰기)
+async function saveAsmtSubmission(cid, studentNum, data){
+  await db.ref(`assessment/submissions/${cid}/${studentNum}`).set({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function loadAllAsmtSubmissions(cid){
+  try {
+    const s = await db.ref(`assessment/submissions/${cid}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[수행평가] 전체 제출 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
+async function loadAllAsmtScores(cid){
+  try {
+    const s = await db.ref(`assessment/scores/${cid}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[수행평가] 점수 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
+async function saveAsmtScore(cid, studentNum, score){
+  await db.ref(`assessment/scores/${cid}/${studentNum}`).set({
+    ...score,
+    scoredAt: new Date().toISOString()
+  });
+}
+
 // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
 // active/{cid} : bool — 선생님이 켜야 학생에게 노출
 // sessions/{cid}/{학번} : { messages, code, turnCount, updatedAt }
@@ -395,6 +462,7 @@ async function loadAllClassData(cid){
     loadNotebooks(cid),
     loadMissions(cid),
     loadCodeReadings(cid),
+    loadAsmtActive(cid),
     loadAicActive(cid)
   ]);
 }

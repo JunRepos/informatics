@@ -21,7 +21,7 @@ function vStudent(){
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
-    ${isInfo ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
+    ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -83,6 +83,23 @@ function setST(t){
         AIC_TURN_COUNT = s.turnCount || 0;
       }
       AIC_VIEW = _aicInitialStudentView(s);
+      render();
+    });
+  } else if(t === 'asmt' && SEL_CLS && ST_USER){
+    // 수행평가 — 내 제출(진행상황) 로드 후 적절한 단계/화면 결정
+    ASMT_ANS = { a: [], b: {}, blanks: {} };
+    ASMT_STAGE = 1;
+    ASMT_VIEW = 'exam';
+    ASMT_RUN = null;
+    ASMT_TEST = null;
+    ASMT_RUNNING = false;
+    loadAsmtSubmission(SEL_CLS.id, ST_USER.number).then(sub => {
+      ASMT_SUB = sub;
+      if(sub){
+        ASMT_ANS = { a: sub.a || [], b: sub.b || {}, blanks: sub.blanks || {} };
+        if(sub.submittedAt){ ASMT_VIEW = 'done'; }
+        else if(sub.stage === 2){ ASMT_STAGE = 2; }
+      }
       render();
     });
   } else if(t === 'mission' && SEL_CLS && ST_USER){

@@ -96,8 +96,29 @@ let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
 let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
 let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
 
-// 📝 수행평가 (Assessment) — 개편 중. 기존 4파트 시험 상태/메타는 폐기됨.
-//   탭은 플레이스홀더로 유지(views/assessment.js). 새 설계 확정 시 상태 재정의.
+// 📝 수행평가 (Assessment) — PET병 챌린지 2단계 (정의는 assessment-data.js ASMT_DEF)
+let ASMT_ACTIVE   = {};        // { [classId]: bool } — 학생 탭 노출용 캐시
+// 학생 측
+let ASMT_VIEW     = 'exam';    // 학생: 'closed'|'exam'|'done'
+let ASMT_STAGE    = 1;         // 학생 현재 단계 1|2 (2로 가면 1 잠금)
+let ASMT_SUB      = null;      // 학생 본인 제출 { stage, a[], b{}, blanks{}, submittedAt }
+let ASMT_ANS      = { a: [], b: {}, blanks: {} }; // 작성 중 답안 (blanks: { bid:{v, gaveUp} })
+let ASMT_RUN      = null;      // 자유 실행 결과 { success, output, error }
+let ASMT_RUNNING  = false;     // 실행/테스트 진행 중
+let ASMT_TEST     = null;      // 테스트 결과 [{ input, expected, output, pass, error }]
+// 선생님 측
+let ASMT_TC_VIEW  = 'manage';  // 선생님: 'manage'|'student'
+let ASMT_ALL_SUBS = {};        // { [학번]: submission }
+let ASMT_ALL_SCORES = {};      // { [학번]: { a,b,c,d, comment, scoredAt } }
+let ASMT_TC_SEL_SNUM = null;   // 선생님: 보고 있는 학생 학번
+
+// 채점 항목 (PDF 배점) — 선생님 수동 입력
+const ASMT_RUBRIC = [
+  { id: 'a', label: 'A. 문제 분석·추상화', max: 5 },
+  { id: 'b', label: 'B. 자료형 확인', max: 5 },
+  { id: 'c', label: 'C. 코드 구현(빈칸)', max: 12 },
+  { id: 'd', label: 'D. 입력값별 출력', max: 3 },
+];
 
 // 🤖 AI 코딩 (자유 실습 메뉴) — 수행평가와 분리된 독립 기능
 // 백엔드: Cloudflare Worker (Gemini). 선생님이 on/off 토글로 노출 제어.
