@@ -357,6 +357,24 @@ async function setAsmtActive(cid, on){
   ASMT_ACTIVE[cid] = !!on;
 }
 
+// 수행평가 안내(연습) 탭 노출 토글 — assessment/guideActive/{cid}
+async function loadAsmtGuideActive(cid){
+  try {
+    const s = await db.ref(`assessment/guideActive/${cid}`).get();
+    const on = s.exists() ? !!s.val() : false;
+    AG_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[수행평가 안내] active 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
+    AG_ACTIVE[cid] = false;
+    return false;
+  }
+}
+async function setAsmtGuideActive(cid, on){
+  await db.ref(`assessment/guideActive/${cid}`).set(!!on);
+  AG_ACTIVE[cid] = !!on;
+}
+
 async function loadAsmtSubmission(cid, studentNum){
   try {
     const s = await db.ref(`assessment/submissions/${cid}/${studentNum}`).get();
@@ -463,6 +481,7 @@ async function loadAllClassData(cid){
     loadMissions(cid),
     loadCodeReadings(cid),
     loadAsmtActive(cid),
+    loadAsmtGuideActive(cid),
     loadAicActive(cid)
   ]);
 }

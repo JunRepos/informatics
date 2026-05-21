@@ -86,6 +86,8 @@ function vStAssessment(){
 }
 
 function vStAsmtGuide(){
+  if(!AG_ACTIVE[SEL_CLS?.id])
+    return emptyBox('🔒', '수행평가 안내가 아직 열리지 않았어요. 선생님 안내를 기다려주세요.');
   return _asmtExamView(ASMT_GUIDE_DEF, { stage: AG_STAGE, ans: AG_ANS, run: AG_RUN, test: AG_TEST, running: AG_RUNNING, stdin: AG_STDIN }, 'ag', { isGuide: true });
 }
 
@@ -252,6 +254,12 @@ function _vTcAsmtManage(){
     <button class="asmt-phase-btn ${active ? 'on prep' : ''}" data-action="asmt-set-active" data-on="1">📝 시험 시작</button>
   </div>`;
 
+  const guideActive = !!AG_ACTIVE[TC_CLS.id];
+  const guideToggle = `<div class="asmt-phase-seg">
+    <button class="asmt-phase-btn ${!guideActive ? 'on' : ''}" data-action="asmt-guide-active" data-on="0">🔒 닫기</button>
+    <button class="asmt-phase-btn ${guideActive ? 'on prep' : ''}" data-action="asmt-guide-active" data-on="1">📖 안내 열기</button>
+  </div>`;
+
   const stuRows = STUDENTS.map(st => {
     const sub = subs[st.number] || null;
     const sc = scores[st.number] || null;
@@ -285,6 +293,16 @@ function _vTcAsmtManage(){
           : '<b style="color:var(--text3)">● 닫힘</b> — 학생 화면에 보이지 않습니다. (제출·점수는 보존)'}</div>
       </div>
       ${toggle}
+    </div>
+
+    <div class="asmt-phase-row">
+      <div class="asmt-phase-info">
+        <div class="asmt-phase-title">📖 수행평가 안내(연습) 탭</div>
+        <div class="asmt-phase-cur">${guideActive
+          ? '<b style="color:var(--ok)">● 열림</b> — 학생 화면에 "📖 수행평가 안내" 탭이 보여요. (다른 예시 문제로 진행 방식만 연습 · 제출·채점 없음)'
+          : '<b style="color:var(--text3)">● 닫힘</b> — 학생 화면에 안내 탭이 보이지 않습니다.'}</div>
+      </div>
+      ${guideToggle}
     </div>
 
     <div class="asmt-tc-help">

@@ -21,7 +21,7 @@ function vStudent(){
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
-    ${isInfo ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
+    ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;

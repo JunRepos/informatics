@@ -227,6 +227,20 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // 안내(연습) 탭 노출 토글
+  if(act.action === 'asmt-guide-active'){
+    const cid = TC_CLS?.id;
+    if(!cid){ toast('반을 먼저 선택하세요.', 'err'); return; }
+    const next = act.on === '1';
+    if(!!AG_ACTIVE[cid] === next) return;
+    try {
+      await setAsmtGuideActive(cid, next);
+      toast(next ? '✓ 안내 탭을 열었어요. 학생 화면에 "수행평가 안내" 탭이 보입니다.' : '안내 탭을 닫았어요.', 'ok');
+      render();
+    } catch(err){ toast('변경 실패: ' + (err.message || err), 'err'); }
+    return;
+  }
+
   // 학생 상세 / 뒤로
   if(act.action === 'asmt-tc-view'){
     ASMT_TC_SEL_SNUM = act.snum;

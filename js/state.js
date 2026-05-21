@@ -113,6 +113,7 @@ let ASMT_ALL_SCORES = {};      // { [학번]: { a,b,c,d, comment, scoredAt } }
 let ASMT_TC_SEL_SNUM = null;   // 선생님: 보고 있는 학생 학번
 
 // 📖 수행평가 안내(연습) — 정의는 assessment-data.js ASMT_GUIDE_DEF. 제출·채점 없음(로컬 연습).
+let AG_ACTIVE  = {};           // { [classId]: bool } — 선생님이 켜야 학생 안내 탭 노출
 let AG_STAGE   = 1;
 let AG_ANS     = { a: '', b: {}, blanks: {} };
 let AG_RUN     = null;

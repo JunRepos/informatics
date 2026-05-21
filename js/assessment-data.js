@@ -163,9 +163,9 @@ const ASMT_GUIDE_DEF = {
       tokens: [
         { t: '# 물건 가격을 입력받아 정수로 저장\nprice = ' },
         { b: 'b1' },
-        { t: '(input())\n# 낸 돈을 입력받아 정수로 저장\npaid = ' },
+        { t: '\n# 낸 돈을 입력받아 정수로 저장\npaid = ' },
         { b: 'b2' },
-        { t: '(input())\n\n# 거스름돈 = 낸 돈 - 물건 가격\nchange = ' },
+        { t: '\n\n# 거스름돈 = 낸 돈 - 물건 가격\nchange = ' },
         { b: 'b3' },
         { t: '\n\n# 거스름돈에 필요한 500원 동전 개수 (몫)\nc500 = change ' },
         { b: 'b4' },
@@ -176,8 +176,8 @@ const ASMT_GUIDE_DEF = {
         { t: '\n' },
       ],
       blanks: [
-        { id: 'b1', answer: 'int', size: 4 },
-        { id: 'b2', answer: 'int', size: 4 },
+        { id: 'b1', answer: 'int(input())', size: 14 },
+        { id: 'b2', answer: 'int(input())', size: 14 },
         { id: 'b3', answer: 'paid - price', size: 14 },
         { id: 'b4', answer: '//', size: 3 },
         { id: 'b5', answer: '%', size: 3 },

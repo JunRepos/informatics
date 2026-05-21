@@ -302,6 +302,12 @@
           ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
         }
       },
+      "guideActive": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
       "submissions": {
         "$classId": {
           ".read": true,
