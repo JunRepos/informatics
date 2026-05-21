@@ -67,7 +67,7 @@ const ASMT_DEF = {
         { b: 'b1' },
         { t: '(input())\n\n    # 입력 받은 값 count를 pets 리스트에 추가\n    ' },
         { b: 'b2' },
-        { t: '\n\n# 총 동아리원의 평균 수거량을 계산하여 total 변수에 저장\ntotal = ' },
+        { t: '\n\n# 총 동아리원의 평균 수집량을 계산하여 avg 변수에 저장\navg = ' },
         { b: 'b3' },
         { t: '\n\n# 20개 이상을 수집한 동아리원 수 저장 변수 선언\nupper = 0\n# 20개 미만을 수집한 동아리원 수 저장 변수 선언\nlower = 0\n# 3의 배수 만큼 수집한 동아리원 수 저장 변수 선언\nmul3 = 0\n\n# pets 리스트를 순회하기 위한 반복\nfor i ' },
         { b: 'b4' },
@@ -90,7 +90,7 @@ const ASMT_DEF = {
         { id: 'b5', answer: 'if', size: 4 },
         { id: 'b6', answer: 'else', size: 6 },
         { id: 'b7', answer: 'i % 3 == 0 and i != 0', size: 22 },
-        { id: 'b8', answer: 'print(total, upper, lower, mul3)', size: 32 },
+        { id: 'b8', answer: 'print(avg, upper, lower, mul3)', size: 32 },
       ],
     },
     d: {
