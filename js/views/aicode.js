@@ -24,7 +24,6 @@ function vStAiCode(){
   const active = SEL_CLS ? AIC_ACTIVE[SEL_CLS.id] : false;
   if(!active) return emptyBox('🔒', 'AI 코딩 메뉴가 아직 열려있지 않아요. 선생님 안내를 기다려주세요.');
 
-  if(AIC_VIEW === 'examples') return vStAicExamples();
   if(AIC_VIEW === 'chat')     return vStAicChat();
   return vStAicEntry();
 }
@@ -44,76 +43,22 @@ function vStAicEntry(){
         <div class="asmt-hero-title">🤖 AI와 함께 만드는 나만의 프로그램</div>
         <div class="asmt-hero-sub">
           진로나 관심사와 관련된 작은 Python 프로그램을<br>
-          AI와 대화하며 자유롭게 만들어보는 공간이에요.
+          AI와 대화하며 직접 만들어봅니다.
         </div>
       </div>
 
-      <div class="asmt-cards-title">시작 방법을 골라주세요</div>
-      <div class="asmt-cards">
-        <button class="asmt-card asmt-card-a" data-action="aic-start-mode" data-mode="have-idea">
-          <div class="asmt-card-icon">💡</div>
-          <div class="asmt-card-title">아이디어가 있어요</div>
-          <div class="asmt-card-desc">만들고 싶은 프로그램이 떠올랐어요.<br>바로 AI에게 부탁할게요.</div>
-        </button>
-
-        <button class="asmt-card asmt-card-b" data-action="aic-start-mode" data-mode="need-help">
-          <div class="asmt-card-icon">🤔</div>
-          <div class="asmt-card-title">아직 모르겠어요</div>
-          <div class="asmt-card-desc">AI가 질문을 던지면서<br>아이디어 찾는 걸 도와줘요.</div>
-        </button>
-
-        <button class="asmt-card asmt-card-c" data-action="aic-start-mode" data-mode="examples">
-          <div class="asmt-card-icon">📚</div>
-          <div class="asmt-card-title">예시 보기</div>
-          <div class="asmt-card-desc">진로별 프로그램 예시를 보고<br>마음에 드는 걸 골라요.</div>
+      <div class="asmt-cards" style="justify-content:center">
+        <button class="asmt-card asmt-card-a" data-action="aic-begin">
+          <div class="asmt-card-icon">✏️</div>
+          <div class="asmt-card-title">제가 만들어볼래요</div>
+          <div class="asmt-card-desc">만들고 싶은 프로그램을<br>AI에게 직접 설명할게요.</div>
         </button>
       </div>
 
       <div class="asmt-entry-note">
-        💡 3분 동안 선택하지 않으면 AI가 먼저 인사할게요.
+        💡 무엇을 만들지 떠오르지 않으면, 채팅창에 관심 분야(예: 의학, 게임, 운동)를 적고 AI에게 물어봐도 좋아요.
       </div>
     </div>
-  `;
-}
-
-// ── 학생: 예시 보기 ──
-function vStAicExamples(){
-  const back = `<div class="asmt-sub-header">
-    <button class="btn-sm" data-action="aic-back-entry">← 처음으로</button>
-    <div class="asmt-sub-title">${AIC_EXAMPLES_CAT ? '예시 프로그램 선택' : '진로 카테고리 선택'}</div>
-    <div></div>
-  </div>`;
-
-  if(!AIC_EXAMPLES_CAT){
-    const cards = AIC_CATEGORIES.map(c => `
-      <button class="asmt-cat-card" data-action="aic-pick-cat" data-cat="${esc(c.id)}">
-        <div class="asmt-cat-emoji">${c.emoji}</div>
-        <div class="asmt-cat-label">${esc(c.label)}</div>
-        <div class="asmt-cat-tag">${esc(c.tagline)}</div>
-      </button>
-    `).join('');
-    return back + `
-      <div class="asmt-cat-grid">${cards}</div>
-      <div class="asmt-entry-note">📌 내 진로가 안 보여도 가장 가까운 분야로 가서 예시를 보고, 채팅에서 직접 다듬어도 좋아요.</div>
-    `;
-  }
-
-  const cat = AIC_CATEGORIES.find(c => c.id === AIC_EXAMPLES_CAT);
-  if(!cat){ AIC_EXAMPLES_CAT = null; return back; }
-  const items = cat.examples.map((ex, i) => `
-    <button class="asmt-example-row" data-action="aic-pick-example" data-idx="${i}">
-      <span class="asmt-example-num">${i + 1}</span>
-      <span class="asmt-example-text">${esc(ex)}</span>
-      <span class="asmt-example-arrow">→</span>
-    </button>
-  `).join('');
-  return `<div class="asmt-sub-header">
-      <button class="btn-sm" data-action="aic-back-cats">← 카테고리</button>
-      <div class="asmt-sub-title">${cat.emoji} ${esc(cat.label)} — 예시 프로그램</div>
-      <div></div>
-    </div>
-    <div class="asmt-example-list">${items}</div>
-    <div class="asmt-entry-note">📌 예시를 클릭하면 AI에게 "이 프로그램을 만들어주세요" 라고 자동으로 요청해요. 채팅에서 더 다듬을 수 있어요.</div>
   `;
 }
 

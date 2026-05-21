@@ -8,27 +8,8 @@
    코드 실행: js/asmt-worker.js (Pyodide)
 ═══════════════════════════════════════ */
 
-// ── 진입 3분 자동 인사 타이머 ──
-function _startAicEntryTimer(){
-  _clearAicEntryTimer();
-  AIC_AUTO_TIMER = setTimeout(() => {
-    if(AIC_VIEW === 'entry' && ST_TAB === 'aicode'){
-      _enterAicChat('need-help');
-    }
-  }, 3 * 60 * 1000);
-}
-
-function _clearAicEntryTimer(){
-  if(AIC_AUTO_TIMER){
-    clearTimeout(AIC_AUTO_TIMER);
-    AIC_AUTO_TIMER = null;
-  }
-}
-
-// ── 채팅 모드로 진입 ──
-//   mode: 'have-idea' | 'need-help' | { preset: '자동 입력 메시지' }
-async function _enterAicChat(mode){
-  _clearAicEntryTimer();
+// ── 채팅 모드로 진입 (빈 채팅 — 학생이 직접 입력) ──
+function _enterAicChat(){
   AIC_VIEW = 'chat';
   AIC_MESSAGES = [];
   AIC_CODE = '';
@@ -37,18 +18,6 @@ async function _enterAicChat(mode){
   AIC_RUN_RESULT = null;
   AIC_RUN_STDIN = '';
   render();
-
-  if(mode === 'have-idea') return;
-
-  if(mode && typeof mode === 'object' && mode.preset){
-    await _sendAicMessage(mode.preset);
-    return;
-  }
-
-  if(mode === 'need-help'){
-    await _sendAicMessage('(학생이 아직 어떤 프로그램을 만들지 정하지 못했습니다. 인사하고 진로/관심사를 물어 아이디어 찾기를 도와주세요.)');
-    return;
-  }
 }
 
 // ── 학생 메시지 전송 + AI 응답 ──
@@ -155,52 +124,24 @@ document.addEventListener('click', async e => {
   if(!el) return;
   const act = el.dataset;
 
-  // 학생: 진입 카드
-  if(act.action === 'aic-start-mode'){
-    const mode = act.mode;
-    if(mode === 'examples'){
-      _clearAicEntryTimer();
-      AIC_VIEW = 'examples';
-      AIC_EXAMPLES_CAT = null;
-      render();
-      return;
-    }
-    await _enterAicChat(mode);
+  // 학생: 시작 ("제가 만들어볼래요" → 빈 채팅)
+  if(act.action === 'aic-begin'){
+    _enterAicChat();
     return;
   }
 
+  // 학생: 이전 작업 이어하기
   if(act.action === 'aic-resume'){
-    _clearAicEntryTimer();
     AIC_VIEW = AIC_MESSAGES.length ? 'chat' : 'entry';
     render();
     if(AIC_VIEW === 'chat') _scrollAicListToBottom();
     return;
   }
 
+  // 학생: 처음 화면으로
   if(act.action === 'aic-back-entry'){
-    _clearAicEntryTimer();
     AIC_VIEW = 'entry';
-    AIC_EXAMPLES_CAT = null;
     render();
-    return;
-  }
-
-  if(act.action === 'aic-pick-cat'){
-    AIC_EXAMPLES_CAT = act.cat || null;
-    render();
-    return;
-  }
-  if(act.action === 'aic-back-cats'){
-    AIC_EXAMPLES_CAT = null;
-    render();
-    return;
-  }
-
-  if(act.action === 'aic-pick-example'){
-    const cat = AIC_CATEGORIES.find(c => c.id === AIC_EXAMPLES_CAT);
-    const ex = cat?.examples[parseInt(act.idx)];
-    if(!ex) return;
-    await _enterAicChat({preset: `${ex} 를 만들어주세요.`});
     return;
   }
 
@@ -313,13 +254,8 @@ document.addEventListener('keydown', e => {
 
 // ── render 후 처리 ──
 function afterRenderAiCode(){
-  if(ST_TAB !== 'aicode'){
-    _clearAicEntryTimer();
-    return;
-  }
-  if(AIC_VIEW === 'entry'){
-    _startAicEntryTimer();
-  } else if(AIC_VIEW === 'chat'){
+  if(ST_TAB !== 'aicode') return;
+  if(AIC_VIEW === 'chat'){
     _scrollAicListToBottom();
     setTimeout(() => {
       const inp = document.getElementById('aic-input');

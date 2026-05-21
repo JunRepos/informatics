@@ -72,7 +72,6 @@ function setST(t){
     AIC_TURN_COUNT = 0;
     AIC_RUN_RESULT = null;
     AIC_RUN_STDIN = '';
-    AIC_EXAMPLES_CAT = null;
     AIC_VIEW = 'entry';
     Promise.all([
       loadAicActive(SEL_CLS.id),
