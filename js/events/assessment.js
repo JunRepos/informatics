@@ -131,7 +131,7 @@ document.addEventListener('click', async e => {
     if(!confirm('2단계로 넘어갈까요?\n\n넘어가면 1단계(분석·자료형)로 되돌아올 수 없어요.')) return;
     try {
       await saveAsmtSubmission(SEL_CLS.id, ST_USER.number, {
-        stage: 2, a: ASMT_ANS.a || [], b: ASMT_ANS.b || {}, blanks: {}
+        stage: 2, a: ASMT_ANS.a || '', b: ASMT_ANS.b || {}, blanks: {}
       });
       ASMT_STAGE = 2;
       ASMT_RUN = null; ASMT_TEST = null;
@@ -149,7 +149,7 @@ document.addEventListener('click', async e => {
     if(!confirm('수행평가를 제출할까요?\n\n제출 후에는 수정할 수 없어요. 빈칸이 있어도 제출됩니다.')) return;
     try {
       await saveAsmtSubmission(SEL_CLS.id, ST_USER.number, {
-        stage: 2, a: ASMT_ANS.a || [], b: ASMT_ANS.b || {},
+        stage: 2, a: ASMT_ANS.a || '', b: ASMT_ANS.b || {},
         blanks: ASMT_ANS.blanks || {}, submittedAt: new Date().toISOString()
       });
       ASMT_SUB = { stage: 2, a: ASMT_ANS.a, b: ASMT_ANS.b, blanks: ASMT_ANS.blanks, submittedAt: new Date().toISOString() };
@@ -228,8 +228,7 @@ document.addEventListener('input', e => {
   const a = t.dataset.action;
 
   if(a === 'asmt-a'){
-    if(!Array.isArray(ASMT_ANS.a)) ASMT_ANS.a = [];
-    ASMT_ANS.a[parseInt(t.dataset.idx)] = t.value;
+    ASMT_ANS.a = t.value;
     return;
   }
   if(a === 'asmt-b'){
@@ -311,7 +310,8 @@ function _asmtExportAnswers(){
     const sub = subs[st.number];
     lines.push(`### ${st.number} ${st.name}` + (sub.submittedAt ? ` (제출 ${fmtDt(sub.submittedAt)})` : ' (진행 중)'), '');
     lines.push(`**${a.title}**`);
-    (sub.a || []).forEach((v, i) => lines.push(`- ${i + 1}) ${(v || '(무응답)').replace(/\n/g, ' ')}`));
+    const aText = Array.isArray(sub.a) ? sub.a.filter(Boolean).join('\n') : (sub.a || '');
+    lines.push(aText.trim() ? aText.split('\n').map(l => `- ${l}`).join('\n') : '- (무응답)');
     lines.push(`**${b.title}**`);
     b.fields.forEach(f => lines.push(`- ${f.label}: ${((sub.b || {})[f.id] || '(무응답)').replace(/\n/g, ' ')}`));
     lines.push(`**${c.title}** (학생 답 / 정답)`);

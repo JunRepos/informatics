@@ -8,8 +8,6 @@
    이벤트/로직은 events/assessment.js.
 ═══════════════════════════════════════ */
 
-const _ASMT_CIRCLE = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
-
 // 문제 상황 (두 단계 모두 상단에 표시)
 function _asmtSituation(){
   return `<div class="asmt-situation">
@@ -29,8 +27,8 @@ function _asmtRenderCodeEditable(){
     const b = c.blanks.find(x => x.id === tok.b);
     const st = ASMT_ANS.blanks[b.id] || {};
     if(st.gaveUp){
-      html += `<span class="asmt-blank gaveup"><span class="asmt-blank-ans">${esc(b.answer)}</span>` +
-        `<button class="asmt-blank-x on" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="다시 직접 풀기">✕ 모름</button></span>`;
+      html += `<span class="asmt-blank gaveup"><span class="asmt-blank-hidden">모름 처리됨</span>` +
+        `<button class="asmt-blank-x on" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="다시 직접 풀기">↩ 되돌리기</button></span>`;
     } else {
       html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="asmt-blank-in" data-bid="${esc(b.id)}" value="${esc(st.v || '')}" size="${b.size}" spellcheck="false" autocomplete="off" placeholder="빈칸"/>` +
         `<button class="asmt-blank-x" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="모르면 누르세요 — 정답이 자동으로 채워져 실행할 수 있어요">모름</button></span>`;
@@ -64,11 +62,8 @@ function _asmtExamHeader(stageLabel){
 // ── 1단계: A 서술 + B 자료형 ──
 function _vStAsmtStage1(){
   const a = ASMT_DEF.stage1.a, b = ASMT_DEF.stage1.b;
-  const aRows = Array.from({length: a.count}).map((_, i) => `
-    <div class="asmt-a-row">
-      <span class="asmt-a-num">${_ASMT_CIRCLE[i] || (i+1)}</span>
-      <textarea class="asmt-a-input" data-action="asmt-a" data-idx="${i}" rows="1" spellcheck="false" placeholder="문제 해결 절차를 적어보세요">${esc((ASMT_ANS.a || [])[i] || '')}</textarea>
-    </div>`).join('');
+  const aVal = Array.isArray(ASMT_ANS.a) ? ASMT_ANS.a.filter(Boolean).join('\n') : (ASMT_ANS.a || '');
+  const aBox = `<textarea class="asmt-a-input asmt-a-big" data-action="asmt-a" rows="8" spellcheck="false" placeholder="문제 해결 절차를 자유롭게 적어보세요. (단계별로 한 줄씩 적어도 좋아요)">${esc(aVal)}</textarea>`;
 
   const bRows = b.fields.map(f => `
     <div class="asmt-b-row">
@@ -83,7 +78,7 @@ function _vStAsmtStage1(){
     <section class="asmt-part">
       <div class="asmt-part-head"><b>${esc(a.title)}</b> <span class="asmt-pt">${a.points}점</span></div>
       <div class="asmt-part-desc">${esc(a.desc)}</div>
-      <div class="asmt-a-list">${aRows}</div>
+      ${aBox}
       <div class="asmt-guide">💡 이 질문들을 생각해보세요.
         <ul>${a.guide.map(g => `<li>${esc(g)}</li>`).join('')}</ul>
       </div>
@@ -295,11 +290,11 @@ function _vTcAsmtStudent(){
   if(!sub) return back + emptyBox('📭', '아직 응시하지 않은 학생이에요.');
 
   const a = ASMT_DEF.stage1.a, b = ASMT_DEF.stage1.b, c = ASMT_DEF.stage2.c;
-  const subA = sub.a || [], subB = sub.b || {}, subBlanks = sub.blanks || {};
+  const subB = sub.b || {}, subBlanks = sub.blanks || {};
+  const subAText = Array.isArray(sub.a) ? sub.a.filter(Boolean).join('\n') : (sub.a || '');
 
-  // A 답
-  const aHtml = Array.from({length: a.count}).map((_, i) =>
-    `<div class="asmt-tcs-ans"><b>${_ASMT_CIRCLE[i] || (i+1)}</b> <span>${esc(subA[i] || '(무응답)')}</span></div>`).join('');
+  // A 답 (자유 서술)
+  const aHtml = `<div class="asmt-tcs-ans"><pre>${esc(subAText) || '(무응답)'}</pre></div>`;
   // B 답
   const bHtml = b.fields.map(f =>
     `<div class="asmt-tcs-ans"><b>${esc(f.label)}</b><pre>${esc(subB[f.id] || '(무응답)')}</pre></div>`).join('');

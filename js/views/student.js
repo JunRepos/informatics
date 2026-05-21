@@ -87,7 +87,7 @@ function setST(t){
     });
   } else if(t === 'asmt' && SEL_CLS && ST_USER){
     // 수행평가 — 내 제출(진행상황) 로드 후 적절한 단계/화면 결정
-    ASMT_ANS = { a: [], b: {}, blanks: {} };
+    ASMT_ANS = { a: '', b: {}, blanks: {} };
     ASMT_STAGE = 1;
     ASMT_VIEW = 'exam';
     ASMT_RUN = null;
@@ -96,7 +96,7 @@ function setST(t){
     loadAsmtSubmission(SEL_CLS.id, ST_USER.number).then(sub => {
       ASMT_SUB = sub;
       if(sub){
-        ASMT_ANS = { a: sub.a || [], b: sub.b || {}, blanks: sub.blanks || {} };
+        ASMT_ANS = { a: sub.a || '', b: sub.b || {}, blanks: sub.blanks || {} };
         if(sub.submittedAt){ ASMT_VIEW = 'done'; }
         else if(sub.stage === 2){ ASMT_STAGE = 2; }
       }
