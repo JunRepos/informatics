@@ -18,12 +18,28 @@ function _asmtSituation(){
   </div>`;
 }
 
+// 파이썬 구문 강조 (고정 텍스트 토큰용 — 빈칸은 입력칸으로 따로 렌더)
+const _ASMT_KW = new Set(['for','in','if','elif','else','while','def','return','and','or','not','True','False','None','break','continue','import','from','as','with','pass','is']);
+const _ASMT_BI = new Set(['int','str','float','bool','print','input','range','sum','len','list','append','round','abs','min','max','sorted','map','sorted']);
+function _asmtHighlight(src){
+  let out = '', i = 0; const n = src.length;
+  while(i < n){
+    const ch = src[i];
+    if(ch === '#'){ let j = i; while(j < n && src[j] !== '\n') j++; out += `<span class="tok-com">${esc(src.slice(i, j))}</span>`; i = j; continue; }
+    if(ch === '"' || ch === "'"){ const q = ch; let j = i + 1; while(j < n && src[j] !== q){ if(src[j] === '\\') j++; j++; } j = Math.min(j + 1, n); out += `<span class="tok-str">${esc(src.slice(i, j))}</span>`; i = j; continue; }
+    if(ch >= '0' && ch <= '9'){ let j = i; while(j < n && ((src[j] >= '0' && src[j] <= '9') || src[j] === '.')) j++; out += `<span class="tok-num">${esc(src.slice(i, j))}</span>`; i = j; continue; }
+    if(/[A-Za-z_]/.test(ch)){ let j = i; while(j < n && /[A-Za-z0-9_]/.test(src[j])) j++; const w = src.slice(i, j); const cls = _ASMT_KW.has(w) ? 'tok-kw' : (_ASMT_BI.has(w) ? 'tok-bi' : ''); out += cls ? `<span class="${cls}">${esc(w)}</span>` : esc(w); i = j; continue; }
+    out += esc(ch); i++;
+  }
+  return out;
+}
+
 // 코드 + 인라인 빈칸 렌더 (학생 작성용)
 function _asmtRenderCodeEditable(){
   const c = ASMT_DEF.stage2.c;
   let html = '';
   for(const tok of c.tokens){
-    if(tok.t != null){ html += esc(tok.t); continue; }
+    if(tok.t != null){ html += _asmtHighlight(tok.t); continue; }
     const b = c.blanks.find(x => x.id === tok.b);
     const st = ASMT_ANS.blanks[b.id] || {};
     if(st.gaveUp){

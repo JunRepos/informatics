@@ -1579,10 +1579,22 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .asmt-blank{display:inline-flex;align-items:center;gap:2px;vertical-align:baseline}
 .asmt-blank-in{font-family:'Consolas',monospace;font-size:13px;padding:1px 6px;border:none;border-bottom:2px solid var(--accent);background:var(--accent-lt,rgba(99,102,241,.12));color:var(--text);border-radius:4px 4px 0 0;min-width:30px}
 .asmt-blank-in:focus{outline:none;background:var(--accent-lt,rgba(99,102,241,.24))}
-.asmt-blank-x{font-size:10.5px;padding:1px 6px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);border-radius:9px;cursor:pointer;white-space:nowrap}
-.asmt-blank-x:hover{border-color:var(--danger,#ef4444);color:var(--danger,#ef4444)}
-.asmt-blank-x.on{background:var(--danger,#ef4444);border-color:var(--danger,#ef4444);color:#fff}
+.asmt-blank-x{font-size:10.5px;padding:1px 7px;border:1.5px solid var(--danger,#ef4444);background:transparent;color:var(--danger,#ef4444);border-radius:9px;cursor:pointer;white-space:nowrap;font-weight:600}
+.asmt-blank-x:hover{background:var(--danger,#ef4444);color:#fff}
+.asmt-blank-x.on{border:1.5px solid var(--border2);background:var(--surface2);color:var(--text2);font-weight:500}
+.asmt-blank-x.on:hover{background:var(--border);color:var(--text)}
 .asmt-blank-hidden{font-family:'Consolas',monospace;font-size:12px;padding:1px 8px;background:var(--surface2);color:var(--text3);border-radius:4px;border:1px dashed var(--border)}
+/* 파이썬 구문 강조 (라이트) */
+.asmt-code .tok-com{color:#2e7d32;font-style:italic}
+.asmt-code .tok-kw{color:#a626a4}
+.asmt-code .tok-str{color:#b3261e}
+.asmt-code .tok-num{color:#0b7285}
+.asmt-code .tok-bi{color:#1565c0}
+[data-theme="dark"] .asmt-code .tok-com{color:#6a9955}
+[data-theme="dark"] .asmt-code .tok-kw{color:#c586c0}
+[data-theme="dark"] .asmt-code .tok-str{color:#ce9178}
+[data-theme="dark"] .asmt-code .tok-num{color:#b5cea8}
+[data-theme="dark"] .asmt-code .tok-bi{color:#4ec9b0}
 /* 실행 영역 */
 .asmt-run-area{display:flex;flex-direction:column;gap:7px;margin-top:6px}
 .asmt-run-label{font-size:12.5px;font-weight:600;color:var(--text2)}
