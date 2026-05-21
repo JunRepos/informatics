@@ -1509,6 +1509,15 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .asmt-eq-expected pre{margin:4px 0 0;font-family:'Consolas',monospace;white-space:pre-wrap}
 .asmt-eq-warn{font-size:12px;color:var(--danger,#ef4444)}
 .asmt-eq-ok{font-size:12px;color:var(--ok,#22c55e)}
+/* 코드해석 — 다문항 (학생) */
+.asmt-eq-qs{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.asmt-eq-q{display:flex;flex-direction:column;gap:6px}
+.asmt-eq-q-label{font-size:14px;font-weight:600;color:var(--text)}
+/* 코드해석 — 다문항 (선생님 출제) */
+.asmt-eq-qcount{font-size:12px;color:var(--text3);font-weight:400}
+.asmt-eq-qlist{display:flex;flex-direction:column;gap:8px;margin:4px 0}
+.asmt-eq-qrow{border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--bg);display:flex;flex-direction:column;gap:6px}
+.asmt-eq-qrow-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2)}
 .asmt-etc-list{display:flex;flex-direction:column;gap:8px;margin:4px 0}
 .asmt-etc{border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--bg)}
 .asmt-etc-h{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}

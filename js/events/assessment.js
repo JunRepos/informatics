@@ -130,9 +130,26 @@ document.addEventListener('click', async e => {
     if(!ASMT_EDIT) return;
     const id = genId();
     if(part === 'predict')        ASMT_EDIT.predict.push({id, code:'', stdin:'', expected:null});
-    else if(part === 'explain')   ASMT_EDIT.explain.push({id, code:'', highlight:[], prompt:'', answer:''});
+    else if(part === 'explain')   ASMT_EDIT.explain.push({id, code:'', highlight:[], questions:[{id:genId(), q:'', model:''}]});
     else if(part === 'cloze')     ASMT_EDIT.cloze.push({id, code:'', blanks:[], desc:''});
     else if(part === 'implement') ASMT_EDIT.implement.push({id, title:'', desc:'', starter:'', tests:[]});
+    render();
+    return;
+  }
+
+  // 코드해석 — 주관식 문제 추가/삭제
+  if(act.action === 'asmt-add-eq-q'){
+    const q = _asmtEditFind('explain', act.qid);
+    if(!q) return;
+    if(!Array.isArray(q.questions)) q.questions = [];
+    q.questions.push({id: genId(), q:'', model:''});
+    render();
+    return;
+  }
+  if(act.action === 'asmt-del-eq-q'){
+    const q = _asmtEditFind('explain', act.qid);
+    if(!q || !Array.isArray(q.questions)) return;
+    q.questions = q.questions.filter(qq => qq.id !== act.qq);
     render();
     return;
   }
@@ -233,9 +250,14 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // CSV
+  // CSV (점수)
   if(act.action === 'asmt-export-csv'){
     _asmtExportCsv();
+    return;
+  }
+  // 답안 내보내기 (텍스트 — 나중에 채점용)
+  if(act.action === 'asmt-export-answers'){
+    _asmtExportAnswers();
     return;
   }
 });
@@ -256,7 +278,9 @@ document.addEventListener('input', e => {
   }
   if(a === 'asmt-ans-explain'){
     if(!ASMT_ANSWERS.explain) ASMT_ANSWERS.explain = {};
-    ASMT_ANSWERS.explain[t.dataset.qid] = t.value;
+    const qid = t.dataset.qid;
+    if(!ASMT_ANSWERS.explain[qid] || typeof ASMT_ANSWERS.explain[qid] !== 'object') ASMT_ANSWERS.explain[qid] = {};
+    ASMT_ANSWERS.explain[qid][t.dataset.sub] = t.value;
     return;
   }
   if(a === 'asmt-ans-cloze'){
@@ -284,6 +308,12 @@ document.addEventListener('input', e => {
     if(q){
       q.highlight = (t.value || '').split(',').map(s => parseInt(s.trim())).filter(n => Number.isInteger(n) && n > 0);
     }
+    return;
+  }
+  if(a === 'asmt-eq-q-field'){
+    const q = _asmtEditFind('explain', t.dataset.qid);
+    const qq = q && Array.isArray(q.questions) ? q.questions.find(x => x.id === t.dataset.qq) : null;
+    if(qq) qq[t.dataset.field] = t.value;
     return;
   }
   if(a === 'asmt-edit-blanks'){
@@ -331,49 +361,15 @@ document.addEventListener('change', e => {
 //  로직 함수
 // ══════════════════════════════════════
 
-// 학생 제출 — 자동 채점
+// 학생 제출 — 자동 채점 없음. 답안만 저장 (선생님이 나중에 채점)
 async function _asmtSubmitExam(){
-  const exam = ASMT_EXAM;
-  const answers = ASMT_ANSWERS;
-  const autoScore = {};
-
-  // 동기 자동채점 파트 (predict/cloze). explain 은 서술형 → 선생님 수동 채점이라 제외.
-  for(const part of ['predict','cloze']){
-    autoScore[part] = _asmtGradeSyncPart(part, _asmtPartList(exam, part), answers);
-  }
-
-  // 구현 — 코드 실행 채점 (비동기)
-  const implList = _asmtPartList(exam, 'implement');
-  if(implList.length){
-    ASMT_RUNNING = 'grading';
-    render();
-    let correct = 0, total = 0;
-    const implAns = answers.implement || {};
-    for(const q of implList){
-      const tests = q.tests || [];
-      const code = implAns[q.id] || '';
-      for(const tc of tests){
-        total++;
-        if(!code.trim()) continue;
-        const r = await _asmtRun(code, tc.input || '');
-        if(r.success && _normalizeAns(r.output) === _normalizeAns(tc.expected)) correct++;
-      }
-    }
-    autoScore.implement = { correct, total };
-  } else {
-    autoScore.implement = { correct:0, total:0 };
-  }
-
   try {
-    await saveAsmtSubmission(SEL_CLS.id, ST_USER.number, { answers, autoScore });
-    ASMT_AUTO = autoScore;
+    await saveAsmtSubmission(SEL_CLS.id, ST_USER.number, { answers: ASMT_ANSWERS });
     ASMT_SUBMITTED_AT = new Date().toISOString();
-    ASMT_RUNNING = null;
     ASMT_VIEW = 'done';
     render();
     toast('제출 완료! 수고했어요 🎉', 'ok');
   } catch(err){
-    ASMT_RUNNING = null;
     render();
     toast('제출 실패: ' + (err.message || err), 'err');
   }
@@ -388,8 +384,8 @@ async function _asmtSaveExam(){
   const warns = [];
   const pr = _asmtPartList(ASMT_EDIT, 'predict').filter(q => q.expected == null);
   if(pr.length) warns.push(`출력예측 ${pr.length}문제: 자동 분석(정답)이 없습니다.`);
-  const ex = _asmtPartList(ASMT_EDIT, 'explain').filter(q => !(q.prompt || '').trim());
-  if(ex.length) warns.push(`코드해석 ${ex.length}문제: 질문/지시가 비어 있습니다.`);
+  const ex = _asmtPartList(ASMT_EDIT, 'explain').filter(q => !(q.questions || []).some(qq => (qq.q || '').trim()));
+  if(ex.length) warns.push(`코드해석 ${ex.length}문제: 주관식 문제가 없습니다.`);
   const cl = _asmtPartList(ASMT_EDIT, 'cloze').filter(q => (String(q.code||'').match(/___/g)||[]).length !== (q.blanks||[]).length);
   if(cl.length) warns.push(`빈칸 ${cl.length}문제: 빈칸 수와 정답 수가 다릅니다.`);
   const im = _asmtPartList(ASMT_EDIT, 'implement').filter(q => !(q.tests||[]).length);
@@ -460,7 +456,58 @@ function _asmtExportCsv(){
   a.href = url; a.download = `수행평가-${cls}-${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('✓ CSV 다운로드 시작', 'ok');
+  toast('✓ 점수 CSV 다운로드 시작', 'ok');
+}
+
+// 답안 내보내기 — 학생별 전체 답안을 텍스트(마크다운)로 (나중에 채점·검토용)
+function _asmtExportAnswers(){
+  const exam = ASMT_EXAM;
+  if(!exam){ toast('시험이 없어요.', 'err'); return; }
+  const subs = ASMT_ALL_SUBS || {};
+  const cls = TC_CLS?.label || TC_CLS?.id || 'unknown';
+  const lines = [`# 수행평가 답안 — ${cls}`, ''];
+  const submitted = STUDENTS.filter(st => subs[st.number]?.submittedAt);
+  if(!submitted.length){ toast('제출한 학생이 없어요.', 'err'); return; }
+
+  for(const st of submitted){
+    const sub = subs[st.number];
+    const ans = sub.answers || {};
+    lines.push(`## ${st.number} ${st.name}`, '');
+    for(const p of ASMT_PARTS){
+      const list = _asmtPartList(exam, p.id);
+      if(!list.length) continue;
+      lines.push(`### ${p.label}`);
+      list.forEach((q, i) => {
+        if(p.id === 'predict'){
+          lines.push(`- 문제 ${i+1} 코드:`, '```python', q.code || '', '```',
+            `  - 학생 답: ${ (ans.predict?.[q.id] || '(무응답)').replace(/\n/g,' / ') }`,
+            `  - 참고 정답: ${ (q.expected || '').replace(/\n/g,' / ') }`);
+        } else if(p.id === 'explain'){
+          lines.push(`- 코드 ${i+1}:`, '```python', q.code || '', '```');
+          const av = ans.explain?.[q.id] || {};
+          (q.questions || []).forEach((qq, qi) => {
+            lines.push(`  - ${qi+1}) ${qq.q}`,
+              `    - 학생 답: ${ (av[qq.id] || '(무응답)').replace(/\n/g,' ') }`,
+              qq.model ? `    - 모범답안: ${qq.model.replace(/\n/g,' ')}` : '');
+          });
+        } else if(p.id === 'cloze'){
+          const av = ans.cloze?.[q.id] || [];
+          lines.push(`- 빈칸 ${i+1}: 학생[${av.join(', ')}] / 정답[${(q.blanks||[]).join(', ')}]`);
+        } else if(p.id === 'implement'){
+          lines.push(`- 구현 ${i+1} (${q.title || ''}) 학생 코드:`, '```python', ans.implement?.[q.id] || '(무응답)', '```');
+        }
+      });
+      lines.push('');
+    }
+    lines.push('---', '');
+  }
+  const blob = new Blob([lines.join('\n')], {type:'text/markdown;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `수행평가-답안-${cls}-${new Date().toISOString().slice(0,10)}.md`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('✓ 답안 내보내기 시작', 'ok');
 }
 
 // render 후 (현재 특별 처리 없음)
