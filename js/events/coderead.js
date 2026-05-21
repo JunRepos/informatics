@@ -57,6 +57,58 @@ function _matchTraceValue(given, expected){
   return false;
 }
 
+// ── 코드완성(codetest): 빈칸/정답 합쳐 실행 코드로 조립 ──
+function _crCtAssemble(r){
+  let idx = 0;
+  return String(r.code || '').replace(/___/g, () => {
+    const st = CR_CT.blanks[idx] || {};
+    const ans = st.gaveUp ? ((r.blanks || [])[idx] || '') : (st.v || '');
+    idx++;
+    return ans;
+  });
+}
+
+// ── 연습문제 한방 등록 묶음 (1~6차시 범위, 복합 개념) ──
+const CR_PRACTICE_PACK = [
+  // 출력 예측 — 코드 흐름 읽기 (반복문·조건문 복합)
+  { type:'predict', title:'반복 + 조건: 6 이상만 더하기',
+    description:'리스트를 하나씩 돌면서 조건을 만족할 때만 더해요. total이 어떻게 바뀌는지 한 줄씩 따라가 보세요.',
+    code:'nums = [3, 8, 5, 12, 7]\ntotal = 0\nfor n in nums:\n    if n >= 6:\n        total = total + n\nprint(total)',
+    expectedOutput:'27' },
+  { type:'predict', title:'while + 몫·나머지',
+    description:'n이 0이 될 때까지 반복해요. 매번 n을 2로 나눈 몫(//)으로 바꾸고, 홀수일 때만 count를 늘려요.',
+    code:'n = 23\ncount = 0\nwhile n > 0:\n    if n % 2 == 1:\n        count = count + 1\n    n = n // 2\nprint(count)',
+    expectedOutput:'4' },
+  { type:'predict', title:'이중 반복문 횟수 세기',
+    description:'바깥 반복이 한 번 돌 때 안쪽 반복이 몇 번 도는지 생각하며 total을 세어 보세요.',
+    code:'total = 0\nfor i in range(1, 4):\n    for j in range(i):\n        total = total + 1\nprint(total)',
+    expectedOutput:'6' },
+  { type:'predict', title:'조건에 맞는 값만 리스트에 모으기',
+    description:'1~10 중 조건을 만족하는 값만 result에 append 해요. 마지막에 리스트와 개수를 출력합니다.',
+    code:'result = []\nfor i in range(1, 11):\n    if i % 3 == 0:\n        result.append(i)\nprint(result)\nprint(len(result))',
+    expectedOutput:'[3, 6, 9]\n3' },
+  { type:'predict', title:'continue 와 break',
+    description:'짝수는 건너뛰고(continue), 7보다 커지면 멈춰요(break). 어디서 멈추는지 따라가 보세요.',
+    code:'total = 0\nfor i in range(1, 10):\n    if i % 2 == 0:\n        continue\n    if i > 7:\n        break\n    total = total + i\nprint(total)',
+    expectedOutput:'16' },
+  // 코드 완성 — 빈칸 + 테스트 (수행평가식: 모름→테스트→수정)
+  { type:'codetest', title:'코드 완성: 입력한 수 중 짝수의 합',
+    description:'N개의 수를 입력받아, 그 중 짝수만 모두 더해 출력하는 프로그램이에요. 빈칸을 채우고 🧪 테스트로 확인하세요.',
+    code:'n = int(input())\ntotal = ___\nfor i in range(___):\n    x = int(input())\n    if ___:\n        total = total + x\nprint(total)',
+    blanks:['0','n','x % 2 == 0'],
+    tests:[ {input:'4\n1\n2\n3\n4', expected:'6'}, {input:'3\n5\n7\n9', expected:'0'}, {input:'5\n10\n3\n6\n1\n8', expected:'24'} ] },
+  { type:'codetest', title:'코드 완성: 가장 큰 수 찾기',
+    description:'N개의 수를 입력받아 가장 큰 수를 찾아 출력해요. max()를 쓰지 않고 직접 비교합니다.',
+    code:'nums = []\nn = int(input())\nfor i in range(n):\n    nums.append(int(input()))\nbiggest = nums[0]\nfor x in nums:\n    if x > ___:\n        biggest = ___\nprint(biggest)',
+    blanks:['biggest','x'],
+    tests:[ {input:'3\n4\n9\n2', expected:'9'}, {input:'4\n10\n10\n3\n7', expected:'10'}, {input:'1\n5', expected:'5'} ] },
+  { type:'codetest', title:'코드 완성: 1~N 중 3의 배수 개수와 합',
+    description:'1부터 N까지 중 3의 배수가 몇 개인지, 그 합은 얼마인지 세어 출력해요. while문 빈칸을 채워 보세요.',
+    code:'n = int(input())\ni = 1\ncount = 0\ntotal = 0\nwhile i <= ___:\n    if i % 3 == ___:\n        count = count + 1\n        total = total + i\n    i = ___\nprint(count, total)',
+    blanks:['n','0','i + 1'],
+    tests:[ {input:'10', expected:'3 18'}, {input:'5', expected:'1 3'}, {input:'15', expected:'5 45'} ] },
+];
+
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-action]');
   if(!el) return;
@@ -72,6 +124,7 @@ document.addEventListener('click', async e => {
     CR_LAST_RESULT = null;
     CR_CLOZE_ANSWERS = (r.type === 'cloze') ? new Array((r.blanks || []).length).fill('') : null;
     CR_BUG_SEL = null;
+    if(r.type === 'codetest') CR_CT = { blanks:{}, run:null, test:null, running:false, stdin:'' };
     // 진도 로드 (학생 본인 것)
     if(ST_USER){
       const prog = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
@@ -223,6 +276,42 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  // ── 학생: 코드완성 빈칸 모름 토글 ──
+  if(act.action === 'cr-ct-blank-x'){
+    const bi = parseInt(act.bi);
+    const cur = CR_CT.blanks[bi] || {};
+    CR_CT.blanks[bi] = { ...cur, gaveUp: !cur.gaveUp };
+    render();
+    return;
+  }
+  // ── 학생: 코드완성 자유 실행 ──
+  if(act.action === 'cr-ct-run'){
+    if(!CR_SEL || CR_CT.running) return;
+    CR_CT.running = 'run'; CR_CT.run = null;
+    render();
+    const r = await _asmtRunCode(_crCtAssemble(CR_SEL), _asmtToStdin(CR_CT.stdin));
+    CR_CT.running = false; CR_CT.run = r;
+    render();
+    return;
+  }
+  // ── 학생: 코드완성 테스트 실행 ──
+  if(act.action === 'cr-ct-test'){
+    if(!CR_SEL || CR_CT.running) return;
+    CR_CT.running = 'test'; CR_CT.test = null;
+    render();
+    const code = _crCtAssemble(CR_SEL);
+    const out = [];
+    for(const t of (CR_SEL.tests || [])){
+      const r = await _asmtRunCode(code, t.input);
+      out.push({ input:t.input, expected:t.expected, output:(r.output||'').trim(), error:r.error||'', pass: !r.error && _asmtPass(r.output, t.expected) });
+    }
+    CR_CT.running = false; CR_CT.test = out;
+    const allPass = out.length && out.every(t => t.pass);
+    await _recordCRAttempt(allPass);
+    render();
+    return;
+  }
+
   // ── 학생: 코드 해석 제출 (서술형 → 모범답안 자가확인) ──
   if(act.action === 'cr-submit-explain'){
     if(!CR_SEL || CR_SEL.type !== 'explain') return;
@@ -296,6 +385,33 @@ document.addEventListener('click', async e => {
     if(qtype === 'bugfix') CR_EDITING.buggyLine = 1;
     CR_VIEW = 'edit';
     render();
+    return;
+  }
+
+  // 연습문제 한방 등록 (현재 반에 8문제)
+  if(act.action === 'cr-register-pack'){
+    if(!TC_CLS){ toast('반을 먼저 선택하세요.', 'err'); return; }
+    if(!confirm(`연습문제 ${CR_PRACTICE_PACK.length}개(출력예측·코드완성)를 "${TC_CLS.label}"에 등록할까요?`)) return;
+    el.disabled = true;
+    const orig = el.textContent;
+    el.textContent = '⏳ 등록 중...';
+    try {
+      const base = Date.now();
+      let i = 0;
+      for(const p of CR_PRACTICE_PACK){
+        const rdId = genId();
+        await saveCodeReading(TC_CLS.id, rdId, {
+          ...p, id: rdId,
+          createdAt: new Date(base + (i++) * 1000).toISOString()
+        });
+      }
+      await loadCodeReadings(TC_CLS.id);
+      toast(`✓ 연습문제 ${CR_PRACTICE_PACK.length}개를 등록했어요.`, 'ok');
+      render();
+    } catch(err){
+      toast('등록 실패: ' + (err.message || err), 'err');
+      el.disabled = false; el.textContent = orig;
+    }
     return;
   }
 
@@ -468,6 +584,18 @@ document.addEventListener('click', async e => {
           createdAt: meta.createdAt || new Date().toISOString()
         };
 
+      } else if(meta.type === 'codetest'){
+        // 코드완성은 예제 등록 전용 — 제목/설명만 수정, 코드·빈칸·테스트는 보존
+        data = {
+          title: meta.title,
+          description: meta.description || '',
+          code: CR_EDITING?.code || '',
+          blanks: CR_EDITING?.blanks || [],
+          tests: CR_EDITING?.tests || [],
+          type: 'codetest',
+          createdAt: meta.createdAt || new Date().toISOString()
+        };
+
       } else {
         setErr('알 수 없는 퀴즈 유형이에요.');
         el.disabled = false; el.textContent = origLabel; return;
@@ -537,6 +665,19 @@ function _readClozeBlanks(){
   });
   return result;
 }
+
+// 코드완성 입력 — re-render 없이 모델만 갱신 (포커스 보존)
+document.addEventListener('input', e => {
+  const t = e.target;
+  if(!t || !t.dataset) return;
+  if(t.dataset.action === 'cr-ct-blank-in'){
+    const bi = parseInt(t.dataset.bi);
+    const cur = CR_CT.blanks[bi] || {};
+    CR_CT.blanks[bi] = { ...cur, v: t.value, gaveUp: false };
+  } else if(t.dataset.action === 'cr-ct-stdin'){
+    CR_CT.stdin = t.value;
+  }
+});
 
 // 시도/통과 기록 (학생)
 async function _recordCRAttempt(pass){

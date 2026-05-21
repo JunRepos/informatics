@@ -18,7 +18,8 @@ const QUIZ_TYPES = [
   {id:'explain', label:'📝 코드 해석',   desc:'코드의 표시된 부분을 학생이 직접 설명 (서술형 · 자가확인)'},
   {id:'mcq',     label:'✅ 객관식',       desc:'4지선다 — 코드 결과·개념·문법 자유 출제'},
   {id:'cloze',   label:'🧩 빈칸 채우기', desc:'코드의 ___ 부분을 학생이 채워 정답과 비교'},
-  {id:'bugfix',  label:'🐛 버그 찾기',   desc:'잘못된 줄 번호를 클릭해 찾기'}
+  {id:'bugfix',  label:'🐛 버그 찾기',   desc:'잘못된 줄 번호를 클릭해 찾기'},
+  {id:'codetest',label:'🧪 코드 완성',   desc:'빈칸 채우고 실행·테스트로 확인 — 수행평가식 (예제 등록 전용)'}
 ];
 
 function _quizTypeMeta(t){
@@ -89,14 +90,15 @@ function vStCRSolve(){
         <button class="btn-sm" data-action="cr-back">← 목록</button>
       </div>
     </div>
-    ${(r.description && type !== 'cloze' && type !== 'explain') ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
+    ${(r.description && type !== 'cloze' && type !== 'explain' && type !== 'codetest') ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
   `;
 
-  // 유형별 본문 분기 (cloze/explain 은 설명을 코드 바로 위에 직접 표시 → 상단 배너 생략)
+  // 유형별 본문 분기 (cloze/explain/codetest 은 설명을 코드 바로 위에 직접 표시 → 상단 배너 생략)
   if(type === 'mcq')    return headerBar + vStQuizMcq(r);
   if(type === 'cloze')  return headerBar + vStQuizCloze(r);
   if(type === 'explain')return headerBar + vStQuizExplain(r);
   if(type === 'bugfix') return headerBar + vStQuizBugfix(r);
+  if(type === 'codetest') return headerBar + vStQuizCodeTest(r);
   // 기본 — predict / trace (코드 + 우측 질문 패널)
   return headerBar + vStQuizCodeSplit(r);
 }
@@ -236,6 +238,87 @@ function vStQuizCloze(r){
   `;
 }
 
+// 코드 완성 (codetest) — 빈칸 채우기 + 모름 + 실행 + 테스트 (수행평가식)
+function _crCtRenderCode(r){
+  let idx = 0;
+  const lines = String(r.code || '').split('\n').map(ln => {
+    let html = '', rest = ln;
+    while(rest.includes('___')){
+      const p = rest.indexOf('___');
+      html += (typeof _asmtHighlight === 'function') ? _asmtHighlight(rest.slice(0, p)) : esc(rest.slice(0, p));
+      const st = CR_CT.blanks[idx] || {};
+      if(st.gaveUp){
+        html += `<span class="asmt-blank gaveup"><span class="asmt-blank-hidden">모름 처리됨</span>` +
+          `<button class="asmt-blank-x on" data-action="cr-ct-blank-x" data-bi="${idx}" title="다시 직접 풀기">↩ 되돌리기</button></span>`;
+      } else {
+        html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="cr-ct-blank-in" data-bi="${idx}" value="${esc(st.v || '')}" size="10" spellcheck="false" autocomplete="off"/>` +
+          `<button class="asmt-blank-x" data-action="cr-ct-blank-x" data-bi="${idx}" title="모르면 누르세요 — 정답이 자동으로 채워져 실행할 수 있어요">모름</button></span>`;
+      }
+      rest = rest.slice(p + 3);
+      idx++;
+    }
+    html += (typeof _asmtHighlight === 'function') ? _asmtHighlight(rest) : esc(rest);
+    return html || ' ';
+  }).join('\n');
+  return `<pre class="asmt-code">${lines}</pre>`;
+}
+
+function vStQuizCodeTest(r){
+  const tests = r.tests || [];
+  let runBlock = '';
+  if(CR_CT.running === 'run'){
+    runBlock = `<div class="asmt-run-loading">⏳ 실행 중... (첫 실행은 10~15초 걸려요)</div>`;
+  } else if(CR_CT.run){
+    runBlock = `<div class="asmt-run-result ${CR_CT.run.success ? 'ok' : 'err'}">
+      <div class="asmt-run-head">${CR_CT.run.success ? '✅ 실행 결과' : '⚠️ 실행 오류'}</div>
+      ${CR_CT.run.output ? `<pre class="asmt-run-out">${esc(CR_CT.run.output)}</pre>` : ''}
+      ${CR_CT.run.error ? `<pre class="asmt-run-err">${esc(CR_CT.run.error)}</pre>` : ''}
+    </div>`;
+  }
+  let testBlock = '';
+  if(CR_CT.running === 'test'){
+    testBlock = `<div class="asmt-run-loading">⏳ ${tests.length}개 테스트케이스 실행 중...</div>`;
+  } else if(CR_CT.test){
+    const passCount = CR_CT.test.filter(t => t.pass).length;
+    testBlock = `<div class="asmt-test-summary ${passCount === CR_CT.test.length ? 'ok' : ''}">테스트 통과 ${passCount} / ${CR_CT.test.length}</div>
+      <div class="asmt-test-list">${CR_CT.test.map((t, i) => `
+        <div class="asmt-test-item ${t.pass ? 'ok' : 'err'}">
+          <div class="asmt-test-h">${t.pass ? '✅' : '❌'} 테스트 ${i+1}</div>
+          <div class="asmt-test-row"><span>입력</span><pre>${esc(t.input.replace(/\n/g, ' '))}</pre></div>
+          <div class="asmt-test-row"><span>기대</span><pre>${esc(t.expected)}</pre></div>
+          <div class="asmt-test-row"><span>내 출력</span><pre>${esc(t.error ? ('오류: ' + t.error) : (t.output || '(출력 없음)'))}</pre></div>
+        </div>`).join('')}</div>`;
+  }
+
+  return `
+    <div class="quiz-cloze-wrap">
+      <div class="cr-q-title">🧪 코드의 빈칸을 채우고 테스트해 보세요</div>
+      ${r.description ? `<div class="cr-desc-box">${esc(r.description)}</div>` : ''}
+      <div class="cr-q-desc">모르는 빈칸은 <b>[모름]</b>을 누르면 정답이 자동으로 채워져 실행할 수 있어요. <b>🧪 테스트</b>로 어떤 케이스가 틀렸는지 확인하고 고쳐 보세요.</div>
+      ${_crCtRenderCode(r)}
+
+      <div class="asmt-run-area">
+        <label class="asmt-run-label">▶ 직접 실행해보기 — 입력값을 넣어보세요 (띄어쓰기 또는 줄바꿈)</label>
+        <div class="asmt-run-row">
+          <input class="asmt-stdin" data-action="cr-ct-stdin" value="${esc(CR_CT.stdin || '')}" autocomplete="off"/>
+          <button class="btn-sm" data-action="cr-ct-run" ${CR_CT.running ? 'disabled' : ''}>▶ 실행</button>
+        </div>
+        ${runBlock}
+      </div>
+
+      ${tests.length ? `<div class="cr-q-desc" style="margin-top:12px">아래 버튼을 누르면 모든 테스트케이스가 자동으로 입력돼요.</div>
+      <table class="asmt-d-table">
+        <thead><tr><th>입력값</th><th>기대 출력</th></tr></thead>
+        <tbody>${tests.map(t => `<tr><td>${esc(t.input.replace(/\n/g, ' '))}</td><td>${esc(t.expected)}</td></tr>`).join('')}</tbody>
+      </table>
+      <button class="btn-p btn-sm" data-action="cr-ct-test" ${CR_CT.running ? 'disabled' : ''}>🧪 테스트 실행</button>
+      ${testBlock}` : ''}
+
+      <div style="margin-top:12px"><button class="btn-sm" data-action="cr-back">← 목록</button></div>
+    </div>
+  `;
+}
+
 // 코드 해석 (서술형 — 표시된 부분 설명 → 제출 후 모범답안 자가확인)
 function vStQuizExplain(r){
   const set = new Set((r.highlight || []).map(Number));
@@ -317,18 +400,19 @@ function vTcCodeRead(){
 }
 
 function vTcCRList(){
-  const typeCards = QUIZ_TYPES.map(t => `
+  const typeCards = QUIZ_TYPES.filter(t => t.id !== 'codetest').map(t => `
     <button class="quiz-type-card" data-action="cr-new" data-qtype="${t.id}">
       <div class="quiz-type-card-label">${t.label}</div>
       <div class="quiz-type-card-desc">${esc(t.desc)}</div>
     </button>
   `).join('');
 
-  const header = `<div class="cr-header-row">
+  const header = `<div class="cr-header-row" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
     <div style="font-size:13px;color:var(--text2);flex:1;min-width:240px">
       학생들에게 다양한 형식의 퀴즈를 출제할 수 있어요.
       코드 결과 예측, 변수 추적, 객관식, 빈칸 채우기, 버그 찾기 — 단원·차시에 맞춰 골라 쓰세요.
     </div>
+    <button class="btn-sm" data-action="cr-register-pack" title="출력 예측 5 + 코드 완성 3 = 8문제를 현재 반에 한 번에 등록">📦 연습문제 한방 등록 (반복·조건 8문제)</button>
   </div>
   <div class="quiz-type-grid">${typeCards}</div>`;
 
@@ -471,6 +555,24 @@ function vTcCREdit(){
       </div>
       <div class="field"><label>해설 (선택 — 학생 통과 시 표시)</label>
         <textarea id="cr-e-explanation" placeholder="왜 그 줄이 잘못됐는지 설명" style="min-height:50px">${esc(r.explanation || '')}</textarea>
+      </div>
+    `;
+  } else if(type === 'codetest'){
+    const blanks = r.blanks || [];
+    const tests = r.tests || [];
+    typeFields = `
+      <div class="box-info" style="font-size:12px;margin-bottom:8px">
+        💡 <b>코드 완성</b>은 "📦 연습문제 한방 등록"으로 제공되는 예제 전용 유형이에요.
+        여기서는 <b>제목·설명만</b> 수정할 수 있어요. (코드·빈칸·테스트는 아래 미리보기로 확인)
+      </div>
+      <div class="field"><label>코드 (읽기 전용)</label>
+        <pre class="cr-code-box cr-code-box-full" style="white-space:pre-wrap">${esc(r.code || '')}</pre>
+      </div>
+      <div class="field"><label>빈칸 정답 (${blanks.length}개, 읽기 전용)</label>
+        <div style="font-family:monospace;font-size:12.5px">${blanks.map((b, i) => `${i+1}. <code>${esc(b)}</code>`).join('&nbsp;&nbsp; ') || '-'}</div>
+      </div>
+      <div class="field"><label>테스트 (${tests.length}개, 읽기 전용)</label>
+        <div style="font-family:monospace;font-size:12.5px">${tests.map(t => `<div>입력 <code>${esc((t.input||'').replace(/\n/g,' '))}</code> → 기대 <code>${esc(t.expected)}</code></div>`).join('') || '-'}</div>
       </div>
     `;
   }

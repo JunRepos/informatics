@@ -95,6 +95,7 @@ let CR_EDITING     = null;   // 선생님: 편집 중인 문제 (null=신규)
 let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
 let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
 let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
+let CR_CT          = { blanks:{}, run:null, test:null, running:false, stdin:'' }; // 학생: 코드완성(codetest) 풀이 상태
 
 // 📝 수행평가 (Assessment) — PET병 챌린지 2단계 (정의는 assessment-data.js ASMT_DEF)
 let ASMT_ACTIVE   = {};        // { [classId]: bool } — 학생 탭 노출용 캐시
