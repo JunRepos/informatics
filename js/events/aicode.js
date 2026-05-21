@@ -90,24 +90,119 @@ function _saveAicSession(){
   }, 1000);
 }
 
-// ── Pyodide 워커 (코드 실행) — asmt-worker 재사용 ──
+// ── Pyodide 워커 (코드 실행) — 실시간 input() 지원 (oj-worker 재사용) ──
+//   Colab 방식: input() 만나면 SharedArrayBuffer 로 메인에 입력 요청 → 노란 입력칸
+const AIC_STDIN_BUF_SIZE = 4096;
 let _aicWorker = null;
-function _ensureAicWorker(){
+let _aicMsgId = 0;
+const _aicCallbacks = {};
+let _aicStdinSAB = null, _aicStdinCtrl = null, _aicStdinData = null;
+const _aicSABSupported = (typeof SharedArrayBuffer !== 'undefined' && typeof Atomics !== 'undefined' && self.crossOriginIsolated !== false);
+
+function _getAicWorker(){
   if(_aicWorker) return _aicWorker;
-  _aicWorker = new Worker('js/asmt-worker.js?v=20260519');
+  // oj-worker 는 범용 run/grade 워커 (실시간 input 지원). 캐시 키도 OJ 와 공유.
+  _aicWorker = new Worker('js/oj-worker.js?v=' + (typeof OJ_WORKER_VER !== 'undefined' ? OJ_WORKER_VER : '1'));
+  _aicWorker.onmessage = (e) => {
+    const data = e.data;
+    if(data.type === 'request-input'){ _handleAicInputRequest(data.prompt); return; }
+    if(data.type === 'init-stdin-done'){ return; }
+    const cb = _aicCallbacks[data.id];
+    if(cb){ delete _aicCallbacks[data.id]; cb(data); }
+  };
+  _aicWorker.onerror = (err) => console.error('AIC Worker error:', err);
+  try {
+    if(_aicSABSupported){
+      _aicStdinSAB = new SharedArrayBuffer(8 + AIC_STDIN_BUF_SIZE);
+      _aicStdinCtrl = new Int32Array(_aicStdinSAB, 0, 2);
+      _aicStdinData = new Uint8Array(_aicStdinSAB, 8, AIC_STDIN_BUF_SIZE);
+      _aicWorker.postMessage({ type: 'init-stdin', buffer: _aicStdinSAB });
+    } else {
+      _aicWorker.postMessage({ type: 'init-stdin' });
+    }
+  } catch(e){
+    _aicWorker.postMessage({ type: 'init-stdin' });
+  }
   return _aicWorker;
 }
-function _runAicCode(code, stdin){
-  return new Promise((resolve) => {
-    const w = _ensureAicWorker();
-    const onMsg = (e) => {
-      if(e.data?.type === 'result'){
-        w.removeEventListener('message', onMsg);
-        resolve(e.data);
-      }
+
+// 워커가 input() 요청 → 노란 입력칸 표시 후 SAB 에 써서 깨움
+async function _handleAicInputRequest(prompt){
+  const value = await _showAicInlineInput(prompt);
+  if(!_aicStdinSAB || !_aicStdinCtrl || !_aicStdinData) return;
+  if(value === null){
+    Atomics.store(_aicStdinCtrl, 0, 2); // 취소
+    Atomics.notify(_aicStdinCtrl, 0);
+    return;
+  }
+  const bytes = new TextEncoder().encode(value);
+  const len = Math.min(bytes.length, AIC_STDIN_BUF_SIZE);
+  for(let i = 0; i < len; i++) _aicStdinData[i] = bytes[i];
+  Atomics.store(_aicStdinCtrl, 1, len);
+  Atomics.store(_aicStdinCtrl, 0, 1); // 데이터 준비됨
+  Atomics.notify(_aicStdinCtrl, 0);
+}
+
+// 코드 패널 실행 영역에 노란 입력칸 띄우고 Promise 로 값 받기 (OJ 와 동일 스타일 재사용)
+function _showAicInlineInput(prompt){
+  return new Promise(resolve => {
+    const body = document.getElementById('aic-run-area');
+    if(!body){ resolve(''); return; }
+    body.querySelectorAll('.oj-live-input').forEach(el => el.remove());
+    const div = document.createElement('div');
+    div.className = 'oj-live-input';
+    const label = prompt
+      ? `<span style="color:var(--text);font-weight:500">${esc(prompt)}</span>`
+      : `<span style="color:var(--text2)">📝 input() — 값을 입력하세요</span>`;
+    div.innerHTML = `
+      <div class="oj-live-prompt">${label}</div>
+      <div class="oj-live-row">
+        <input class="oj-live-field" type="text" placeholder="값을 입력하고 Enter" spellcheck="false" autocomplete="off"/>
+        <button class="btn-sm btn-p oj-live-submit">↵ 입력</button>
+      </div>
+      <div class="oj-live-hint">Enter로 제출 · Esc로 취소</div>`;
+    body.appendChild(div);
+    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const input = div.querySelector('.oj-live-field');
+    const btn = div.querySelector('.oj-live-submit');
+    setTimeout(() => input?.focus(), 30);
+    let done = false;
+    const submit = () => {
+      if(done) return; done = true;
+      const val = input?.value || '';
+      const echo = document.createElement('div');
+      echo.className = 'oj-live-echo';
+      echo.textContent = (prompt ? prompt : '') + val;
+      div.replaceWith(echo);
+      resolve(val);
     };
-    w.addEventListener('message', onMsg);
-    w.postMessage({ type: 'run', code, stdin });
+    const cancel = () => {
+      if(done) return; done = true;
+      div.remove();
+      resolve(null);
+    };
+    btn?.addEventListener('click', submit);
+    input?.addEventListener('keydown', ev => {
+      if(ev.key === 'Enter'){ ev.preventDefault(); submit(); }
+      else if(ev.key === 'Escape'){ ev.preventDefault(); cancel(); }
+    });
+  });
+}
+
+// 실시간 입력 모드로 실행 (5분 타임아웃 — 학생 입력 대기 허용)
+const AIC_RUN_TIMEOUT_MS = 5 * 60 * 1000;
+function _runAicCode(code){
+  return new Promise((resolve) => {
+    const id = ++_aicMsgId;
+    const timer = setTimeout(() => {
+      delete _aicCallbacks[id];
+      try { _aicWorker?.terminate(); } catch(e){}
+      _aicWorker = null;
+      document.querySelectorAll('.oj-live-input').forEach(el => el.remove());
+      resolve({ success: false, output: '', error: 'TimeoutError: 5분 동안 응답이 없어 종료했어요.' });
+    }, AIC_RUN_TIMEOUT_MS);
+    _aicCallbacks[id] = (data) => { clearTimeout(timer); resolve(data); };
+    _getAicWorker().postMessage({ id, code, stdin: '', mode: 'run' });
   });
 }
 
@@ -180,18 +275,15 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: 코드 실행
+  // 학생: 코드 실행 (실시간 input — input() 만나면 입력칸이 뜸)
   if(act.action === 'aic-run'){
     if(AIC_RUNNING) return;
     const code = AIC_CODE || '';
     if(!code.trim()){ toast('실행할 코드가 없어요.', 'err'); return; }
-    const raw = document.querySelector('.aic-run-stdin')?.value || '';
-    AIC_RUN_STDIN = raw;
-    const stdin = raw.split(/[,\n]/).map(s => s.trim()).join('\n');
     AIC_RUNNING = true;
     AIC_RUN_RESULT = null;
     render();
-    const result = await _runAicCode(code, stdin);
+    const result = await _runAicCode(code);
     AIC_RUNNING = false;
     AIC_RUN_RESULT = result;
     render();
@@ -230,14 +322,6 @@ document.addEventListener('click', async e => {
       toast('변경 실패: ' + (err.message || err), 'err');
     }
     return;
-  }
-});
-
-// ── 입력 이벤트: 실행 입력값 보존 ──
-document.addEventListener('input', e => {
-  const t = e.target;
-  if(t?.dataset?.action === 'aic-run-stdin'){
-    AIC_RUN_STDIN = t.value || '';
   }
 });
 

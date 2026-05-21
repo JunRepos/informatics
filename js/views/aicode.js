@@ -88,10 +88,10 @@ function vStAicChat(){
       </div>
     </div>` : '';
 
-  // 실행 결과 블록
+  // 실행 결과 블록 (실시간 입력칸은 #aic-run-area 에 직접 append)
   let runBlock = '';
   if(AIC_RUNNING){
-    runBlock = `<div class="asmt-mod-run-loading">⏳ 실행 중... (첫 실행은 10~15초 걸려요)</div>`;
+    runBlock = `<div class="asmt-mod-run-loading">⏳ 실행 중... (input()이 있으면 아래에 입력칸이 떠요. 첫 실행은 10~15초)</div>`;
   } else if(AIC_RUN_RESULT){
     const r = AIC_RUN_RESULT;
     runBlock = `<div class="asmt-mod-run-result ${r.success ? 'ok' : 'err'}">
@@ -108,11 +108,11 @@ function vStAicChat(){
        </div>
        <pre class="asmt-code-body"><code>${esc(AIC_CODE)}</code></pre>
        <div class="aic-run-box">
-         <div class="asmt-q-run-row">
-           <input type="text" class="aic-run-stdin" data-action="aic-run-stdin" value="${esc(AIC_RUN_STDIN)}" placeholder="실행에 쓸 입력값 (input이 여러 개면 쉼표로: 3,5)" autocomplete="off"/>
-           <button class="btn-p btn-sm" data-action="aic-run" ${AIC_RUNNING ? 'disabled' : ''}>${AIC_RUNNING ? '⏳' : '▶ 실행'}</button>
+         <div class="aic-run-toolbar">
+           <button class="btn-p btn-sm" data-action="aic-run" ${AIC_RUNNING ? 'disabled' : ''}>${AIC_RUNNING ? '⏳ 실행 중' : '▶ 실행'}</button>
+           <span class="aic-run-hint">input()이 있으면 실행 중에 입력칸이 떠요</span>
          </div>
-         ${runBlock}
+         <div id="aic-run-area">${runBlock}</div>
        </div>`
     : `<div class="asmt-code-empty">
          <div class="asmt-code-empty-icon">💻</div>
