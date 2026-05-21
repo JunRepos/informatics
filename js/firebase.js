@@ -335,97 +335,6 @@ async function loadAllCodeReadingProgress(cid, rdId){
   }
 }
 
-// ── 수행평가 (Assessment) — 4파트 자동채점 시험 ──
-// 시험 정의: assessment/exam/{cid} = { active, weights, predict[], trace[], cloze[], implement[], updatedAt }
-
-// 탭 노출용 — active 플래그만 가볍게 읽기
-async function loadAsmtActive(cid){
-  try {
-    const s = await db.ref(`assessment/exam/${cid}/active`).get();
-    const on = s.exists() ? !!s.val() : false;
-    ASMT_ACTIVE[cid] = on;
-    return on;
-  } catch(err){
-    console.warn('[수행평가] active 로드 실패 (규칙 미게시일 수 있음):', err.message || err);
-    ASMT_ACTIVE[cid] = false;
-    return false;
-  }
-}
-
-// 시험 정의 전체 로드
-async function loadAsmtExam(cid){
-  try {
-    const s = await db.ref(`assessment/exam/${cid}`).get();
-    const exam = s.exists() ? s.val() : null;
-    ASMT_ACTIVE[cid] = !!(exam && exam.active);
-    return exam;
-  } catch(err){
-    console.warn('[수행평가] 시험 로드 실패:', err.message || err);
-    return null;
-  }
-}
-
-async function saveAsmtExam(cid, exam){
-  await db.ref(`assessment/exam/${cid}`).set({
-    ...exam,
-    updatedAt: new Date().toISOString()
-  });
-  ASMT_ACTIVE[cid] = !!exam.active;
-}
-
-// active 플래그만 토글 (시험 정의는 그대로)
-async function setAsmtExamActive(cid, on){
-  await db.ref(`assessment/exam/${cid}/active`).set(!!on);
-  ASMT_ACTIVE[cid] = !!on;
-  if(ASMT_EXAM) ASMT_EXAM.active = !!on;
-}
-
-// 학생 제출: assessment/submissions/{cid}/{학번} = { answers, autoScore, submittedAt }
-async function loadAsmtSubmission(cid, studentNum){
-  try {
-    const s = await db.ref(`assessment/submissions/${cid}/${studentNum}`).get();
-    return s.exists() ? s.val() : null;
-  } catch(err){
-    console.warn('[수행평가] 제출 로드 실패:', err.message || err);
-    return null;
-  }
-}
-
-async function saveAsmtSubmission(cid, studentNum, data){
-  await db.ref(`assessment/submissions/${cid}/${studentNum}`).set({
-    ...data,
-    submittedAt: new Date().toISOString()
-  });
-}
-
-async function loadAllAsmtSubmissions(cid){
-  try {
-    const s = await db.ref(`assessment/submissions/${cid}`).get();
-    return s.exists() ? s.val() : {};
-  } catch(err){
-    console.warn('[수행평가] 전체 제출 로드 실패:', err.message || err);
-    return {};
-  }
-}
-
-// 채점 (선생님): assessment/scores/{cid}/{학번} = { algo, dataType, io, control, result, comment, scoredAt }
-async function loadAllAsmtScores(cid){
-  try {
-    const s = await db.ref(`assessment/scores/${cid}`).get();
-    return s.exists() ? s.val() : {};
-  } catch(err){
-    console.warn('[수행평가] 점수 로드 실패:', err.message || err);
-    return {};
-  }
-}
-
-async function saveAsmtScore(cid, studentNum, score){
-  await db.ref(`assessment/scores/${cid}/${studentNum}`).set({
-    ...score,
-    scoredAt: new Date().toISOString()
-  });
-}
-
 // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
 // active/{cid} : bool — 선생님이 켜야 학생에게 노출
 // sessions/{cid}/{학번} : { messages, code, turnCount, updatedAt }
@@ -486,7 +395,6 @@ async function loadAllClassData(cid){
     loadNotebooks(cid),
     loadMissions(cid),
     loadCodeReadings(cid),
-    loadAsmtActive(cid),
     loadAicActive(cid)
   ]);
 }

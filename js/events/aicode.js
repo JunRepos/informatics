@@ -5,7 +5,7 @@
    선생님: on/off 토글 + 학생별 대화·코드 열람
 
    백엔드: Cloudflare Worker (AIC_WORKER_URL) → Gemini 2.5 Flash
-   코드 실행: js/asmt-worker.js (Pyodide)
+   코드 실행: js/oj-worker.js (Pyodide, 실시간 input 지원)
 ═══════════════════════════════════════ */
 
 // ── 채팅 모드로 진입 (빈 채팅 — 학생이 직접 입력) ──

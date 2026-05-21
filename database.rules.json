@@ -291,31 +291,6 @@
       }
     },
 
-    // ── 수행평가 (Assessment) — 4파트 자동채점 시험 ──
-    //   exam/{cid}            : { active, weights, predict[], trace[], cloze[], implement[] }
-    //   submissions/{cid}/{학번}: { answers, autoScore, submittedAt }
-    //   scores/{cid}/{학번}     : { algo,dataType,io,control,result,comment,scoredAt }
-    "assessment": {
-      "exam": {
-        "$classId": {
-          ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
-        }
-      },
-      "submissions": {
-        "$classId": {
-          ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
-        }
-      },
-      "scores": {
-        "$classId": {
-          ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
-        }
-      }
-    },
-
     // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
     //   active/{cid}        : bool — 선생님이 켜야 학생에게 노출
     //   sessions/{cid}/{학번}: { messages, code, turnCount, updatedAt }

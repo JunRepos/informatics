@@ -96,41 +96,8 @@ let CR_ANALYZING   = false;  // 선생님: 자동 분석 진행 중 여부
 let CR_CLOZE_ANSWERS = null; // 학생: 빈칸 채우기 풀이 중인 답안 배열
 let CR_BUG_SEL     = null;   // 학생: 버그 찾기에서 현재 선택한 줄 번호 (1-based)
 
-// 📝 수행평가 (Assessment) — 4파트 시험
-//   ① 출력예측(predict) ② 코드해석(explain·서술형) ③ 빈칸(cloze) ④ 구현(implement)
-//   predict/cloze/implement 는 Pyodide 자동채점, explain 은 선생님 수동 채점.
-//   → 5평가요소(25점) 환산 (예측→결과 / 해석→자료형 / 빈칸→제어 / 구현→추상화+입출력)
-let ASMT_EXAM        = null;   // 현재 반 시험: { active, weights, predict[], trace[], cloze[], implement[], updatedAt }
-let ASMT_ACTIVE      = {};     // { [classId]: bool } — 학생 탭 노출용 캐시 (exam.active)
-let ASMT_VIEW        = 'exam'; // 학생: 'closed'|'exam'|'done' / 선생님: 'manage'|'edit'|'student'
-let ASMT_PART        = 'predict'; // 현재 보고 있는 파트 id
-let ASMT_ANSWERS     = {};     // 학생 답안: { predict:{qid:str}, explain:{qid:str}, cloze:{qid:[str]}, implement:{qid:code} }
-let ASMT_RUN         = {};     // 학생: 구현 파트 qid별 실행 결과 {output,error,success}
-let ASMT_RUNNING     = null;   // 실행/채점 중인 qid 또는 'grading' (null=대기)
-let ASMT_SUBMITTED_AT= null;   // 학생 제출 시각 (있으면 done)
-let ASMT_AUTO        = null;   // 학생 본인 제출의 autoScore (제출 후 표시용)
-let ASMT_EDIT        = null;   // 선생님: 편집 중인 시험 객체 (deep clone)
-let ASMT_EDIT_PART   = 'predict'; // 선생님 편집 파트 탭
-let ASMT_ANALYZING   = null;   // 선생님: 자동 분석 중인 qid (null=대기)
-let ASMT_ALL_SUBS    = {};     // 선생님: { [학번]: submission }
-let ASMT_ALL_SCORES  = {};     // 선생님: { [학번]: { algo,dataType,io,control,result,comment,scoredAt } }
-let ASMT_TC_SEL_SNUM = null;   // 선생님: 보고 있는 학생 학번
-
-// 4파트 메타 (배점 기본값 + 화면 표시)
-const ASMT_PARTS = [
-  {id:'predict',   icon:'🔮', label:'출력 예측', desc:'코드의 실행 결과(출력)를 예측해 적기 (자동채점)', defW:5},
-  {id:'explain',   icon:'📝', label:'코드 해석', desc:'코드의 표시된 부분을 직접 설명 (서술형 · 선생님 채점)', defW:5},
-  {id:'cloze',     icon:'🧩', label:'빈칸 채우기', desc:'코드의 빈칸(___)에 들어갈 내용 채우기 (자동채점)', defW:5},
-  {id:'implement', icon:'⌨️', label:'코드 구현', desc:'설명을 보고 직접 코드 작성 (테스트 자동 채점)', defW:10},
-];
-// 채점 평가요소 (계획서 25점) — 4파트에서 환산
-const ASMT_RUBRIC = [
-  {id:'algo',     label:'알고리즘 표현 — 문제 추상화'},
-  {id:'dataType', label:'자료형 활용'},
-  {id:'io',       label:'적절한 입출력 형식 활용'},
-  {id:'control',  label:'다양한 제어 구조 활용'},
-  {id:'result',   label:'다양한 상황에서 올바른 결과'},
-];
+// 📝 수행평가 (Assessment) — 개편 중. 기존 4파트 시험 상태/메타는 폐기됨.
+//   탭은 플레이스홀더로 유지(views/assessment.js). 새 설계 확정 시 상태 재정의.
 
 // 🤖 AI 코딩 (자유 실습 메뉴) — 수행평가와 분리된 독립 기능
 // 백엔드: Cloudflare Worker (Gemini). 선생님이 on/off 토글로 노출 제어.

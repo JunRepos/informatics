@@ -34,15 +34,12 @@ function applyWrapWidth(){
   } else if(VIEW === 'teacher'){
     if(TC_TAB === 'notebook' || TC_TAB === 'mission') cls = 'full';
     else if(TC_TAB === 'oj' || TC_TAB === 'curriculum' || TC_TAB === 'coderead') cls = 'wide';
-    else if(TC_TAB === 'asmt' && (ASMT_VIEW === 'student' || ASMT_VIEW === 'edit')) cls = 'full';
-    else if(TC_TAB === 'asmt') cls = 'wide';
     else if(TC_TAB === 'aicode' && AIC_VIEW === 'student') cls = 'full';
     else if(TC_TAB === 'aicode') cls = 'wide';
   } else if(VIEW === 'student'){
     if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
     else if(ST_TAB === 'oj') cls = 'wide';
     else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
-    else if(ST_TAB === 'asmt' && ASMT_VIEW === 'exam') cls = 'full';
     else if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
@@ -206,11 +203,6 @@ function afterRender(){
   // 미션 게임 초기화/정리
   if(typeof afterRenderMission === 'function'){
     afterRenderMission();
-  }
-
-  // 수행평가 — 채팅 스크롤·포커스·진입 타이머
-  if(typeof afterRenderAssessment === 'function'){
-    afterRenderAssessment();
   }
 
   // AI 코딩 — 채팅 스크롤·포커스·진입 타이머

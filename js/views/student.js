@@ -21,7 +21,7 @@ function vStudent(){
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
-    ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
+    ${isInfo ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -83,29 +83,6 @@ function setST(t){
         AIC_TURN_COUNT = s.turnCount || 0;
       }
       AIC_VIEW = _aicInitialStudentView(s);
-      render();
-    });
-  } else if(t === 'asmt' && SEL_CLS && ST_USER){
-    // 수행평가 — 4파트 시험 정의 + 내 제출 로드
-    ASMT_ANSWERS = {};
-    ASMT_RUN = {};
-    ASMT_RUNNING = null;
-    ASMT_SUBMITTED_AT = null;
-    ASMT_AUTO = null;
-    ASMT_PART = 'predict';
-    ASMT_VIEW = 'exam';
-    Promise.all([
-      loadAsmtExam(SEL_CLS.id),
-      loadAsmtSubmission(SEL_CLS.id, ST_USER.number)
-    ]).then(([exam, sub]) => {
-      ASMT_EXAM = exam;
-      if(sub){
-        ASMT_ANSWERS = sub.answers || {};
-        ASMT_SUBMITTED_AT = sub.submittedAt || null;
-        ASMT_AUTO = sub.autoScore || null;
-      }
-      ASMT_PART = _asmtFirstPart(exam);
-      ASMT_VIEW = _asmtInitialStudentView(exam, sub);
       render();
     });
   } else if(t === 'mission' && SEL_CLS && ST_USER){

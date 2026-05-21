@@ -83,21 +83,6 @@ function setTC(t){
       AIC_ALL_SESSIONS = sessions || {};
       render();
     });
-  } else if(t === 'asmt' && TC_CLS){
-    // 수행평가 탭 — 시험 정의 + 전체 제출 + 점수 미리 로드
-    ASMT_VIEW = 'manage';
-    ASMT_TC_SEL_SNUM = null;
-    ASMT_EDIT = null;
-    Promise.all([
-      loadAsmtExam(TC_CLS.id),
-      loadAllAsmtSubmissions(TC_CLS.id),
-      loadAllAsmtScores(TC_CLS.id)
-    ]).then(([exam, subs, scores]) => {
-      ASMT_EXAM = exam;
-      ASMT_ALL_SUBS = subs || {};
-      ASMT_ALL_SCORES = scores || {};
-      render();
-    });
   } else if(t === 'coderead' && TC_CLS){
     CR_VIEW = 'list';
     CR_SEL = null;
