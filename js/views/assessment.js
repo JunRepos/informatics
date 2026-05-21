@@ -46,7 +46,7 @@ function _asmtRenderCodeEditable(){
       html += `<span class="asmt-blank gaveup"><span class="asmt-blank-hidden">모름 처리됨</span>` +
         `<button class="asmt-blank-x on" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="다시 직접 풀기">↩ 되돌리기</button></span>`;
     } else {
-      html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="asmt-blank-in" data-bid="${esc(b.id)}" value="${esc(st.v || '')}" size="${b.size}" spellcheck="false" autocomplete="off" placeholder="빈칸"/>` +
+      html += `<span class="asmt-blank"><input class="asmt-blank-in" data-action="asmt-blank-in" data-bid="${esc(b.id)}" value="${esc(st.v || '')}" size="${b.size}" spellcheck="false" autocomplete="off"/>` +
         `<button class="asmt-blank-x" data-action="asmt-blank-x" data-bid="${esc(b.id)}" title="모르면 누르세요 — 정답이 자동으로 채워져 실행할 수 있어요">모름</button></span>`;
     }
   }
@@ -79,12 +79,12 @@ function _asmtExamHeader(stageLabel){
 function _vStAsmtStage1(){
   const a = ASMT_DEF.stage1.a, b = ASMT_DEF.stage1.b;
   const aVal = Array.isArray(ASMT_ANS.a) ? ASMT_ANS.a.filter(Boolean).join('\n') : (ASMT_ANS.a || '');
-  const aBox = `<textarea class="asmt-a-input asmt-a-big" data-action="asmt-a" rows="8" spellcheck="false" placeholder="문제 해결 절차를 자유롭게 적어보세요. (단계별로 한 줄씩 적어도 좋아요)">${esc(aVal)}</textarea>`;
+  const aBox = `<textarea class="asmt-a-input asmt-a-big" data-action="asmt-a" rows="8" spellcheck="false">${esc(aVal)}</textarea>`;
 
   const bRows = b.fields.map(f => `
     <div class="asmt-b-row">
       <label class="asmt-b-label">${esc(f.label)}</label>
-      <input class="asmt-b-input" data-action="asmt-b" data-bid="${esc(f.id)}" value="${esc((ASMT_ANS.b || {})[f.id] || '')}" spellcheck="false" autocomplete="off" placeholder="예: 정수, 리스트 ..."/>
+      <input class="asmt-b-input" data-action="asmt-b" data-bid="${esc(f.id)}" value="${esc((ASMT_ANS.b || {})[f.id] || '')}" spellcheck="false" autocomplete="off"/>
     </div>`).join('');
 
   return `<div class="asmt-exam-wrap">
@@ -159,7 +159,7 @@ function _vStAsmtStage2(){
       <div class="asmt-run-area">
         <label class="asmt-run-label">▶ 직접 실행해보기 — 5명의 수거량을 입력하세요 (띄어쓰기 또는 줄바꿈)</label>
         <div class="asmt-run-row">
-          <input class="asmt-stdin" data-action="asmt-stdin" value="${esc(ASMT_STDIN)}" placeholder="예: 10 30 40 50 20" autocomplete="off"/>
+          <input class="asmt-stdin" data-action="asmt-stdin" value="${esc(ASMT_STDIN)}" autocomplete="off"/>
           <button class="btn-sm" data-action="asmt-run" ${ASMT_RUNNING ? 'disabled' : ''}>▶ 실행</button>
         </div>
         ${runBlock}
