@@ -27,7 +27,7 @@
           "fileName":  { ".validate": "newData.isString() && newData.val().length <= 300" },
           "fileUrl":   { ".validate": "newData.isString()" },
           "filePath":  { ".validate": "newData.isString()" },
-          "$other":    { ".validate": false }
+          "files":     { ".validate": true }
         }
       }
     },
@@ -46,7 +46,8 @@
           "fileName":    { ".validate": "newData.isString() && newData.val().length <= 300" },
           "fileUrl":     { ".validate": "newData.isString()" },
           "filePath":    { ".validate": "newData.isString()" },
-          "$other":      { ".validate": false }
+          "classDate":   { ".validate": "newData.isString() || newData.val() === null" },
+          "files":       { ".validate": true }
         }
       }
     },
@@ -70,7 +71,7 @@
           "storagePath":  { ".validate": "newData.isString()" },
           "url":          { ".validate": "newData.isString()" },
           "memo":         { ".validate": "newData.isString() && newData.val().length <= 1000" },
-          "$other":       { ".validate": false }
+          "files":        { ".validate": true }
         }
       }
     },
@@ -92,7 +93,7 @@
             "url":           { ".validate": "newData.isString()" },
             "memo":          { ".validate": "newData.isString() && newData.val().length <= 1000" },
             "resubCount":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
-            "$other":        { ".validate": false }
+            "files":         { ".validate": true }
           }
         }
       }
