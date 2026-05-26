@@ -292,10 +292,13 @@
       }
     },
 
-    // ── 📝 수행평가 (Assessment) — PET병 챌린지 ──
-    //   active/{cid}            : bool — 선생님이 켜야 학생에게 응시 노출
-    //   submissions/{cid}/{학번} : { stage, a[], b{}, blanks{}, submittedAt }
-    //   scores/{cid}/{학번}      : { a, b, c, d, comment, scoredAt }
+    // ── 📝 수행평가 (Assessment) — PET병/빅데이터/AI 통합 ──
+    //   active/{cid}                       : bool — PET병 응시 노출 토글
+    //   guideActive/{cid}                  : bool — 안내(연습) 탭 노출 토글
+    //   submissions/{cid}/{학번}            : { stage, a[], b{}, blanks{}, submittedAt } — PET병 응시 데이터
+    //   scores/{cid}/{학번}                 : { a, b, c, d, comment, scoredAt } — PET병 채점(legacy 위치, 호환 유지)
+    //   scoresExt/{cid}/{학번}/{asmtId}     : { ..parts.., comment, scoredAt } — 빅데이터/AI 등 외부 채점 점수
+    //   published/{cid}/{asmtId}           : bool — 학생에게 점수 공개 여부 (수행평가×반별)
     "assessment": {
       "active": {
         "$classId": {
@@ -316,6 +319,18 @@
         }
       },
       "scores": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "scoresExt": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "published": {
         "$classId": {
           ".read": true,
           ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"

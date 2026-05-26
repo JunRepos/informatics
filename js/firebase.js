@@ -420,6 +420,70 @@ async function saveAsmtScore(cid, studentNum, score){
   });
 }
 
+// ── 🏆 점수 관리 — 확장 점수(빅데이터/AI) & 공개 토글 ──
+//   scoresExt/{cid}/{학번}/{asmtId} : { ..parts.., comment, scoredAt }
+//   published/{cid}/{asmtId}        : bool
+async function loadAsmtScoreExt(cid, studentNum, asmtId){
+  try {
+    const s = await db.ref(`assessment/scoresExt/${cid}/${studentNum}/${asmtId}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[수행평가] ext 점수 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+async function saveAsmtScoreExt(cid, studentNum, asmtId, score){
+  await db.ref(`assessment/scoresExt/${cid}/${studentNum}/${asmtId}`).set({
+    ...score,
+    scoredAt: new Date().toISOString()
+  });
+}
+
+async function loadAllAsmtScoresExt(cid, asmtId){
+  // { [학번]: score } 형태로 반환 (해당 수행평가만)
+  try {
+    const s = await db.ref(`assessment/scoresExt/${cid}`).get();
+    if(!s.exists()) return {};
+    const out = {};
+    const raw = s.val();
+    Object.entries(raw).forEach(([snum, perAsmt]) => {
+      if(perAsmt && perAsmt[asmtId]) out[snum] = perAsmt[asmtId];
+    });
+    return out;
+  } catch(err){
+    console.warn('[수행평가] ext 전체 점수 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
+async function loadAsmtPublished(cid){
+  // { bigdata, petbottle, aicode } — 누락된 항목은 false 기본값
+  try {
+    const s = await db.ref(`assessment/published/${cid}`).get();
+    const v = s.exists() ? s.val() : {};
+    return { bigdata: !!v.bigdata, petbottle: !!v.petbottle, aicode: !!v.aicode };
+  } catch(err){
+    console.warn('[수행평가] 공개 상태 로드 실패:', err.message || err);
+    return { bigdata: false, petbottle: false, aicode: false };
+  }
+}
+
+async function setAsmtPublished(cid, asmtId, on){
+  await db.ref(`assessment/published/${cid}/${asmtId}`).set(!!on);
+}
+
+// 학생용: 내 점수 전부 한 번에 (3개 수행평가)
+async function loadMyAsmtScores(cid, studentNum){
+  // PET병(legacy) + 빅데이터/AI(ext) 합쳐서 반환
+  const [legacy, big, ai] = await Promise.all([
+    db.ref(`assessment/scores/${cid}/${studentNum}`).get().then(s => s.exists() ? s.val() : null).catch(() => null),
+    loadAsmtScoreExt(cid, studentNum, 'bigdata'),
+    loadAsmtScoreExt(cid, studentNum, 'aicode'),
+  ]);
+  return { petbottle: legacy, bigdata: big, aicode: ai };
+}
+
 // ── 🤖 AI 코딩 (자유 실습 메뉴) ──
 // active/{cid} : bool — 선생님이 켜야 학생에게 노출
 // sessions/{cid}/{학번} : { messages, code, turnCount, updatedAt }

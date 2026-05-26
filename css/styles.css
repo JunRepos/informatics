@@ -1636,3 +1636,127 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .asmt-mk.no{background:var(--danger,#ef4444);color:#fff}
 .asmt-mk.gave{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
 
+
+/* ═══════════════════════════════════════
+   🏆 점수 관리 / 📊 내 점수 — score.js 전용
+═══════════════════════════════════════ */
+
+/* 학생 — 내 점수 카드 */
+.sc-loading{padding:40px;text-align:center;color:var(--text3);font-size:14px}
+.sc-stu-summary{background:linear-gradient(135deg,var(--accent,#6366f1) 0%,#8b5cf6 100%);color:#fff;border-radius:14px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh)}
+.sc-stu-sum-head{font-size:13px;opacity:.85;font-weight:600;margin-bottom:4px;letter-spacing:.3px}
+.sc-stu-sum-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px}
+.sc-stu-sum-total{display:flex;align-items:baseline;gap:3px}
+.sc-stu-sum-num{font-size:38px;font-weight:800;line-height:1}
+.sc-stu-sum-slash{font-size:22px;opacity:.7}
+.sc-stu-sum-max{font-size:22px;opacity:.85;font-weight:600}
+.sc-stu-sum-cap{font-size:12px;opacity:.85;text-align:right}
+
+.sc-stu-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;box-shadow:var(--sh)}
+.sc-stu-card.closed{background:var(--surface2);border-style:dashed;opacity:.85}
+.sc-stu-card.placeholder{background:var(--surface2);border-style:dashed;opacity:.7}
+.sc-stu-card.pending{background:var(--surface)}
+.sc-stu-card.open.tier-full{border-color:var(--ok,#16a34a);background:linear-gradient(180deg,rgba(22,163,74,.06) 0%,var(--surface) 60%)}
+.sc-stu-card.open.tier-good{border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.05) 0%,var(--surface) 60%)}
+.sc-stu-card.open.tier-mid{border-color:#f59e0b;background:linear-gradient(180deg,rgba(245,158,11,.05) 0%,var(--surface) 60%)}
+.sc-stu-card.open.tier-low{border-color:#ef4444;background:linear-gradient(180deg,rgba(239,68,68,.04) 0%,var(--surface) 60%)}
+
+.sc-stu-card-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.sc-stu-card-icon{font-size:18px}
+.sc-stu-card-title{font-weight:700;font-size:15px;color:var(--text)}
+.sc-stu-card-sub{font-size:12px;color:var(--text3);font-weight:500}
+.sc-stu-card-max{margin-left:auto;font-size:11px;color:var(--text3);padding:2px 8px;border-radius:10px;background:var(--surface2)}
+.sc-stu-card-total{margin-left:auto;font-size:20px;font-weight:800;padding:2px 12px;border-radius:11px;letter-spacing:.5px}
+.sc-stu-card-total.tier-full{background:var(--ok,#16a34a);color:#fff}
+.sc-stu-card-total.tier-good{background:#3b82f6;color:#fff}
+.sc-stu-card-total.tier-mid{background:#f59e0b;color:#fff}
+.sc-stu-card-total.tier-low{background:#ef4444;color:#fff}
+
+.sc-stu-card-body{padding-top:4px}
+.sc-stu-closed,.sc-stu-pending,.sc-stu-placeholder{font-size:13px;color:var(--text2);padding:14px 8px;text-align:center;line-height:1.5}
+
+.sc-parts{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.sc-part{display:flex;flex-direction:column;gap:4px}
+.sc-part-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.sc-part-label{color:var(--text)}
+.sc-part-val{font-weight:700;font-size:14px}
+.sc-part-val.none{color:var(--text3)}
+.sc-part-val.full{color:var(--ok,#16a34a)}
+.sc-part-val.good{color:#3b82f6}
+.sc-part-val.mid{color:#f59e0b}
+.sc-part-val.low{color:#ef4444}
+.sc-part-max{font-size:11px;color:var(--text3);font-weight:500}
+.sc-part-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.sc-part-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.sc-part-bar-fill.full{background:var(--ok,#16a34a)}
+.sc-part-bar-fill.good{background:#3b82f6}
+.sc-part-bar-fill.mid{background:#f59e0b}
+.sc-part-bar-fill.low{background:#ef4444}
+.sc-part-bar-fill.none{background:var(--surface2)}
+
+.sc-stu-comment{margin-top:12px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:13px}
+.sc-stu-comment b{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+.sc-stu-comment>div{color:var(--text);line-height:1.5}
+.sc-stu-meta{font-size:11px;color:var(--text3);text-align:right;margin-top:6px}
+.sc-stu-foot{font-size:12px;color:var(--text3);text-align:center;padding:10px;margin-top:8px}
+
+/* 선생님 — 점수 관리 탭 */
+.sc-tc-tabbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:8px;background:var(--surface2);border-radius:10px}
+.sc-tc-tab{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.sc-tc-tab:hover{border-color:var(--accent,#6366f1)}
+.sc-tc-tab.on{background:var(--accent,#6366f1);color:#fff;border-color:var(--accent,#6366f1)}
+.sc-tc-tab-max{font-size:11px;opacity:.7;font-weight:500}
+.sc-tc-tab.on .sc-tc-tab-max{opacity:.9}
+.sc-tc-tab-pub{font-size:11px;margin-left:2px}
+
+.sc-tc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:12px}
+.sc-tc-head-info{flex:1;min-width:200px}
+.sc-tc-head-title{font-size:15px;font-weight:700;color:var(--text)}
+.sc-tc-head-sub{font-weight:500;color:var(--text2);font-size:13px}
+.sc-tc-head-note{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.4}
+
+.sc-tc-pub-seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.sc-tc-pub-btn{background:var(--surface);border:none;padding:8px 13px;cursor:pointer;font-size:12.5px;color:var(--text2);font-weight:600;transition:all .15s}
+.sc-tc-pub-btn:hover{background:var(--surface2)}
+.sc-tc-pub-btn.on{background:var(--text2);color:var(--surface)}
+.sc-tc-pub-btn.on.pub{background:var(--ok,#16a34a);color:#fff}
+
+.sc-tc-help{font-size:12.5px;color:var(--text2);padding:10px 13px;background:var(--surface2);border-radius:8px;margin-bottom:12px;line-height:1.5}
+.sc-tc-help a{color:var(--accent,#6366f1);text-decoration:underline}
+
+.sc-tc-placeholder{padding:40px 24px;text-align:center;color:var(--text2);font-size:14px;background:var(--surface2);border-radius:10px;line-height:1.7;border:1px dashed var(--border)}
+
+.sc-tc-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+
+.sc-tc-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.sc-tc-table{width:100%;border-collapse:collapse;font-size:13px}
+.sc-tc-table th,.sc-tc-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle}
+.sc-tc-table th{background:var(--surface2);font-weight:600;font-size:12px;color:var(--text2);position:sticky;top:0;z-index:1}
+.sc-tc-table tbody tr:hover{background:var(--surface2)}
+.sc-col-max{font-size:10px;color:var(--text3);font-weight:500}
+.sc-cell-num{font-family:'Consolas',monospace;color:var(--text2);font-size:12px}
+.sc-cell-name{text-align:left;font-weight:500}
+.sc-cell-total{font-weight:600;color:var(--text)}
+.sc-cell-total-max{font-size:11px;color:var(--text3);font-weight:500}
+.sc-cell-empty{color:var(--text3)}
+.sc-cell-val{font-weight:500}
+.sc-sel{padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12.5px;width:100%;max-width:90px}
+.sc-num{padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12.5px;width:60px;text-align:center}
+.sc-cmt-in{padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:12px;width:100%;min-width:140px}
+.sc-cmt-in:focus{outline:none;border-color:var(--accent,#6366f1)}
+
+.sc-ov-table tfoot tr{background:var(--surface2)}
+.sc-ov-table tfoot td{font-weight:700;border-top:2px solid var(--border)}
+.sc-ov-avg-label{text-align:right!important;color:var(--text2)}
+.sc-ov-avg{color:var(--accent,#6366f1)}
+.sc-ov-pub{font-size:10px;margin-left:3px;opacity:.7}
+
+/* 모바일 */
+@media (max-width: 640px){
+  .sc-stu-card-total{font-size:17px}
+  .sc-stu-sum-num{font-size:30px}
+  .sc-tc-tabbar{padding:6px}
+  .sc-tc-tab{padding:7px 10px;font-size:12px}
+  .sc-tc-head{padding:11px 12px}
+  .sc-tc-table th,.sc-tc-table td{padding:5px 6px;font-size:12px}
+}

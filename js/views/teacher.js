@@ -32,6 +32,7 @@ function vTeacher(){
     ${tcIsInfo ? tab('🧩 퀴즈','coderead',TC_TAB,"setTC('coderead')") : ''}
     ${tcIsInfo ? tab('🤖 AI 코딩','aicode',TC_TAB,"setTC('aicode')") : ''}
     ${tcIsInfo ? tab('📝 수행평가','asmt',TC_TAB,"setTC('asmt')") : ''}
+    ${tcIsInfo ? tab('🏆 점수 관리','scores',TC_TAB,"setTC('scores')") : ''}
     ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
     ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
   </div>`;
@@ -53,6 +54,7 @@ function vTeacher(){
   else if(TC_TAB === 'coderead')   body = vTcCodeRead();
   else if(TC_TAB === 'aicode')     body = vTcAiCode();
   else if(TC_TAB === 'asmt')       body = vTcAssessment();
+  else if(TC_TAB === 'scores')     body = vTcScores();
   else if(TC_TAB === 'curriculum') body = vTcCurriculum();
   else if(TC_TAB === 'settings')   body = vTcSettings();
 
@@ -93,6 +95,22 @@ function setTC(t){
     ]).then(([subs, scores]) => {
       ASMT_ALL_SUBS = subs || {};
       ASMT_ALL_SCORES = scores || {};
+      render();
+    });
+  } else if(t === 'scores' && TC_CLS){
+    // 🏆 점수 관리 — 공개 토글 + 모든 수행평가 점수 한번에 로드
+    SC_TC_ASMT = SC_TC_ASMT || 'bigdata';
+    SC_SAVING_SNUM = null;
+    Promise.all([
+      loadAsmtPublished(TC_CLS.id),
+      loadAllAsmtScores(TC_CLS.id),                 // PET병(legacy)
+      loadAllAsmtScoresExt(TC_CLS.id, 'bigdata'),
+      loadAllAsmtScoresExt(TC_CLS.id, 'aicode'),
+    ]).then(([pub, pet, big, ai]) => {
+      SC_PUBLISHED[TC_CLS.id] = pub;
+      ASMT_ALL_SCORES = pet || {};
+      SC_BIGDATA_SCORES = big || {};
+      SC_AICODE_SCORES = ai || {};
       render();
     });
   } else if(t === 'coderead' && TC_CLS){

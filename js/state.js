@@ -130,6 +130,17 @@ const ASMT_RUBRIC = [
   { id: 'd', label: 'D. 입력값별 출력', max: 3 },
 ];
 
+// 🏆 점수 관리 (선생님) — 빅데이터/PET병/AI 통합 점수표
+let SC_TC_ASMT       = 'bigdata';   // 현재 선택된 수행평가 탭 ('bigdata'|'petbottle'|'aicode'|'overview')
+let SC_PUBLISHED     = {};          // { [cid]: { bigdata:bool, petbottle:bool, aicode:bool } } 캐시
+let SC_BIGDATA_SCORES = {};         // { [학번]: { prob,data,viz,insight, comment, scoredAt } } — 현재 반의 빅데이터 점수
+let SC_AICODE_SCORES  = {};         // { [학번]: {...} } — AI 점수 (구체화 시)
+let SC_SAVING_SNUM    = null;       // 저장 중인 학번 (UI 잠금용)
+
+// 📊 학생: 내 수행평가 점수
+let MY_SCORES        = null;        // { bigdata:..., petbottle:..., aicode:... } — 본인 점수 모음 (null=아직 로드 안 함)
+let MY_SCORES_PUB    = null;        // { bigdata:bool, petbottle:bool, aicode:bool } — 공개 상태
+
 // 🤖 AI 코딩 (자유 실습 메뉴) — 수행평가와 분리된 독립 기능
 // 백엔드: Cloudflare Worker (Gemini). 선생님이 on/off 토글로 노출 제어.
 let AIC_ACTIVE       = {};      // { [classId]: bool } 캐시

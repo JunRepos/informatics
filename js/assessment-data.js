@@ -195,3 +195,68 @@ const ASMT_GUIDE_DEF = {
     },
   },
 };
+
+/* ═══════════════════════════════════════
+   📊 수행평가 전체 목록 — ASMT_LIST
+
+   학생 '내 수행평가 점수' 탭과 선생님 '점수 관리' 탭에서 공통으로 사용.
+   여기에 메타정보(배점 영역·총점·채점 입력 방식·저장 위치)를 정의한다.
+
+   storage:
+     - 'legacy' : assessment/scores/{cid}/{학번}              (PET병 — 기존 화면에서 채점)
+     - 'ext'    : assessment/scoresExt/{cid}/{학번}/{asmtId}  (빅데이터/AI 등 외부 보고서형)
+
+   inputMode (점수 관리 UI에서):
+     - 'number'    : 0~max 숫자 입력 (PET병 — 기존 채점기 사용. '점수 관리' 탭은 보기만)
+     - 'rubric25'  : 0/2/3/4/5점 드롭다운 (빅데이터 루브릭과 동일)
+═══════════════════════════════════════ */
+const ASMT_LIST = [
+  {
+    id: 'bigdata',
+    icon: '📊',
+    title: '빅데이터로 문제 해결하기',
+    subtitle: '데이터 수집·분석·시각화 (외부 보고서 채점)',
+    total: 20,
+    parts: [
+      { key: 'prob',    label: '문제 정의',             max: 5 },
+      { key: 'data',    label: '데이터 선정 및 수집',   max: 5 },
+      { key: 'viz',     label: '데이터 시각화·분석',    max: 5 },
+      { key: 'insight', label: '시사점 도출',           max: 5 },
+    ],
+    inputMode: 'rubric25',
+    storage: 'ext',
+    note: '루브릭 기준 5/4/3/2점 중 선택 (미제출은 0점). 보고서·스프레드시트 채점.',
+  },
+  {
+    id: 'petbottle',
+    icon: '🌍',
+    title: '프로그래밍으로 문제 해결하기',
+    subtitle: '환경 동아리 PET병 수거 챌린지',
+    total: 25,
+    parts: [
+      { key: 'a', label: 'A. 문제 분석·추상화', max: 5 },
+      { key: 'b', label: 'B. 자료형 확인',      max: 5 },
+      { key: 'c', label: 'C. 코드 구현(빈칸)',  max: 12 },
+      { key: 'd', label: 'D. 입력값별 출력',    max: 3 },
+    ],
+    inputMode: 'number',
+    storage: 'legacy',
+    note: '응시·채점은 "📝 수행평가" 탭에서 진행. 이 화면에서는 점수 확인·공개 토글만.',
+  },
+  {
+    id: 'aicode',
+    icon: '🤖',
+    title: '인공지능으로 문제 해결하기',
+    subtitle: '준비 중',
+    total: 15,
+    parts: [],
+    inputMode: 'number',
+    storage: 'ext',
+    placeholder: true,
+    note: '세부 배점은 추후 확정. 현재는 자리만 표시됩니다.',
+  },
+];
+
+// 빠른 조회용
+function asmtById(id){ return ASMT_LIST.find(a => a.id === id) || null; }
+const ASMT_TOTAL_ALL = ASMT_LIST.reduce((s, a) => s + (a.total || 0), 0); // 60

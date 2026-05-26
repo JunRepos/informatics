@@ -23,6 +23,7 @@ function vStudent(){
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
     ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
+    ${isInfo ? tab('📊 내 점수','myscore',ST_TAB,"setST('myscore')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
 
@@ -39,6 +40,7 @@ function vStudent(){
   else if(ST_TAB === 'aicode')  body = vStAiCode();
   else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
+  else if(ST_TAB === 'myscore') body = vStMyScore();
   else if(ST_TAB === 'mine')    body = vStMine();
   return tabs + body;
 }
@@ -108,6 +110,18 @@ function setST(t){
         else if(sub.stage === 2){ ASMT_STAGE = 2; }
       }
       render();
+    });
+  } else if(t === 'myscore' && SEL_CLS && ST_USER){
+    // 📊 내 점수 — 공개 토글 + 내 점수 함께 로드
+    MY_SCORES = null; MY_SCORES_PUB = null;
+    render(); // 로딩 표시
+    Promise.all([
+      loadAsmtPublished(SEL_CLS.id),
+      loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
+    ]).then(([pub, scores]) => {
+      MY_SCORES_PUB = pub;
+      MY_SCORES = scores;
+      if(ST_TAB === 'myscore') render();
     });
   } else if(t === 'mission' && SEL_CLS && ST_USER){
     // 미션 그리드 카드의 진행률 표시용 — 한 번에 로드
