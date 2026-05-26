@@ -12,6 +12,24 @@ document.addEventListener('click', async e => {
   // 수행평가 탭 전환
   if(act === 'sc-tab'){
     SC_TC_ASMT = el.dataset.asmt;
+    // 탭 바뀌면 펼침 상태 초기화
+    SC_EXPAND_SNUM = null;
+    SC_EXPAND_ASMT = null;
+    render();
+    return;
+  }
+
+  // 학생 행 펼침 토글 (영역별 사유 입력)
+  if(act === 'sc-expand'){
+    const snum = el.dataset.snum;
+    const asmtId = el.dataset.asmt;
+    if(SC_EXPAND_SNUM === snum && SC_EXPAND_ASMT === asmtId){
+      SC_EXPAND_SNUM = null;
+      SC_EXPAND_ASMT = null;
+    } else {
+      SC_EXPAND_SNUM = snum;
+      SC_EXPAND_ASMT = asmtId;
+    }
     render();
     return;
   }
@@ -44,6 +62,17 @@ document.addEventListener('click', async e => {
 
     const map = asmtId === 'bigdata' ? SC_BIGDATA_SCORES : SC_AICODE_SCORES;
     const cur = map[snum] || {};
+    // 빈 사유는 reasons에서 제거 (Firebase null 저장 노이즈 방지)
+    if(cur.reasons){
+      const cleaned = {};
+      for(const k of Object.keys(cur.reasons)){
+        const v = (cur.reasons[k] || '').trim();
+        if(v) cleaned[k] = v;
+      }
+      if(Object.keys(cleaned).length) cur.reasons = cleaned;
+      else delete cur.reasons;
+    }
+    if(cur.comment != null && !cur.comment.trim()) delete cur.comment;
     SC_SAVING_SNUM = snum;
     render();
     try {
@@ -119,15 +148,30 @@ document.addEventListener('change', e => {
 
 // 코멘트 입력 — input 이벤트 (저장은 sc-save 버튼)
 document.addEventListener('input', e => {
-  const el = e.target.closest('[data-action="sc-cmt"]');
-  if(!el) return;
-  const snum = el.dataset.snum;
-  const asmtId = el.dataset.asmt;
-  if(!snum || !asmtId) return;
-  const map = asmtId === 'bigdata' ? SC_BIGDATA_SCORES : SC_AICODE_SCORES;
-  if(!map[snum]) map[snum] = {};
-  map[snum].comment = el.value;
-  // 코멘트 변경은 render 없이 메모리만 갱신 (저장 시 함께 반영)
+  // 종합 코멘트
+  const cmtEl = e.target.closest('[data-action="sc-cmt"]');
+  if(cmtEl){
+    const snum = cmtEl.dataset.snum;
+    const asmtId = cmtEl.dataset.asmt;
+    if(!snum || !asmtId) return;
+    const map = asmtId === 'bigdata' ? SC_BIGDATA_SCORES : SC_AICODE_SCORES;
+    if(!map[snum]) map[snum] = {};
+    map[snum].comment = cmtEl.value;
+    return; // 메모리만 갱신 (render 없음)
+  }
+  // 영역별 사유
+  const rsnEl = e.target.closest('[data-action="sc-reason"]');
+  if(rsnEl){
+    const snum = rsnEl.dataset.snum;
+    const asmtId = rsnEl.dataset.asmt;
+    const key = rsnEl.dataset.key;
+    if(!snum || !asmtId || !key) return;
+    const map = asmtId === 'bigdata' ? SC_BIGDATA_SCORES : SC_AICODE_SCORES;
+    if(!map[snum]) map[snum] = {};
+    if(!map[snum].reasons) map[snum].reasons = {};
+    map[snum].reasons[key] = rsnEl.value;
+    return; // 메모리만 갱신
+  }
 });
 
 /* ─────────────── CSV 내보내기 ─────────────── */

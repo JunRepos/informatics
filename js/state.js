@@ -133,9 +133,11 @@ const ASMT_RUBRIC = [
 // 🏆 점수 관리 (선생님) — 빅데이터/PET병/AI 통합 점수표
 let SC_TC_ASMT       = 'bigdata';   // 현재 선택된 수행평가 탭 ('bigdata'|'petbottle'|'aicode'|'overview')
 let SC_PUBLISHED     = {};          // { [cid]: { bigdata:bool, petbottle:bool, aicode:bool } } 캐시
-let SC_BIGDATA_SCORES = {};         // { [학번]: { prob,data,viz,insight, comment, scoredAt } } — 현재 반의 빅데이터 점수
+let SC_BIGDATA_SCORES = {};         // { [학번]: { prob,data,viz,insight, reasons:{key:str}, comment, scoredAt } } — 현재 반의 빅데이터 점수
 let SC_AICODE_SCORES  = {};         // { [학번]: {...} } — AI 점수 (구체화 시)
 let SC_SAVING_SNUM    = null;       // 저장 중인 학번 (UI 잠금용)
+let SC_EXPAND_SNUM    = null;       // 사유 입력 행 펼침 학번 (null=모두 접힘, 한 번에 하나만)
+let SC_EXPAND_ASMT    = null;       // 펼친 수행평가 ID (탭 바뀌면 자연스레 접힘)
 
 // 📊 학생: 내 수행평가 점수
 let MY_SCORES        = null;        // { bigdata:..., petbottle:..., aicode:... } — 본인 점수 모음 (null=아직 로드 안 함)

@@ -1760,3 +1760,44 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
   .sc-tc-head{padding:11px 12px}
   .sc-tc-table th,.sc-tc-table td{padding:5px 6px;font-size:12px}
 }
+
+/* ───── 영역별 점수 사유 (선생님 점수 관리 표 펼침) ───── */
+.sc-expand-btn{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:11px;font-weight:600;padding:1px 6px;cursor:pointer;margin-right:5px;width:22px;text-align:center;transition:all .15s}
+.sc-expand-btn:hover{background:var(--surface2);border-color:var(--accent,#6366f1);color:var(--text)}
+.sc-expand-btn.on{background:var(--accent,#6366f1);color:#fff;border-color:var(--accent,#6366f1)}
+.sc-reason-dot{display:inline-block;color:var(--ok,#16a34a);margin-left:5px;font-size:9px;vertical-align:middle}
+.sc-row.expanded{background:var(--surface2)!important}
+.sc-row.expanded td{border-bottom:none}
+.sc-expand-tr{background:var(--surface2)}
+.sc-expand-cell{padding:0!important;border-bottom:2px solid var(--border)!important}
+.sc-expand-box{padding:14px 18px;background:linear-gradient(180deg,rgba(99,102,241,.04) 0%,var(--surface2) 100%)}
+.sc-expand-head{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed var(--border)}
+.sc-reason-list{display:flex;flex-direction:column;gap:10px}
+.sc-reason-row{display:flex;flex-direction:column;gap:4px}
+.sc-reason-label{font-size:12px;font-weight:600;color:var(--text2)}
+.sc-reason-area{width:100%;min-height:55px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;box-sizing:border-box}
+.sc-reason-area:focus{outline:none;border-color:var(--accent,#6366f1)}
+.sc-reason-area[readonly]{background:var(--surface2);color:var(--text2);cursor:not-allowed}
+.sc-expand-foot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text3)}
+
+/* 학생 점수 카드의 영역 사유 */
+.sc-part-reason{margin-top:5px;padding:7px 10px;background:var(--surface2);border-left:3px solid var(--accent,#6366f1);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--text2);line-height:1.5}
+
+/* PET병 채점 화면 — 사유 칼럼 */
+.asmt-tcs-score-table{width:100%;border-collapse:collapse}
+.asmt-tcs-score-table th{background:var(--surface2);font-size:12px;font-weight:600;color:var(--text2);padding:7px 9px;text-align:left;border-bottom:1px solid var(--border)}
+.asmt-tcs-score-table td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+.asmt-sc-label{font-size:13px;font-weight:500;width:24%;min-width:130px;color:var(--text);padding-top:11px!important}
+.asmt-sc-cell{width:18%;min-width:110px;white-space:nowrap;padding-top:9px!important}
+.asmt-sc-input{width:60px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:13px;text-align:center}
+.asmt-sc-input:focus{outline:none;border-color:var(--accent,#6366f1)}
+.asmt-sc-max{font-size:12px;color:var(--text3);margin-left:4px}
+.asmt-sc-reason-cell{padding-top:5px!important}
+.asmt-sc-reason{width:100%;min-height:50px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;box-sizing:border-box}
+.asmt-sc-reason:focus{outline:none;border-color:var(--accent,#6366f1)}
+
+@media (max-width: 640px){
+  .sc-expand-box{padding:10px 12px}
+  .sc-reason-area{min-height:48px;font-size:12px}
+  .asmt-sc-reason{min-height:44px;font-size:12px}
+}

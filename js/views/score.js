@@ -91,17 +91,26 @@ function vStMyScore(){
   return summary + cards + `<div class="sc-stu-foot">💡 점수는 선생님이 채점·공개한 뒤 표시됩니다. 궁금한 점은 선생님께 직접 문의하세요.</div>`;
 }
 
+// 카드 헤더 (부제는 비어있으면 안 보임)
+function _vStMyScoreCardHead(asmt, totalLabel, tier){
+  const subBlock = asmt.subtitle ? `<span class="sc-stu-card-sub">· ${esc(asmt.subtitle)}</span>` : '';
+  const right = totalLabel
+    ? `<span class="sc-stu-card-total tier-${tier}">${totalLabel}</span>`
+    : `<span class="sc-stu-card-max">${asmt.total}점</span>`;
+  return `<div class="sc-stu-card-head">
+    <span class="sc-stu-card-icon">${asmt.icon}</span>
+    <span class="sc-stu-card-title">${esc(asmt.title)}</span>
+    ${subBlock}
+    ${right}
+  </div>`;
+}
+
 function _vStMyScoreCard(asmt, score, isPub){
   const tier = isPub ? _scTier(asmt, score) : 'closed';
-  const totalLabel = isPub ? _scLabel(asmt, score) : `?/${asmt.total}`;
 
   if(asmt.placeholder){
     return `<div class="sc-stu-card placeholder">
-      <div class="sc-stu-card-head">
-        <span class="sc-stu-card-icon">${asmt.icon}</span>
-        <span class="sc-stu-card-title">${esc(asmt.title)}</span>
-        <span class="sc-stu-card-max">${asmt.total}점</span>
-      </div>
+      ${_vStMyScoreCardHead(asmt, null, tier)}
       <div class="sc-stu-card-body">
         <div class="sc-stu-placeholder">🛠️ 준비 중인 수행평가입니다. 일정·세부 배점은 추후 안내됩니다.</div>
       </div>
@@ -110,12 +119,7 @@ function _vStMyScoreCard(asmt, score, isPub){
 
   if(!isPub){
     return `<div class="sc-stu-card closed">
-      <div class="sc-stu-card-head">
-        <span class="sc-stu-card-icon">${asmt.icon}</span>
-        <span class="sc-stu-card-title">${esc(asmt.title)}</span>
-        <span class="sc-stu-card-sub">· ${esc(asmt.subtitle)}</span>
-        <span class="sc-stu-card-max">${asmt.total}점</span>
-      </div>
+      ${_vStMyScoreCardHead(asmt, null, tier)}
       <div class="sc-stu-card-body">
         <div class="sc-stu-closed">🔒 아직 점수가 공개되지 않았어요. 선생님이 채점·공개하면 여기서 볼 수 있어요.</div>
       </div>
@@ -126,42 +130,38 @@ function _vStMyScoreCard(asmt, score, isPub){
   const t = _scTotal(asmt, score);
   if(t == null){
     return `<div class="sc-stu-card pending">
-      <div class="sc-stu-card-head">
-        <span class="sc-stu-card-icon">${asmt.icon}</span>
-        <span class="sc-stu-card-title">${esc(asmt.title)}</span>
-        <span class="sc-stu-card-sub">· ${esc(asmt.subtitle)}</span>
-        <span class="sc-stu-card-max">${asmt.total}점</span>
-      </div>
+      ${_vStMyScoreCardHead(asmt, null, tier)}
       <div class="sc-stu-card-body">
         <div class="sc-stu-pending">⏳ 공개됐지만 아직 채점되지 않았어요.</div>
       </div>
     </div>`;
   }
 
+  const reasons = (score && score.reasons) || {};
   const parts = asmt.parts.map(p => {
     const v = typeof score[p.key] === 'number' ? score[p.key] : null;
     const pct = v != null ? Math.min(100, Math.round(v / p.max * 100)) : 0;
     const cls = v == null ? 'none' : (v >= p.max ? 'full' : (v >= p.max * 0.75 ? 'good' : (v >= p.max * 0.5 ? 'mid' : 'low')));
+    const reason = (reasons[p.key] || '').trim();
+    const reasonHtml = reason
+      ? `<div class="sc-part-reason">💬 ${esc(reason).replace(/\n/g,'<br>')}</div>`
+      : '';
     return `<div class="sc-part">
       <div class="sc-part-head">
         <span class="sc-part-label">${esc(p.label)}</span>
         <span class="sc-part-val ${cls}">${v == null ? '–' : _scRound(v)}<span class="sc-part-max"> / ${p.max}</span></span>
       </div>
       <div class="sc-part-bar"><div class="sc-part-bar-fill ${cls}" style="width:${pct}%"></div></div>
+      ${reasonHtml}
     </div>`;
   }).join('');
 
   const commentBlock = score.comment
-    ? `<div class="sc-stu-comment"><b>💬 선생님 코멘트</b><div>${esc(score.comment).replace(/\n/g,'<br>')}</div></div>`
+    ? `<div class="sc-stu-comment"><b>💬 종합 코멘트</b><div>${esc(score.comment).replace(/\n/g,'<br>')}</div></div>`
     : '';
 
   return `<div class="sc-stu-card open tier-${tier}">
-    <div class="sc-stu-card-head">
-      <span class="sc-stu-card-icon">${asmt.icon}</span>
-      <span class="sc-stu-card-title">${esc(asmt.title)}</span>
-      <span class="sc-stu-card-sub">· ${esc(asmt.subtitle)}</span>
-      <span class="sc-stu-card-total tier-${tier}">${totalLabel}</span>
-    </div>
+    ${_vStMyScoreCardHead(asmt, _scLabel(asmt, score), tier)}
     <div class="sc-stu-card-body">
       <div class="sc-parts">${parts}</div>
       ${commentBlock}
@@ -206,10 +206,11 @@ function _vTcScoreAsmt(asmt){
   const pub = (SC_PUBLISHED[cid] || {})[asmt.id];
   const noStudent = STUDENTS.length === 0;
 
-  // 공개 토글 + 메타
+  // 공개 토글 + 메타 (부제는 비어있으면 안 보임)
+  const subHead = asmt.subtitle ? ` <span class="sc-tc-head-sub">· ${esc(asmt.subtitle)}</span>` : '';
   const header = `<div class="sc-tc-head">
     <div class="sc-tc-head-info">
-      <div class="sc-tc-head-title">${asmt.icon} ${esc(asmt.title)} <span class="sc-tc-head-sub">· ${esc(asmt.subtitle)}</span></div>
+      <div class="sc-tc-head-title">${asmt.icon} ${esc(asmt.title)}${subHead}</div>
       <div class="sc-tc-head-note">${esc(asmt.note || '')}</div>
     </div>
     <div class="sc-tc-pub-seg">
@@ -238,19 +239,28 @@ function _vTcScoreAsmt(asmt){
   // 헤더 컬럼: 학번, 이름, [영역들], 합계, 코멘트, 저장
   const colHead = asmt.parts.map(p => `<th>${esc(p.label)}<br><span class="sc-col-max">/${p.max}</span></th>`).join('');
 
+  const colSpanTotal = 2 + asmt.parts.length + 3; // 학번+이름+영역+합계+코멘트+저장
+
   const rows = STUDENTS.map(st => {
     const sc = scoresMap[st.number] || {};
     const total = _scTotal(asmt, sc);
     const cells = asmt.parts.map(p => _scInputCell(asmt, st.number, p, sc[p.key])).join('');
     const cmt = sc.comment || '';
     const saving = SC_SAVING_SNUM === st.number;
-    return `<tr>
+    const isExpanded = SC_EXPAND_SNUM === st.number && SC_EXPAND_ASMT === asmt.id;
+    const reasons = sc.reasons || {};
+    const hasAnyReason = asmt.parts.some(p => (reasons[p.key] || '').trim());
+
+    const mainRow = `<tr class="sc-row ${isExpanded ? 'expanded' : ''}">
       <td class="sc-cell-num">${esc(st.number)}</td>
-      <td class="sc-cell-name">${esc(st.name)}</td>
+      <td class="sc-cell-name">
+        <button class="sc-expand-btn ${isExpanded ? 'on' : ''}" data-action="sc-expand" data-snum="${esc(st.number)}" data-asmt="${asmt.id}" title="${isExpanded ? '접기' : '영역별 사유 입력/보기'}">${isExpanded ? '▼' : '▶'}</button>
+        ${esc(st.name)}${hasAnyReason ? '<span class="sc-reason-dot" title="사유가 입력되어 있음">●</span>' : ''}
+      </td>
       ${cells}
       <td class="sc-cell-total">${total == null ? '–' : `<b>${_scRound(total)}</b><span class="sc-cell-total-max">/${asmt.total}</span>`}</td>
       <td class="sc-cell-cmt">
-        <input type="text" class="sc-cmt-in" data-action="sc-cmt" data-snum="${esc(st.number)}" data-asmt="${asmt.id}" value="${esc(cmt)}" placeholder="(선택) 학생 코멘트"/>
+        <input type="text" class="sc-cmt-in" data-action="sc-cmt" data-snum="${esc(st.number)}" data-asmt="${asmt.id}" value="${esc(cmt)}" placeholder="(선택) 종합 코멘트"/>
       </td>
       <td class="sc-cell-save">
         ${asmt.storage === 'legacy'
@@ -259,6 +269,31 @@ function _vTcScoreAsmt(asmt){
         }
       </td>
     </tr>`;
+
+    // 펼쳐진 사유 입력 행
+    if(!isExpanded) return mainRow;
+
+    const isLegacy = asmt.storage === 'legacy';
+    const reasonRows = asmt.parts.map(p => {
+      const reason = reasons[p.key] || '';
+      return `<div class="sc-reason-row">
+        <div class="sc-reason-label">${esc(p.label)}<span class="sc-col-max"> · /${p.max}</span></div>
+        <textarea class="sc-reason-area" data-action="sc-reason" data-snum="${esc(st.number)}" data-asmt="${asmt.id}" data-key="${p.key}" placeholder="이 영역 점수를 준 이유를 적어주세요 (학생에게도 공개됨)" ${isLegacy ? 'readonly' : ''}>${esc(reason)}</textarea>
+      </div>`;
+    }).join('');
+    const expandRow = `<tr class="sc-expand-tr">
+      <td colspan="${colSpanTotal}" class="sc-expand-cell">
+        <div class="sc-expand-box">
+          <div class="sc-expand-head">📝 ${esc(st.name)}(${esc(st.number)}) — 영역별 점수 사유</div>
+          <div class="sc-reason-list">${reasonRows}</div>
+          ${isLegacy
+            ? `<div class="sc-expand-foot">PET병 사유는 <b>📝 수행평가</b> 탭의 학생 상세 화면에서 입력하세요. 여기서는 조회만 가능합니다.</div>`
+            : `<div class="sc-expand-foot">사유는 <b>💾 저장</b> 버튼을 누르면 함께 반영됩니다.</div>`
+          }
+        </div>
+      </td>
+    </tr>`;
+    return mainRow + expandRow;
   }).join('');
 
   // 통계: 평균, 채점 완료 인원

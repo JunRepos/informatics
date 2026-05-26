@@ -378,12 +378,15 @@ function _vTcAsmtStudent(){
     cHtml = `<div class="asmt-tcs-cnote">아직 2단계(코드)에 진입하지 않았어요.</div>`;
   }
 
-  // 채점
+  // 채점 — 영역별 점수 + 사유 (학생 점수 화면에서 함께 노출됨)
+  const scReasons = (sc && sc.reasons) || {};
   const rubricRows = ASMT_RUBRIC.map(r => {
     const v = sc && typeof sc[r.id] === 'number' ? sc[r.id] : '';
+    const reason = scReasons[r.id] || '';
     return `<tr>
-      <td>${esc(r.label)}</td>
-      <td><input type="number" class="asmt-sc-input" data-rid="${r.id}" min="0" max="${r.max}" step="0.5" value="${v}"/> <span class="asmt-sc-max">/ ${r.max}</span></td>
+      <td class="asmt-sc-label">${esc(r.label)}</td>
+      <td class="asmt-sc-cell"><input type="number" class="asmt-sc-input" data-rid="${r.id}" min="0" max="${r.max}" step="0.5" value="${v}"/> <span class="asmt-sc-max">/ ${r.max}</span></td>
+      <td class="asmt-sc-reason-cell"><textarea class="asmt-sc-reason" data-rid="${r.id}" placeholder="이 영역 점수 사유 (학생에게 함께 공개됨)">${esc(reason)}</textarea></td>
     </tr>`;
   }).join('');
   const total = _asmtScoreTotal(sc);
@@ -406,7 +409,7 @@ function _vTcAsmtStudent(){
 
     <section class="asmt-tcs-sec asmt-tcs-score-sec">
       <div class="asmt-tcs-sec-head">⭐ 채점 (선생님 직접 입력)</div>
-      <table class="asmt-tcs-score-table"><thead><tr><th>평가요소</th><th>점수</th></tr></thead><tbody>${rubricRows}</tbody></table>
+      <table class="asmt-tcs-score-table"><thead><tr><th>평가요소</th><th>점수</th><th>사유 (학생에게 공개)</th></tr></thead><tbody>${rubricRows}</tbody></table>
       <div class="asmt-tcs-score-comment">
         <label>종합 코멘트 (선택 — 세특 작성 참고)</label>
         <textarea class="asmt-tcs-comment-area" placeholder="학생의 강점·약점·지도 방향 등">${esc(sc?.comment || '')}</textarea>

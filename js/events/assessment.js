@@ -337,8 +337,18 @@ async function _asmtSaveScore(){
     const v = parseFloat(inp.value);
     if(isFinite(v)) score[inp.dataset.rid] = v;
   });
+  // 영역별 사유 (비어있으면 제외)
+  const reasons = {};
+  document.querySelectorAll('.asmt-sc-reason').forEach(ta => {
+    const v = (ta.value || '').trim();
+    if(v) reasons[ta.dataset.rid] = v;
+  });
+  if(Object.keys(reasons).length) score.reasons = reasons;
   const commentEl = document.querySelector('.asmt-tcs-comment-area');
-  if(commentEl) score.comment = commentEl.value || '';
+  if(commentEl){
+    const cv = (commentEl.value || '').trim();
+    if(cv) score.comment = cv;
+  }
   try {
     await saveAsmtScore(TC_CLS.id, snum, score);
     ASMT_ALL_SCORES[snum] = { ...score, scoredAt: new Date().toISOString() };

@@ -231,7 +231,8 @@ const ASMT_LIST = [
     id: 'petbottle',
     icon: '🌍',
     title: '프로그래밍으로 문제 해결하기',
-    subtitle: '환경 동아리 PET병 수거 챌린지',
+    // subtitle 비움 — 실제 문제(부제)는 학생이 응시할 때만 노출
+    subtitle: '',
     total: 25,
     parts: [
       { key: 'a', label: 'A. 문제 분석·추상화', max: 5 },
