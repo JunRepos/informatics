@@ -1,3 +1,51 @@
+# 🔄 세션 핸드오프 (2026-05-26 갱신)
+
+## 🆕 2026-05-26 추가 작업 — 수행평가 점수 확인 탭
+
+3개 수행평가(빅데이터 20 / PET병 25 / AI 15 = **총 60점**)를 한 곳에서 조회·채점·공개 제어하는 신규 탭 추가, 배포됨 (commit `696e77f`).
+
+### 학생 — `📊 내 점수` 탭 (정보반만)
+- 공개된 수행평가만 세부 영역별 점수 + 막대 그래프로 표시
+- 선생님 코멘트, 채점일 표시
+- 점수 티어(만점/거의/중간/낮음)에 따른 색상 강조 (초록·파랑·주황·빨강)
+- 비공개·미채점·준비중 상태는 안내 카드만
+
+### 선생님 — `🏆 점수 관리` 탭 (정보반만)
+- **빅데이터 탭**: 학생 명단 표 + 영역별 5/4/3/2/0/– 드롭다운 + 코멘트 + 저장 버튼 + 통계(평균 등)
+- **PET병 탭**: 점수는 조회만, "채점 →" 버튼으로 기존 수행평가 화면으로 이동
+- **AI 탭**: placeholder ("아직 구체화 안 됨" 안내)
+- **종합 탭**: 학생별 3개 수행평가 합계 + 반 평균 + CSV 내보내기
+- 각 수행평가별 **공개/비공개 토글** (반 단위: 2-A/2-B 따로)
+
+### 데이터 모델
+- `assessment/scoresExt/{cid}/{학번}/{asmtId}` — 빅데이터/AI 점수 (신규 노드)
+- `assessment/published/{cid}/{asmtId}` — 공개 토글 (신규 노드, bool)
+- `assessment/scores/{cid}/{학번}` — PET병(legacy) 그대로 유지
+
+### 핵심 파일
+| 영역 | 파일 |
+|---|---|
+| **수행평가 메타** | `js/assessment-data.js` 의 `ASMT_LIST` (3개 정의) + `asmtById/ASMT_TOTAL_ALL` |
+| 점수 뷰 | `js/views/score.js` — `vStMyScore` / `vTcScores` |
+| 점수 이벤트 | `js/events/score.js` — `sc-tab` / `sc-publish` / `sc-save` / `sc-set` / `sc-cmt` / `sc-export-csv` / `sc-goto-pet` |
+| DB 함수 | `js/firebase.js` — `loadAsmtScoreExt/saveAsmtScoreExt/loadAllAsmtScoresExt/loadAsmtPublished/setAsmtPublished/loadMyAsmtScores` |
+| 상태 | `js/state.js` — `SC_TC_ASMT/SC_PUBLISHED/SC_BIGDATA_SCORES/SC_AICODE_SCORES/SC_SAVING_SNUM/MY_SCORES/MY_SCORES_PUB` |
+| 규칙 | `database.rules.json` — `assessment.scoresExt` + `assessment.published` 추가 |
+
+### ⚠️ 선생님이 해야 할 일 (펜딩)
+1. **Firebase Realtime Database 규칙 재게시** — 콘솔에 `database.rules.json` 통째 붙여넣기 + 게시
+   - 안 하면 빅데이터 점수 저장/공개 토글 모두 **PERMISSION_DENIED**
+   - 5월 22일자 펜딩(다중 파일/`classDate` 허용)이 아직 안 됐다면 함께 적용됨
+2. (기존) Storage CORS 적용
+3. (기존) 통합 가이드북 워드 한번 열어 확인
+
+### 다음 작업 후보
+- AI 수행평가 세부 배점 확정 시 `ASMT_LIST` 의 `aicode` 항목 채우기 + `placeholder:true` 제거
+- 학생 점수 변동 알림 (선택 사항 — 공개 시점에 학생 화면 dashboard에 칩 표시)
+- NEIS 입력용 CSV 포맷 조정 (현재는 일반 형식)
+
+---
+
 # 🔄 세션 핸드오프 (2026-05-22)
 
 > 새 세션을 열 때 이 문서 + `PROJECT_CONTEXT.md` + 메모리(MEMORY.md / curriculum_taught.md / assessment_redesign.md / feedback_deploy.md)만 읽으면 컨텍스트 복원 완료.
