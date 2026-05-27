@@ -43,11 +43,39 @@ document.addEventListener('click', async e => {
       await setAsmtPublished(TC_CLS.id, asmtId, on);
       if(!SC_PUBLISHED[TC_CLS.id]) SC_PUBLISHED[TC_CLS.id] = {};
       SC_PUBLISHED[TC_CLS.id][asmtId] = on;
+      // 점수 공개를 끄면 사유 공개도 자동으로 끔 (학생에게 사유만 보이는 일은 없도록)
+      if(!on && (SC_REASONS_PUB[TC_CLS.id] || {})[asmtId]){
+        await setAsmtReasonsPublished(TC_CLS.id, asmtId, false);
+        SC_REASONS_PUB[TC_CLS.id][asmtId] = false;
+      }
       toast(`${asmtById(asmtId)?.title || asmtId} 점수를 ${TC_CLS.label}에 ${on ? '📤 공개' : '🔒 비공개'} 처리했어요.`, 'ok');
       render();
     } catch(err){
       console.error(err);
       toast('공개 토글 실패: ' + (err.message || err), 'err');
+    }
+    return;
+  }
+
+  // 영역별 사유 공개 토글
+  if(act === 'sc-reasons-pub'){
+    const asmtId = el.dataset.asmt;
+    const on = el.dataset.on === '1';
+    if(!TC_CLS || !asmtId) return;
+    // 점수 공개 안 된 상태에선 사유만 공개 불가
+    if(on && !(SC_PUBLISHED[TC_CLS.id] || {})[asmtId]){
+      toast('먼저 점수를 공개해야 사유를 공개할 수 있어요.', 'err');
+      return;
+    }
+    try {
+      await setAsmtReasonsPublished(TC_CLS.id, asmtId, on);
+      if(!SC_REASONS_PUB[TC_CLS.id]) SC_REASONS_PUB[TC_CLS.id] = {};
+      SC_REASONS_PUB[TC_CLS.id][asmtId] = on;
+      toast(`${asmtById(asmtId)?.title || asmtId} 영역별 사유를 ${on ? '💬 공개' : '🔒 비공개'} 처리했어요.`, 'ok');
+      render();
+    } catch(err){
+      console.error(err);
+      toast('사유 공개 토글 실패: ' + (err.message || err), 'err');
     }
     return;
   }

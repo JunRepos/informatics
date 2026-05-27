@@ -103,11 +103,13 @@ function setTC(t){
     SC_SAVING_SNUM = null;
     Promise.all([
       loadAsmtPublished(TC_CLS.id),
+      loadAsmtReasonsPublished(TC_CLS.id),
       loadAllAsmtScores(TC_CLS.id),                 // PET병(legacy)
       loadAllAsmtScoresExt(TC_CLS.id, 'bigdata'),
       loadAllAsmtScoresExt(TC_CLS.id, 'aicode'),
-    ]).then(([pub, pet, big, ai]) => {
+    ]).then(([pub, rpub, pet, big, ai]) => {
       SC_PUBLISHED[TC_CLS.id] = pub;
+      SC_REASONS_PUB[TC_CLS.id] = rpub;
       ASMT_ALL_SCORES = pet || {};
       SC_BIGDATA_SCORES = big || {};
       SC_AICODE_SCORES = ai || {};

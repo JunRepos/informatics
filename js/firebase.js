@@ -473,6 +473,22 @@ async function setAsmtPublished(cid, asmtId, on){
   await db.ref(`assessment/published/${cid}/${asmtId}`).set(!!on);
 }
 
+// 영역별 사유 공개 토글 (점수 공개와 별개, 기본값 false)
+async function loadAsmtReasonsPublished(cid){
+  try {
+    const s = await db.ref(`assessment/reasonsPublished/${cid}`).get();
+    const v = s.exists() ? s.val() : {};
+    return { bigdata: !!v.bigdata, petbottle: !!v.petbottle, aicode: !!v.aicode };
+  } catch(err){
+    console.warn('[수행평가] 사유 공개 상태 로드 실패:', err.message || err);
+    return { bigdata: false, petbottle: false, aicode: false };
+  }
+}
+
+async function setAsmtReasonsPublished(cid, asmtId, on){
+  await db.ref(`assessment/reasonsPublished/${cid}/${asmtId}`).set(!!on);
+}
+
 // 학생용: 내 점수 전부 한 번에 (3개 수행평가)
 async function loadMyAsmtScores(cid, studentNum){
   // PET병(legacy) + 빅데이터/AI(ext) 합쳐서 반환

@@ -86,7 +86,8 @@ function vStMyScore(){
     </div>
   </div>`;
 
-  const cards = ASMT_LIST.map(a => _vStMyScoreCard(a, MY_SCORES[a.id], pub[a.id])).join('');
+  const reasonsPub = MY_REASONS_PUB || { bigdata:false, petbottle:false, aicode:false };
+  const cards = ASMT_LIST.map(a => _vStMyScoreCard(a, MY_SCORES[a.id], pub[a.id], reasonsPub[a.id])).join('');
 
   return summary + cards + `<div class="sc-stu-foot">💡 점수는 선생님이 채점·공개한 뒤 표시됩니다. 궁금한 점은 선생님께 직접 문의하세요.</div>`;
 }
@@ -105,7 +106,7 @@ function _vStMyScoreCardHead(asmt, totalLabel, tier){
   </div>`;
 }
 
-function _vStMyScoreCard(asmt, score, isPub){
+function _vStMyScoreCard(asmt, score, isPub, isReasonsPub){
   const tier = isPub ? _scTier(asmt, score) : 'closed';
 
   if(asmt.placeholder){
@@ -143,7 +144,8 @@ function _vStMyScoreCard(asmt, score, isPub){
     const pct = v != null ? Math.min(100, Math.round(v / p.max * 100)) : 0;
     const cls = v == null ? 'none' : (v >= p.max ? 'full' : (v >= p.max * 0.75 ? 'good' : (v >= p.max * 0.5 ? 'mid' : 'low')));
     const reason = (reasons[p.key] || '').trim();
-    const reasonHtml = reason
+    // 영역별 사유는 isReasonsPub가 true일 때만 학생에게 표시
+    const reasonHtml = (isReasonsPub && reason)
       ? `<div class="sc-part-reason">💬 ${esc(reason).replace(/\n/g,'<br>')}</div>`
       : '';
     return `<div class="sc-part">
@@ -181,9 +183,11 @@ function vTcScores(){
   const tabs = ASMT_LIST.map(a => {
     const isOn = SC_TC_ASMT === a.id;
     const pubOn = (SC_PUBLISHED[TC_CLS.id] || {})[a.id];
+    const rpubOn = (SC_REASONS_PUB[TC_CLS.id] || {})[a.id];
     return `<button class="sc-tc-tab ${isOn ? 'on' : ''}" data-action="sc-tab" data-asmt="${a.id}">
       ${a.icon} ${esc(a.title)} <span class="sc-tc-tab-max">${a.total}점</span>
-      ${pubOn ? '<span class="sc-tc-tab-pub" title="공개 중">📤</span>' : ''}
+      ${pubOn ? '<span class="sc-tc-tab-pub" title="점수 공개 중">📤</span>' : ''}
+      ${rpubOn ? '<span class="sc-tc-tab-pub" title="사유 공개 중">💬</span>' : ''}
     </button>`;
   }).join('');
   const overviewBtn = `<button class="sc-tc-tab ${SC_TC_ASMT === 'overview' ? 'on' : ''}" data-action="sc-tab" data-asmt="overview">
@@ -208,14 +212,28 @@ function _vTcScoreAsmt(asmt){
 
   // 공개 토글 + 메타 (부제는 비어있으면 안 보임)
   const subHead = asmt.subtitle ? ` <span class="sc-tc-head-sub">· ${esc(asmt.subtitle)}</span>` : '';
+  const reasonsPub = (SC_REASONS_PUB[cid] || {})[asmt.id];
+  const reasonsToggleDisabled = !pub;  // 점수 공개 안 됐으면 사유 토글 비활성
   const header = `<div class="sc-tc-head">
     <div class="sc-tc-head-info">
       <div class="sc-tc-head-title">${asmt.icon} ${esc(asmt.title)}${subHead}</div>
       <div class="sc-tc-head-note">${esc(asmt.note || '')}</div>
     </div>
-    <div class="sc-tc-pub-seg">
-      <button class="sc-tc-pub-btn ${!pub ? 'on' : ''}" data-action="sc-publish" data-asmt="${asmt.id}" data-on="0">🔒 비공개</button>
-      <button class="sc-tc-pub-btn ${pub ? 'on pub' : ''}" data-action="sc-publish" data-asmt="${asmt.id}" data-on="1">📤 공개 (${esc(TC_CLS.label)})</button>
+    <div class="sc-tc-toggles">
+      <div class="sc-tc-toggle-row">
+        <span class="sc-tc-toggle-label">점수</span>
+        <div class="sc-tc-pub-seg">
+          <button class="sc-tc-pub-btn ${!pub ? 'on' : ''}" data-action="sc-publish" data-asmt="${asmt.id}" data-on="0">🔒 비공개</button>
+          <button class="sc-tc-pub-btn ${pub ? 'on pub' : ''}" data-action="sc-publish" data-asmt="${asmt.id}" data-on="1">📤 공개 (${esc(TC_CLS.label)})</button>
+        </div>
+      </div>
+      <div class="sc-tc-toggle-row ${reasonsToggleDisabled ? 'disabled' : ''}" title="${reasonsToggleDisabled ? '점수를 먼저 공개해야 사유를 공개할 수 있어요' : ''}">
+        <span class="sc-tc-toggle-label">사유</span>
+        <div class="sc-tc-pub-seg">
+          <button class="sc-tc-pub-btn ${!reasonsPub ? 'on' : ''}" data-action="sc-reasons-pub" data-asmt="${asmt.id}" data-on="0" ${reasonsToggleDisabled ? 'disabled' : ''}>🔒 사유 비공개</button>
+          <button class="sc-tc-pub-btn ${reasonsPub ? 'on pub' : ''}" data-action="sc-reasons-pub" data-asmt="${asmt.id}" data-on="1" ${reasonsToggleDisabled ? 'disabled' : ''}>💬 사유 공개</button>
+        </div>
+      </div>
     </div>
   </div>`;
 

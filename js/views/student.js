@@ -112,14 +112,16 @@ function setST(t){
       render();
     });
   } else if(t === 'myscore' && SEL_CLS && ST_USER){
-    // 📊 내 점수 — 공개 토글 + 내 점수 함께 로드
-    MY_SCORES = null; MY_SCORES_PUB = null;
+    // 📊 내 점수 — 공개 토글 + 사유 공개 토글 + 내 점수 함께 로드
+    MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;
     render(); // 로딩 표시
     Promise.all([
       loadAsmtPublished(SEL_CLS.id),
+      loadAsmtReasonsPublished(SEL_CLS.id),
       loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
-    ]).then(([pub, scores]) => {
+    ]).then(([pub, rpub, scores]) => {
       MY_SCORES_PUB = pub;
+      MY_REASONS_PUB = rpub;
       MY_SCORES = scores;
       if(ST_TAB === 'myscore') render();
     });

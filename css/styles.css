@@ -1801,3 +1801,11 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
   .sc-reason-area{min-height:48px;font-size:12px}
   .asmt-sc-reason{min-height:44px;font-size:12px}
 }
+
+/* 점수 + 사유 공개 토글 두 줄 배치 */
+.sc-tc-toggles{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.sc-tc-toggle-row{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.sc-tc-toggle-row.disabled{opacity:.45}
+.sc-tc-toggle-label{font-size:11.5px;font-weight:600;color:var(--text2);min-width:26px;text-align:right}
+.sc-tc-pub-btn:disabled{cursor:not-allowed;opacity:.6}
+.sc-tc-pub-btn:disabled:hover{background:var(--surface)}
