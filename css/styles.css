@@ -1875,3 +1875,16 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
   .aia-card-icon{font-size:26px}
   .aia-card-title{font-size:14px}
 }
+
+/* AI 활동지 — 제출 관련 추가 스타일 */
+.aia-do-statusbar{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aia-submit-chip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 11px;border-radius:11px;letter-spacing:.3px}
+.aia-submit-chip.done{background:var(--ok,#16a34a);color:#fff}
+.aia-submit-chip.pending{background:#f59e0b;color:#fff}
+
+/* 한 줄 입력 필드 (rows=1) */
+.aia-field-input{padding:11px 14px!important;font-family:inherit;font-weight:600;font-size:14px}
+.aia-field-input:focus{background:rgba(99,102,241,.04)}
+
+/* foot 영역 (저장·제출 버튼) */
+.aia-do-foot{justify-content:flex-end}

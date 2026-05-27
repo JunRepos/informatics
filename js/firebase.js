@@ -585,11 +585,20 @@ async function loadAiaSubmission(cid, actId, studentNum){
   }
 }
 
-async function saveAiaSubmission(cid, actId, studentNum, answers){
-  await db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`).set({
-    answers: answers || {},
-    updatedAt: new Date().toISOString(),
-  });
+async function saveAiaSubmission(cid, actId, studentNum, answers, opts){
+  // opts.submit === true 면 제출 시각(submittedAt) 갱신, 아니면 기존 submittedAt 보존(자동저장).
+  const ref = db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`);
+  const now = new Date().toISOString();
+  const payload = { answers: answers || {}, updatedAt: now };
+  if(opts && opts.submit){
+    payload.submittedAt = now;
+  } else {
+    // 기존 submittedAt 보존
+    const cur = await ref.get();
+    if(cur.exists() && cur.val()?.submittedAt) payload.submittedAt = cur.val().submittedAt;
+  }
+  await ref.set(payload);
+  return payload;
 }
 
 async function loadAllAiaSubmissions(cid, actId){

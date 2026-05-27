@@ -35,9 +35,38 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 학생: 명시적 저장
+  // 학생: 명시적 임시 저장 (제출 시각 변경 안 함)
   if(act === 'aia-save'){
     await _aiaSaveNow();
+    return;
+  }
+
+  // 학생: 제출 (submittedAt 갱신)
+  if(act === 'aia-submit'){
+    if(!SEL_CLS || !ST_USER || !AIA_SEL) return;
+    if(AIA_SAVING) return;
+    // 작성된 답안이 있는지 확인 (다 빈 칸이면 제출 막기)
+    const hasAny = aiaFieldIds(AIA_SEL).some(fid => (AIA_ANSWERS[fid] || '').trim());
+    if(!hasAny){
+      toast('아직 작성된 내용이 없어요. 한 칸이라도 채운 뒤 제출해주세요.', 'err');
+      return;
+    }
+    const already = !!AIA_SUB?.submittedAt;
+    if(!confirm(already ? '이미 제출했어요. 다시 제출할까요? (현재 작성된 내용으로 갱신됩니다)' : '지금 작성한 내용으로 제출할까요? (제출 후에도 수정 가능합니다)')) return;
+    AIA_SAVING = 'submit';
+    if(AIA_SAVE_TIMER){ clearTimeout(AIA_SAVE_TIMER); AIA_SAVE_TIMER = null; }
+    render();
+    try {
+      const saved = await saveAiaSubmission(SEL_CLS.id, AIA_SEL.id, ST_USER.number, AIA_ANSWERS, { submit: true });
+      AIA_SUB = saved;
+      toast('📤 제출했어요!', 'ok');
+    } catch(err){
+      console.error(err);
+      toast('제출 실패: ' + (err.message || err), 'err');
+    } finally {
+      AIA_SAVING = false;
+      render();
+    }
     return;
   }
 
@@ -113,15 +142,15 @@ document.addEventListener('input', e => {
   AIA_SAVE_TIMER = setTimeout(() => { _aiaSaveNow(true); }, 1500);
 });
 
-// 저장 로직
+// 임시 저장 로직 (submittedAt 보존)
 async function _aiaSaveNow(silent){
   if(!SEL_CLS || !ST_USER || !AIA_SEL) return;
   if(AIA_SAVING) return;
-  AIA_SAVING = true;
+  AIA_SAVING = 'save';
   if(!silent) render();
   try {
-    await saveAiaSubmission(SEL_CLS.id, AIA_SEL.id, ST_USER.number, AIA_ANSWERS);
-    AIA_SUB = { answers: { ...AIA_ANSWERS }, updatedAt: new Date().toISOString() };
+    const saved = await saveAiaSubmission(SEL_CLS.id, AIA_SEL.id, ST_USER.number, AIA_ANSWERS);
+    AIA_SUB = saved;  // { answers, updatedAt, submittedAt? }
     if(!silent) toast('💾 저장됐어요', 'ok');
   } catch(err){
     console.error(err);
@@ -147,13 +176,14 @@ function _aiaExportCSV(){
       labels[sec.id] = sec.title;
     }
   }
-  const header = ['학번', '이름', ...fieldIds.map(fid => labels[fid] || fid), '마지막저장'];
+  const header = ['학번', '이름', ...fieldIds.map(fid => labels[fid] || fid), '제출시각', '마지막수정'];
   const rows = [header];
   for(const st of STUDENTS){
     const sub = AIA_ALL_SUBS[st.number];
     const ans = sub?.answers || {};
     const row = [st.number, st.name];
     for(const fid of fieldIds) row.push(ans[fid] || '');
+    row.push(sub?.submittedAt ? fmtDt(sub.submittedAt) : '');
     row.push(sub?.updatedAt ? fmtDt(sub.updatedAt) : '');
     rows.push(row);
   }

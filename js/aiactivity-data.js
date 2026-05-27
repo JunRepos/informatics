@@ -18,8 +18,17 @@ const AIA_LIST = [
     icon: '🎯',
     title: '실생활 및 진로 분야에서 필요한 지능 에이전트를 설계해보기',
     subtitle: '활동',
-    intro: '실생활 또는 본인의 진로 분야와 관련해 도움이 될 만한 지능 에이전트를 직접 설계해봅시다. 4요소(목표·환경·인식·학습 및 추론·행동)를 차근차근 채우고, 가장 도움이 될 사람도 함께 적어주세요.',
+    intro: '실생활 또는 본인의 진로 분야와 관련해 도움이 될 만한 지능 에이전트를 직접 설계해봅시다. 에이전트 이름과 간단 설명을 먼저 정한 뒤, 4요소(목표·환경·인식·학습 및 추론·행동)를 차근차근 채우고, 가장 도움이 될 사람도 함께 적어주세요.',
     sections: [
+      {
+        id: 'agentInfo',
+        title: '🤖 내 에이전트 소개',
+        type: 'card-fields',
+        fields: [
+          { id: 'agentName', icon: '🪪', label: '이 름',     placeholder: '예: 진로 도우미 봇',                                       rows: 1 },
+          { id: 'agentDesc', icon: '📝', label: '간단 설명', placeholder: '어떤 에이전트인지 한두 문장으로 소개해보세요.',           rows: 2 },
+        ],
+      },
       {
         id: 'fourElements',
         title: '내 진로 에이전트의 4요소 설계',
