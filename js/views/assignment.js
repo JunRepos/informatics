@@ -27,15 +27,10 @@ function vAssignDetail(){
       ${a.description ? `<div style="font-size:14px;color:var(--text2);white-space:pre-line;margin-bottom:14px;padding:12px;background:var(--surface2);border-radius:var(--r-sm)">${esc(a.description)}</div>` : ''}
       ${(()=>{
         const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl, path: a.filePath}] : [];
-        // 선생님이 학생 다운로드 잠금 토글을 켰으면 (학생만 다운로드 막힘 — 선생님은 모든 파일 다 받을 수 있음)
+        // 학생 다운로드가 잠긴 과제는 학생에게 첨부 파일 영역을 아예 표시하지 않음
+        // (선생님은 그대로 봄 — IS_TC 분기)
         const dlLocked = !!a.studentDownloadLocked && !IS_TC;
-        if(dlLocked && aFiles.length){
-          return aFiles.map(f => `<div class="file-card" style="opacity:.75">
-            <div class="file-icon">${fIcon(f.name)}</div>
-            <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">🔒 선생님이 다운로드를 잠갔어요</div></div>
-            <button class="btn-sm" disabled style="cursor:not-allowed">🔒 잠김</button>
-          </div>`).join('');
-        }
+        if(dlLocked) return '';
         return aFiles.map(f => `<div class="file-card">
           <div class="file-icon">${fIcon(f.name)}</div>
           <div class="file-info"><div class="file-name">${esc(f.name)}</div><div class="file-meta2">첨부파일</div></div>
