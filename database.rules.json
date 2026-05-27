@@ -47,7 +47,8 @@
           "fileUrl":     { ".validate": "newData.isString()" },
           "filePath":    { ".validate": "newData.isString()" },
           "classDate":   { ".validate": "newData.isString() || newData.val() === null" },
-          "files":       { ".validate": true }
+          "files":       { ".validate": true },
+          "studentDownloadLocked": { ".validate": "newData.isBoolean()" }
         }
       }
     },

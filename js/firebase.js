@@ -71,6 +71,12 @@ async function loadAssignments(cid){
       : b.createdAt.localeCompare(a.createdAt));
 }
 
+// ── 과제 학생 다운로드 잠금 토글 ──
+// assignments/{cid}/{aid}/studentDownloadLocked : bool
+async function setAssignDownloadLock(cid, aid, on){
+  await db.ref(`assignments/${cid}/${aid}/studentDownloadLocked`).set(!!on);
+}
+
 // ── 게시판 글 ──
 async function loadPosts(cid){
   const s = await db.ref(`posts/${cid}`).get();

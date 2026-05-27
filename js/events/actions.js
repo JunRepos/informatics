@@ -238,6 +238,26 @@ document.addEventListener('click', async e => {
     await loadAssignments(cid); render(); return;
   }
 
+  // 과제 학생 다운로드 잠금 토글
+  if(act.action === 'toggle-dl-lock'){
+    const cid = TC_CLS?.id; if(!cid) return;
+    const a = ASSIGNMENTS.find(x => x.id === act.aid);
+    if(!a) return;
+    const next = !a.studentDownloadLocked;
+    el.disabled = true;
+    try {
+      await setAssignDownloadLock(cid, act.aid, next);
+      a.studentDownloadLocked = next;
+      toast(`"${a.title}" 학생 다운로드를 ${next ? '🔒 잠궜어요' : '🔓 풀었어요'}.`, 'ok');
+      render();
+    } catch(err){
+      console.error(err);
+      toast('잠금 토글 실패: ' + (err.message || err), 'err');
+      el.disabled = false;
+    }
+    return;
+  }
+
   // 학생 비밀번호 초기화
   if(act.action === 'reset-st-pw'){
     const cid = TC_CLS?.id; if(!cid) return;

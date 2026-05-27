@@ -208,16 +208,21 @@ function vTcAssign(){
     const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl}] : [];
     const fileChip = aFiles.length ? `<span style="font-size:11px;color:var(--text3)">📎 ${aFiles.length}개 파일</span>` : '';
     const classDateStr = a.classDate ? `📅 ${fmtDay(a.classDate)}` : '';
+    const dlLocked = !!a.studentDownloadLocked;
+    const lockChip = aFiles.length
+      ? `<button class="btn-xs ${dlLocked ? 'btn-warn' : ''}" data-action="toggle-dl-lock" data-aid="${a.id}" title="${dlLocked ? '학생이 첨부 파일을 다운로드할 수 없음 (클릭하여 해제)' : '학생이 첨부 파일을 다운로드할 수 있음 (클릭하여 잠금)'}">${dlLocked ? '🔒 학생 잠금' : '🔓 학생 허용'}</button>`
+      : '';
     return `<div class="list-row">
       <div class="row-icon">📖</div>
       <div class="row-info">
-        <div class="row-title">${esc(a.title)}</div>
+        <div class="row-title">${esc(a.title)}${dlLocked ? ' <span class="chip chip-red" style="font-size:10px">🔒 학생 다운로드 잠금</span>' : ''}</div>
         <div class="row-meta">${classDateStr}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}${subCount ? ` · ${subCount}/${total}명 제출` : ''} ${fileChip}</div>
         <div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="row-right">
         ${a.dueDate ? dday(a.dueDate) : ''}
         ${aFiles.length ? `<button class="btn-xs btn-ok" data-action="dl-assign-files" data-aid="${a.id}">📥 파일</button>` : ''}
+        ${lockChip}
         <button class="btn-sm btn-p" data-action="view-status" data-aid="${a.id}">현황</button>
         <button class="btn-xs" data-action="edit-assign" data-aid="${a.id}">✏️</button>
         <button class="btn-xs btn-danger" data-action="del-assign" data-aid="${a.id}" data-atitle="${esc(a.title)}">삭제</button>
