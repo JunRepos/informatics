@@ -554,6 +554,54 @@ async function loadAllAicSessions(cid){
   }
 }
 
+// ── 🧠 AI 활동지 ──
+//   aiactivity/active/{cid}                    : bool — 메뉴 노출 토글
+//   aiactivity/submissions/{cid}/{actId}/{학번} : { answers, updatedAt }
+async function loadAiaActive(cid){
+  try {
+    const s = await db.ref(`aiactivity/active/${cid}`).get();
+    const on = s.exists() ? !!s.val() : false;
+    AIA_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[AI활동지] active 로드 실패:', err.message || err);
+    AIA_ACTIVE[cid] = false;
+    return false;
+  }
+}
+
+async function setAiaActive(cid, on){
+  await db.ref(`aiactivity/active/${cid}`).set(!!on);
+  AIA_ACTIVE[cid] = !!on;
+}
+
+async function loadAiaSubmission(cid, actId, studentNum){
+  try {
+    const s = await db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`).get();
+    return s.exists() ? s.val() : null;
+  } catch(err){
+    console.warn('[AI활동지] 제출 로드 실패:', err.message || err);
+    return null;
+  }
+}
+
+async function saveAiaSubmission(cid, actId, studentNum, answers){
+  await db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`).set({
+    answers: answers || {},
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+async function loadAllAiaSubmissions(cid, actId){
+  try {
+    const s = await db.ref(`aiactivity/submissions/${cid}/${actId}`).get();
+    return s.exists() ? s.val() : {};
+  } catch(err){
+    console.warn('[AI활동지] 전체 제출 로드 실패:', err.message || err);
+    return {};
+  }
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -568,7 +616,8 @@ async function loadAllClassData(cid){
     loadCodeReadings(cid),
     loadAsmtActive(cid),
     loadAsmtGuideActive(cid),
-    loadAicActive(cid)
+    loadAicActive(cid),
+    loadAiaActive(cid)
   ]);
 }
 

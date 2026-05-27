@@ -162,6 +162,17 @@ let AIC_TC_SEL_SNUM  = null;    // 선생님: 보고 있는 학생 학번
 const AIC_TURN_LIMIT = 40;      // 학생당 최대 메시지 수
 const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 
+// 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
+let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
+let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)
+let AIA_SEL         = null;     // 선택된 활동 객체 (학생: 풀이 중 / 선생님: 보고 있는 활동)
+let AIA_ANSWERS     = {};       // 학생: 작성 중 답안 { [fieldId]: value }
+let AIA_SUB         = null;     // 학생: 본인 제출 캐시 { answers, updatedAt }
+let AIA_SAVE_TIMER  = null;     // 학생: 자동 저장 debounce
+let AIA_SAVING      = false;    // 저장 중 표시
+let AIA_TC_SEL_SNUM = null;     // 선생님: 보고 있는 학생 학번
+let AIA_ALL_SUBS    = {};       // 선생님: { [학번]: submission } 전체 답안 캐시
+
 // ── 세션 저장/복원 (새로고침 시 로그인 유지) ──
 function saveSession(){
   const data = { VIEW, IS_TC, ST_USER, FORCE_PW, ST_TAB, TC_TAB, OJ_CODE, OJ_CUSTOM_STDIN };

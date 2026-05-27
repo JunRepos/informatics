@@ -363,6 +363,24 @@
       }
     },
 
+    // ── 🧠 AI 활동지 (인공지능 단원 학습지) ──
+    //   active/{cid}                       : bool — 메뉴 노출 토글
+    //   submissions/{cid}/{actId}/{학번}    : { answers:{...}, updatedAt }
+    "aiactivity": {
+      "active": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "submissions": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      }
+    },
+
     // ── 코드 읽기 학생 진도 ──
     "codeReadingProgress": {
       "$classId": {

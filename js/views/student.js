@@ -21,6 +21,7 @@ function vStudent(){
     ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
+    ${isInfo && AIA_ACTIVE[SEL_CLS?.id] ? tab('🧠 AI 활동지','aia',ST_TAB,"setST('aia')") : ''}
     ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${isInfo ? tab('📊 내 점수','myscore',ST_TAB,"setST('myscore')") : ''}
@@ -38,6 +39,7 @@ function vStudent(){
   else if(ST_TAB === 'oj')      body = vStOJ();
   else if(ST_TAB === 'coderead')body = vStCodeRead();
   else if(ST_TAB === 'aicode')  body = vStAiCode();
+  else if(ST_TAB === 'aia')     body = vStAiActivity();
   else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
   else if(ST_TAB === 'myscore') body = vStMyScore();
@@ -111,6 +113,14 @@ function setST(t){
       }
       render();
     });
+  } else if(t === 'aia' && SEL_CLS && ST_USER){
+    // 🧠 AI 활동지 — active 확인 + 목록으로 초기화
+    AIA_VIEW = 'list';
+    AIA_SEL = null;
+    AIA_ANSWERS = {};
+    AIA_SUB = null;
+    AIA_SAVING = false;
+    loadAiaActive(SEL_CLS.id).then(() => render());
   } else if(t === 'myscore' && SEL_CLS && ST_USER){
     // 📊 내 점수 — 공개 토글 + 사유 공개 토글 + 내 점수 함께 로드
     MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;
