@@ -29,16 +29,42 @@ function vStMl(){
   </div>` + sub + body;
 }
 
-/* ─────────────────── 지도학습 ─────────────────── */
+/* ─────────────────── 지도학습 (학생 주도 흐름) ───────────────────
+   Phase: pick → define → label → test → done
+       1. pick   : 데이터셋(과일/동물/표정) 고르기
+       2. define : 클래스 이름 자유 입력 (2~5개)
+       3. label  : 카드 그리드에서 클래스 칩 선택 → 카드 클릭 라벨링
+       4. test   : 별도 테스트 풀에서 학생이 카드 선택 → 모델 예측 → 👍/👎 판정
+       5. done   : 학생 판정 기준 정확도 + 헷갈린 케이스
+─────────────────────────────────────────────────────── */
+
+// 클래스용 색상 팔레트
+const ML_CLS_COLORS = [
+  { bg:'#fef2f2', border:'#ef4444', chip:'#dc2626' },
+  { bg:'#eff6ff', border:'#3b82f6', chip:'#2563eb' },
+  { bg:'#f0fdf4', border:'#22c55e', chip:'#16a34a' },
+  { bg:'#fffbeb', border:'#eab308', chip:'#ca8a04' },
+  { bg:'#faf5ff', border:'#a855f7', chip:'#9333ea' },
+];
+
+function _mlStepBar(curStep){
+  const steps = ['1. 데이터셋', '2. 클래스 정하기', '3. 라벨링', '4. 테스트'];
+  return `<div class="ml-stepbar">${steps.map((s, i) => {
+    const cls = i === curStep ? 'on' : (i < curStep ? 'done' : '');
+    return `<div class="ml-step ${cls}">${s}</div>`;
+  }).join('')}</div>`;
+}
 
 function _vStMlSupervised(){
-  if(ML_SUP_PHASE === 'pick'  || !ML_SUP_DATASET) return _vStMlSupPick();
-  if(ML_SUP_PHASE === 'learn') return _vStMlSupLearn();
-  if(ML_SUP_PHASE === 'test')  return _vStMlSupTest();
-  if(ML_SUP_PHASE === 'done')  return _vStMlSupDone();
+  if(ML_SUP_PHASE === 'pick'   || !ML_SUP_DATASET) return _vStMlSupPick();
+  if(ML_SUP_PHASE === 'define') return _vStMlSupDefine();
+  if(ML_SUP_PHASE === 'label')  return _vStMlSupLabel();
+  if(ML_SUP_PHASE === 'test')   return _vStMlSupTest();
+  if(ML_SUP_PHASE === 'done')   return _vStMlSupDone();
   return _vStMlSupPick();
 }
 
+/* Phase 1: 데이터셋 선택 */
 function _vStMlSupPick(){
   const cards = ML_DATASETS.map(d => {
     const previews = d.classes.map(c => `<span class="ml-pick-emoji">${c.emoji}</span>`).join('');
@@ -47,7 +73,7 @@ function _vStMlSupPick(){
       <div class="ml-pick-body">
         <div class="ml-pick-title">${esc(d.title)}</div>
         <div class="ml-pick-desc">${esc(d.desc)}</div>
-        <div class="ml-pick-emojis">${previews} <span class="ml-pick-cnt">· ${d.classes.length}종</span></div>
+        <div class="ml-pick-emojis">${previews}</div>
       </div>
       <div class="ml-pick-arrow">→</div>
     </div>`;
@@ -55,146 +81,247 @@ function _vStMlSupPick(){
 
   return `<div class="section">
     <div class="ml-intro">
-      <b>📚 지도학습</b>은 <u>정답이 있는 데이터</u>로 학습해서 새 데이터를 분류·예측하는 방식입니다.
-      예: "이 사진은 사과일까 바나나일까?"
+      <b>📚 지도학습</b>은 사람이 <u>정답(라벨)을 직접 알려주면서</u> 학습시키는 방식이에요.
+      직접 카드를 분류해서 모델을 가르쳐봐요!
     </div>
-    <div class="ml-stepbar">
-      <div class="ml-step on">1. 데이터셋 선택</div>
-      <div class="ml-step">2. 학습</div>
-      <div class="ml-step">3. 테스트</div>
-    </div>
-    <div class="sec-title">데이터셋을 골라봐요</div>
+    ${_mlStepBar(0)}
+    <div class="sec-title">어떤 데이터로 가르칠까요?</div>
     <div class="ml-pick-list">${cards}</div>
   </div>`;
 }
 
-function _vStMlSupLearn(){
+/* Phase 2: 클래스 이름 자유 입력 */
+function _vStMlSupDefine(){
   const ds = ML_SUP_DATASET;
-  const train = ML_SUP_TRAIN_DATA?.samples || [];
-
-  // 클래스별 샘플 카드 (대표 9장 정도씩)
-  const perClassShown = 9;
-  const classGroups = ds.classes.map(c => {
-    const ss = train.filter(s => s.classId === c.id).slice(0, perClassShown);
-    const thumbs = ss.map(s => `<img src="${s.dataUrl}" class="ml-thumb" alt="${esc(c.label)}"/>`).join('');
-    const total = train.filter(s => s.classId === c.id).length;
-    return `<div class="ml-cls-block">
-      <div class="ml-cls-head"><span class="ml-cls-emoji">${c.emoji}</span> <b>${esc(c.label)}</b> <span class="ml-cls-cnt">${total}장</span></div>
-      <div class="ml-thumbs">${thumbs}${total > perClassShown ? `<span class="ml-thumb-more">+${total - perClassShown}</span>` : ''}</div>
+  const rows = ML_SUP_CLASSES.map((c, i) => {
+    const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
+    return `<div class="ml-cls-row" style="border-left:4px solid ${col.border};background:${col.bg}">
+      <div class="ml-cls-dot" style="background:${col.chip}"></div>
+      <input type="text" class="ml-cls-input" data-action="ml-sup-cls-name" data-cid="${esc(c.id)}" value="${esc(c.name)}" placeholder="클래스 이름 (예: 강아지)" maxlength="20"/>
+      ${ML_SUP_CLASSES.length > 1
+        ? `<button class="ml-cls-del btn-xs" data-action="ml-sup-cls-del" data-cid="${esc(c.id)}" title="삭제">✕</button>`
+        : ''}
     </div>`;
   }).join('');
 
-  const trained = !!ML_SUP_TRAINED;
-  return `<div class="back-btn" data-action="ml-sup-back">← 다른 데이터셋 고르기</div>
-    <div class="ml-stepbar">
-      <div class="ml-step done">1. 데이터셋 선택</div>
-      <div class="ml-step on">2. 학습</div>
-      <div class="ml-step">3. 테스트</div>
-    </div>
+  const canAdd = ML_SUP_CLASSES.length < 5;
+  const valid = ML_SUP_CLASSES.length >= 2 && ML_SUP_CLASSES.every(c => c.name.trim().length > 0);
+
+  return `<div class="back-btn" data-action="ml-sup-back">← 데이터셋 다시 고르기</div>
+    ${_mlStepBar(1)}
     <div class="section">
-      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 학습용 데이터</div>
+      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 어떤 그룹으로 나눌까요?</div>
       <div class="ml-sub-explain">
-        클래스(정답)별로 묶인 이 이미지들을 모델(<b>KNN</b>)에 보여주면 학습 끝!
-        모델은 <b>"비슷하게 생긴 것 찾기"</b> 방식으로 새 이미지를 분류해요.
+        분류하고 싶은 <b>클래스 이름</b>을 자유롭게 정해주세요. (2~5개)<br>
+        나중에 카드를 보고 직접 라벨을 붙일 거예요. 정답이 정해진 게 아니라 <u>여러분이 정하는 거예요!</u>
       </div>
-      ${classGroups}
+      <div class="ml-cls-list">${rows}</div>
+      <div class="ml-cls-add-bar">
+        ${canAdd
+          ? '<button class="btn-sm" data-action="ml-sup-cls-add">+ 클래스 추가</button>'
+          : '<span style="color:var(--text3);font-size:12px">최대 5개까지</span>'}
+        <span class="ml-cls-cnt-msg">${ML_SUP_CLASSES.length}개 클래스</span>
+      </div>
     </div>
     <div class="ml-action-bar">
-      ${trained
-        ? `<div class="ml-trained-msg">🧠 학습 완료! 이제 테스트를 시작해봐요.</div>
-           <button class="btn-p" data-action="ml-sup-start-test">🧪 테스트 시작 →</button>`
-        : `<button class="btn-p" data-action="ml-sup-train">🧠 학습 시작</button>`}
+      <button class="btn-p" data-action="ml-sup-go-label" ${valid ? '' : 'disabled'}>라벨링 시작 →</button>
     </div>`;
 }
 
+/* Phase 3: 라벨링 */
+function _vStMlSupLabel(){
+  const ds = ML_SUP_DATASET;
+  const samples = ML_SUP_POOL.samples;
+
+  // 각 클래스에 부여된 라벨 수
+  const clsCnt = {};
+  ML_SUP_CLASSES.forEach(c => clsCnt[c.id] = 0);
+  Object.values(ML_SUP_LABELS).forEach(cid => { if(clsCnt[cid] != null) clsCnt[cid]++; });
+
+  const totalLabeled = Object.keys(ML_SUP_LABELS).length;
+  const totalSamples = samples.length;
+
+  // 클래스 칩 (선택 가능)
+  const chips = ML_SUP_CLASSES.map((c, i) => {
+    const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
+    const isActive = ML_SUP_ACTIVE_CLS === c.id;
+    return `<button class="ml-cls-chip ${isActive ? 'on' : ''}" data-action="ml-sup-cls-pick" data-cid="${esc(c.id)}"
+      style="${isActive ? `background:${col.chip};color:#fff;border-color:${col.chip}` : `background:${col.bg};border-color:${col.border};color:${col.chip}`}">
+      <span>${esc(c.name)}</span>
+      <span class="ml-cls-chip-cnt">${clsCnt[c.id]}</span>
+    </button>`;
+  }).join('');
+
+  // 카드 그리드
+  const cardHtml = samples.map((s, i) => {
+    const labeledCid = ML_SUP_LABELS[i];
+    const ci = labeledCid ? ML_SUP_CLASSES.findIndex(c => c.id === labeledCid) : -1;
+    const col = ci >= 0 ? ML_CLS_COLORS[ci % ML_CLS_COLORS.length] : null;
+    const styleBox = col ? `border-color:${col.border};box-shadow:0 0 0 2px ${col.border}33` : '';
+    const labelTag = col
+      ? `<div class="ml-card-label" style="background:${col.chip};color:#fff">${esc(ML_SUP_CLASSES.find(c => c.id === labeledCid).name)}</div>`
+      : '';
+    return `<div class="ml-label-card ${labeledCid ? 'labeled' : ''}" data-action="ml-sup-card-label" data-idx="${i}" style="${styleBox}">
+      <img src="${s.dataUrl}" alt=""/>
+      ${labelTag}
+    </div>`;
+  }).join('');
+
+  // 학습 시작 조건: 최소 각 클래스 3장씩 + 활성 클래스 있음 (체크 안 해도 됨 - 너무 빡빡)
+  // 간단히 클래스마다 최소 1장은 있어야 학습 가능
+  const allClassesHaveData = ML_SUP_CLASSES.every(c => clsCnt[c.id] >= 1);
+  const minPerClass = 3;
+  const isEnough = ML_SUP_CLASSES.every(c => clsCnt[c.id] >= minPerClass);
+  const trainHint = !allClassesHaveData
+    ? '모든 클래스에 카드를 1장 이상 붙여주세요.'
+    : (!isEnough ? `클래스마다 ${minPerClass}장 이상이면 더 똑똑해져요 (지금 부족한 클래스 있음)` : '');
+
+  return `<div class="back-btn" data-action="ml-sup-back-define">← 클래스 다시 정하기</div>
+    ${_mlStepBar(2)}
+    <div class="section">
+      <div class="sec-title">🏷️ 카드에 라벨 붙이기</div>
+      <div class="ml-sub-explain">
+        <b>① 위의 클래스 중 하나를 선택</b>하고 <b>② 그 클래스에 속하는 카드들을 클릭</b>해서 라벨을 붙이세요.<br>
+        다시 누르면 라벨이 해제돼요. 진행률: <b>${totalLabeled}/${totalSamples}</b>장 라벨됨.
+      </div>
+      <div class="ml-cls-chips">${chips}</div>
+      ${ML_SUP_ACTIVE_CLS
+        ? `<div class="ml-active-info">선택 모드: <b>${esc(ML_SUP_CLASSES.find(c => c.id === ML_SUP_ACTIVE_CLS).name)}</b> — 이 클래스에 속하는 카드를 클릭하세요</div>`
+        : `<div class="ml-active-info none">👆 먼저 위의 클래스 중 하나를 선택하세요</div>`}
+      <div class="ml-label-grid">${cardHtml}</div>
+    </div>
+    <div class="ml-action-bar">
+      ${trainHint ? `<div class="ml-train-hint">${trainHint}</div>` : ''}
+      <button class="btn-p" data-action="ml-sup-train" ${allClassesHaveData ? '' : 'disabled'}>🧠 학습하고 테스트하러 가기 →</button>
+    </div>`;
+}
+
+/* Phase 4: 테스트 — 별도 풀에서 학생이 카드 선택 */
 function _vStMlSupTest(){
   const ds = ML_SUP_DATASET;
-  const total = ML_SUP_TEST_DATA?.samples?.length || 0;
-  const idx = ML_SUP_TEST_IDX;
-  const cur = ML_SUP_TEST_DATA.samples[idx];
-  const lastResult = ML_SUP_LAST_RESULT;  // 직전에 본 카드의 예측 (없으면 null = 아직 안 본 새 카드)
-  const correctSoFar = ML_SUP_TEST_RESULTS.filter(r => r.ok).length;
+  const pool = ML_SUP_TEST_POOL.samples;
 
-  // 확률 막대
-  let probBars = '';
-  if(lastResult){
-    probBars = ds.classes.map(c => {
-      const p = lastResult.probs[c.id] || 0;
-      const isPred = lastResult.classId === c.id;
+  // 테스트 풀 그리드 (학생이 클릭하면 모델에 물어봄)
+  const judgedKeys = Object.keys(ML_SUP_TEST_JUDGED).map(k => parseInt(k));
+  const cardHtml = pool.map((s, i) => {
+    const j = ML_SUP_TEST_JUDGED[i];
+    let badge = '';
+    let extraCls = '';
+    if(j){
+      badge = j.judged === 'ok'
+        ? '<div class="ml-test-badge ok">👍</div>'
+        : '<div class="ml-test-badge ng">👎</div>';
+      extraCls = 'judged ' + (j.judged === 'ok' ? 'judged-ok' : 'judged-ng');
+    } else if(ML_SUP_TEST_PICK && ML_SUP_TEST_PICK.idx === i){
+      extraCls = 'picked';
+    }
+    return `<div class="ml-test-grid-card ${extraCls}" data-action="ml-sup-test-pick" data-idx="${i}">
+      <img src="${s.dataUrl}" alt=""/>
+      ${badge}
+    </div>`;
+  }).join('');
+
+  const okCnt = Object.values(ML_SUP_TEST_JUDGED).filter(j => j.judged === 'ok').length;
+  const ngCnt = Object.values(ML_SUP_TEST_JUDGED).filter(j => j.judged === 'ng').length;
+  const judgedCnt = okCnt + ngCnt;
+
+  // 현재 선택된 카드의 모델 예측 패널
+  let pickPanel = '<div class="ml-test-pick-empty">👆 위에서 카드를 클릭해 모델에게 물어보세요</div>';
+  if(ML_SUP_TEST_PICK){
+    const { sample, pred, idx } = ML_SUP_TEST_PICK;
+    const judged = ML_SUP_TEST_JUDGED[idx];
+    const probBars = ML_SUP_CLASSES.map((c, ci) => {
+      const p = pred.probs[c.id] || 0;
+      const col = ML_CLS_COLORS[ci % ML_CLS_COLORS.length];
+      const isPred = pred.classId === c.id;
       return `<div class="ml-prob-row ${isPred ? 'pred' : ''}">
-        <div class="ml-prob-label">${c.emoji} ${esc(c.label)}</div>
-        <div class="ml-prob-bar"><div class="ml-prob-fill" style="width:${(p * 100).toFixed(0)}%"></div></div>
+        <div class="ml-prob-label">${esc(c.name)}</div>
+        <div class="ml-prob-bar"><div class="ml-prob-fill" style="width:${(p * 100).toFixed(0)}%;background:${col.chip}"></div></div>
         <div class="ml-prob-pct">${(p * 100).toFixed(0)}%</div>
       </div>`;
     }).join('');
-  }
-
-  const verdict = lastResult
-    ? (lastResult.ok
-       ? `<div class="ml-verdict ok">🎉 정답! <b>${esc(lastResult.label)}</b> 맞췄어요</div>`
-       : `<div class="ml-verdict ng">❌ 헷갈렸네요. 모델은 <b>${esc(lastResult.label)}</b>로 봤는데, 정답은 <b>${esc(lastResult.trueLabel)}</b></div>`)
-    : '';
-
-  return `<div class="back-btn" data-action="ml-sup-back-learn">← 학습 화면으로</div>
-    <div class="ml-stepbar">
-      <div class="ml-step done">1. 데이터셋 선택</div>
-      <div class="ml-step done">2. 학습</div>
-      <div class="ml-step on">3. 테스트</div>
-    </div>
-    <div class="section">
-      <div class="sec-title">🧪 테스트 ${idx + 1} / ${total}  <span class="ml-test-meta">(맞춤: ${correctSoFar})</span></div>
-      <div class="ml-test-card">
-        <div class="ml-test-left">
-          <img src="${cur.dataUrl}" class="ml-test-img" alt="test"/>
-          <div class="ml-test-truth">진짜 정답: <b>${cur.emoji} ${esc(cur.label)}</b></div>
-        </div>
-        <div class="ml-test-right">
-          ${lastResult
-            ? `<div class="ml-test-q">이 이미지에 대해 모델이 예측한 결과:</div>${probBars}${verdict}
-               <button class="btn-p btn-sm" data-action="ml-sup-next" style="margin-top:10px">다음 →</button>`
-            : `<div class="ml-test-q">이 이미지를 모델은 뭐라고 판단할까?</div>
-               <button class="btn-p" data-action="ml-sup-predict">🤔 모델에게 물어보기</button>`}
+    pickPanel = `<div class="ml-test-pick">
+      <div class="ml-test-pick-img"><img src="${sample.dataUrl}" alt=""/></div>
+      <div class="ml-test-pick-right">
+        <div class="ml-test-q">모델의 예측:</div>
+        ${probBars}
+        <div class="ml-test-verdict-q">이 예측이 맞다고 생각해요?</div>
+        <div class="ml-test-judge-bar">
+          <button class="btn-sm ml-judge-ok ${judged?.judged === 'ok' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ok">👍 맞아!</button>
+          <button class="btn-sm ml-judge-ng ${judged?.judged === 'ng' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ng">👎 틀렸어</button>
         </div>
       </div>
     </div>`;
+  }
+
+  return `<div class="back-btn" data-action="ml-sup-back-label">← 라벨링 다시 하기</div>
+    ${_mlStepBar(3)}
+    <div class="section">
+      <div class="sec-title">🧪 모델 테스트  <span class="ml-test-meta">(판정: 👍 ${okCnt} · 👎 ${ngCnt})</span></div>
+      <div class="ml-sub-explain">
+        새로운 카드 풀이에요. 한 장씩 클릭하면 모델이 어떤 클래스라고 예측하는지 보여줘요.
+        예측이 <b>맞으면 👍, 틀리면 👎</b>를 눌러서 모델 성능을 평가해보세요.
+      </div>
+      <div class="ml-test-grid">${cardHtml}</div>
+      ${pickPanel}
+    </div>
+    <div class="ml-action-bar">
+      <span class="ml-test-progress">${judgedCnt}장 판정 / ${pool.length}장 중</span>
+      <button class="btn-p btn-sm" data-action="ml-sup-finish" ${judgedCnt >= 3 ? '' : 'disabled'}>결과 보기 →</button>
+    </div>`;
 }
 
+/* Phase 5: 결과 */
 function _vStMlSupDone(){
   const ds = ML_SUP_DATASET;
-  const results = ML_SUP_TEST_RESULTS;
-  const total = results.length;
-  const correct = results.filter(r => r.ok).length;
-  const acc = total ? (correct / total * 100).toFixed(1) : '0';
-  const tier = correct === total ? 'perfect' : (correct / total >= 0.7 ? 'good' : 'mid');
+  const judgeArr = Object.entries(ML_SUP_TEST_JUDGED).map(([idx, v]) => ({ idx: parseInt(idx), ...v }));
+  const total = judgeArr.length;
+  const correct = judgeArr.filter(r => r.judged === 'ok').length;
+  const wrong = judgeArr.filter(r => r.judged === 'ng');
+  const acc = total ? (correct / total * 100).toFixed(0) : '0';
+  const tier = total > 0 && correct === total ? 'perfect'
+             : (correct / total >= 0.7 ? 'good'
+             : (correct / total >= 0.4 ? 'mid' : 'low'));
 
-  // 헷갈린 케이스 갤러리
-  const wrongs = results.filter(r => !r.ok);
-  const wrongHtml = wrongs.length
-    ? wrongs.map(r => `<div class="ml-wrong-item">
-        <img src="${r.dataUrl}" class="ml-thumb-big"/>
-        <div class="ml-wrong-meta">
-          <div>진짜: <b>${esc(r.trueLabel)}</b></div>
-          <div>모델: <b style="color:var(--danger)">${esc(r.label)}</b></div>
-        </div>
-      </div>`).join('')
-    : '<div class="ml-perfect">🌟 헷갈린 케이스 없음! 완벽한 모델!</div>';
+  const wrongHtml = wrong.length
+    ? wrong.map(r => {
+        const s = ML_SUP_TEST_POOL.samples[r.idx];
+        const c = ML_SUP_CLASSES.find(c => c.id === r.pred.classId);
+        return `<div class="ml-wrong-item">
+          <img src="${s.dataUrl}" class="ml-thumb-big"/>
+          <div class="ml-wrong-meta">
+            <div>모델 예측: <b style="color:var(--danger)">${esc(c?.name || '?')}</b></div>
+            <div style="font-size:11px;color:var(--text3)">학생 판정: 👎 틀렸음</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="ml-perfect">🌟 모든 예측이 맞았다고 평가했어요!</div>';
+
+  const tipMsg = tier === 'perfect' ? '🎉 모델이 완벽하게 학습했네요! 라벨링을 잘했나봐요.' :
+                 tier === 'good'    ? '👍 잘 학습됐어요! 라벨링 데이터가 좋았네요.' :
+                 tier === 'mid'     ? '🤔 절반 정도만 맞췄어요. 라벨링한 카드가 너무 적거나, 비슷한 모양이 섞여있었을 수 있어요.' :
+                                       '😅 모델이 잘 못 맞췄네요. 라벨링을 더 정확하게 다시 해볼까요?';
+
+  const labelStats = ML_SUP_CLASSES.map((c, i) => {
+    const cnt = Object.values(ML_SUP_LABELS).filter(cid => cid === c.id).length;
+    const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
+    return `<div class="ml-stat-chip" style="background:${col.bg};color:${col.chip};border:1px solid ${col.border}">${esc(c.name)} ${cnt}장</div>`;
+  }).join('');
 
   return `<div class="section">
-    <div class="sec-title">${ds.icon} 테스트 결과</div>
+    <div class="sec-title">${ds.icon} 모델 평가 결과</div>
     <div class="ml-score-big ${tier}">
       <div class="ml-score-pct">${acc}<span style="font-size:24px">%</span></div>
-      <div class="ml-score-frac">${correct} / ${total} 맞춤</div>
+      <div class="ml-score-frac">${correct} / ${total} 맞췄다고 평가</div>
     </div>
-    <div class="ml-sub-explain">
-      ${tier === 'perfect' ? '🎉 모든 이미지를 정확히 분류했어요!' :
-        tier === 'good'    ? '👍 잘했어요! 대부분 맞췄네요.' :
-                             '🤔 헷갈리는 부분이 있었네요. 사람이 봐도 비슷해 보이는 경우들이 있어요.'}
-      KNN은 학습 데이터와 가장 비슷한 것을 찾는 방식이라 데이터가 많을수록 더 정확해져요.
-    </div>
-    <div class="sec-title" style="margin-top:14px">🔎 헷갈린 케이스</div>
+    <div class="ml-sub-explain">${tipMsg}</div>
+    <div class="sec-title" style="margin-top:14px">📋 내가 학습시킨 데이터</div>
+    <div class="ml-stat-row">${labelStats}</div>
+    <div class="sec-title" style="margin-top:14px">🔎 모델이 틀린 케이스</div>
     <div class="ml-wrong-list">${wrongHtml}</div>
     <div class="ml-action-bar">
-      <button class="btn-sm" data-action="ml-sup-restart">🔁 다시 테스트</button>
+      <button class="btn-sm" data-action="ml-sup-back-test">↩ 테스트 더 하기</button>
+      <button class="btn-sm" data-action="ml-sup-relabel">🔁 라벨링부터 다시</button>
       <button class="btn-p btn-sm" data-action="ml-sup-back">🆕 다른 데이터셋</button>
     </div>
   </div>`;

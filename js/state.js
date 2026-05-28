@@ -165,15 +165,20 @@ const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 // 🤖 기계학습 체험 (지도/비지도/강화) — 정의는 ml-data.js, 엔진은 ml-engine.js
 let ML_ACTIVE         = {};         // { [classId]: bool } 메뉴 노출 캐시
 let ML_TAB            = 'supervised'; // 'supervised'|'unsupervised'|'reinforce'
-// 지도학습 상태
-let ML_SUP_PHASE      = 'pick';     // 'pick'|'learn'|'test'|'done'
+// 지도학습 상태 (학생 주도 흐름)
+let ML_SUP_PHASE      = 'pick';     // 'pick'|'define'|'label'|'test'|'done'
 let ML_SUP_DATASET    = null;       // ML_DATASETS의 하나
-let ML_SUP_TRAIN_DATA = null;       // { samples, classes, def } — 학습 데이터
-let ML_SUP_TEST_DATA  = null;       // 테스트 데이터(다른 seed)
+let ML_SUP_POOL       = null;       // 학습 풀 { samples, classes, def } — 라벨링 대상
+let ML_SUP_TEST_POOL  = null;       // 별도 테스트 풀 (다른 seed)
+// 학생이 정의한 클래스: [{ id, name, color }]
+let ML_SUP_CLASSES    = [];
+let ML_SUP_ACTIVE_CLS = null;       // 현재 라벨링용으로 선택된 클래스 id
+// 라벨링 결과: { [sampleIdx]: classId }
+let ML_SUP_LABELS     = {};
 let ML_SUP_TRAINED    = false;
-let ML_SUP_TEST_IDX   = 0;
-let ML_SUP_TEST_RESULTS = [];       // [{ trueLabel, label, ok, dataUrl, probs }]
-let ML_SUP_LAST_RESULT = null;      // 직전 예측 결과 (다음 누르기 전)
+// 테스트 단계: 학생이 클릭한 카드 + 모델 예측 결과
+let ML_SUP_TEST_PICK  = null;       // { idx, sample, pred } - 현재 보고 있는 카드
+let ML_SUP_TEST_JUDGED = {};        // { [idx]: { pred, judged: 'ok'|'ng' } } - 학생 판정 누적
 // 비지도학습 상태
 let ML_UN_PHASE       = 'pick';     // 'pick'|'run'
 let ML_UN_DATASET     = null;

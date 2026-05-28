@@ -2024,3 +2024,72 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-tc-ds-desc{font-size:12px;color:var(--text2);margin-bottom:5px}
 .ml-tc-ds-cls{font-size:12px}
 
+/* ── 지도학습 신규 흐름 ── */
+/* Phase 2: 클래스 정의 */
+.ml-cls-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.ml-cls-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--surface)}
+.ml-cls-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.ml-cls-input{flex:1;border:1px solid var(--border);background:var(--surface);border-radius:6px;padding:8px 11px;font-size:14px;font-weight:600;color:var(--text)}
+.ml-cls-input:focus{outline:none;border-color:#6366f1;background:rgba(99,102,241,.04)}
+.ml-cls-del{flex-shrink:0;background:transparent!important;color:var(--text3)!important;border:1px solid var(--border)!important}
+.ml-cls-del:hover{background:rgba(239,68,68,.1)!important;color:#dc2626!important;border-color:#dc2626!important}
+.ml-cls-add-bar{display:flex;align-items:center;gap:10px;margin-top:8px}
+.ml-cls-cnt-msg{margin-left:auto;font-size:12px;color:var(--text3)}
+
+/* Phase 3: 클래스 칩 (활성 라벨 선택) */
+.ml-cls-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:10px;background:var(--surface2);border-radius:8px;position:sticky;top:6px;z-index:5}
+.ml-cls-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:18px;border:2px solid;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.ml-cls-chip:hover{transform:translateY(-1px)}
+.ml-cls-chip.on{box-shadow:0 2px 8px rgba(99,102,241,.3)}
+.ml-cls-chip-cnt{font-size:11px;font-weight:700;background:rgba(255,255,255,.4);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center}
+.ml-cls-chip.on .ml-cls-chip-cnt{background:rgba(255,255,255,.3);color:#fff}
+
+.ml-active-info{padding:8px 12px;border-radius:6px;background:rgba(99,102,241,.1);font-size:13px;margin-bottom:10px}
+.ml-active-info.none{background:rgba(245,158,11,.1);color:#92400e}
+
+/* Phase 3: 라벨링 카드 그리드 */
+.ml-label-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:10px}
+.ml-label-card{position:relative;aspect-ratio:1;border:2px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;transition:all .15s;overflow:hidden}
+.ml-label-card:hover{transform:scale(1.05);z-index:2}
+.ml-label-card img{width:100%;height:100%;object-fit:contain;display:block}
+.ml-label-card.labeled{box-shadow:0 0 0 1px rgba(0,0,0,.05)}
+.ml-card-label{position:absolute;bottom:0;left:0;right:0;font-size:10px;font-weight:700;padding:2px 4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.ml-train-hint{flex:1;font-size:12px;color:var(--text2);padding:6px 10px;background:var(--surface2);border-radius:6px}
+
+/* Phase 4: 테스트 풀 그리드 */
+.ml-test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin:10px 0}
+.ml-test-grid-card{position:relative;aspect-ratio:1;border:2px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;transition:all .15s;overflow:hidden}
+.ml-test-grid-card:hover{transform:scale(1.08);border-color:#6366f1;z-index:2}
+.ml-test-grid-card img{width:100%;height:100%;object-fit:contain;display:block}
+.ml-test-grid-card.picked{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.3);transform:scale(1.06)}
+.ml-test-grid-card.judged-ok{border-color:#22c55e;background:rgba(34,197,94,.06)}
+.ml-test-grid-card.judged-ng{border-color:#ef4444;background:rgba(239,68,68,.06)}
+.ml-test-badge{position:absolute;top:-5px;right:-5px;font-size:14px;background:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid;line-height:1}
+.ml-test-badge.ok{border-color:#22c55e}
+.ml-test-badge.ng{border-color:#ef4444}
+
+/* Phase 4: 선택된 카드 상세 패널 */
+.ml-test-pick{display:flex;gap:16px;padding:14px;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.03));border:1px solid rgba(99,102,241,.25);border-radius:10px;margin-top:10px;flex-wrap:wrap}
+.ml-test-pick-img{flex:0 0 auto}
+.ml-test-pick-img img{width:120px;height:120px;border:2px solid var(--border);border-radius:10px;background:#fff;object-fit:contain;box-shadow:var(--sh)}
+.ml-test-pick-right{flex:1;min-width:220px}
+.ml-test-pick-empty{padding:18px;text-align:center;background:var(--surface2);border:2px dashed var(--border);border-radius:10px;color:var(--text3);font-size:13px;margin-top:10px}
+
+.ml-test-verdict-q{font-size:13px;font-weight:600;margin:10px 0 6px}
+.ml-test-judge-bar{display:flex;gap:8px}
+.ml-judge-ok,.ml-judge-ng{padding:8px 16px!important;border:2px solid!important;background:var(--surface)!important;font-weight:700!important}
+.ml-judge-ok{border-color:#22c55e!important;color:#16a34a!important}
+.ml-judge-ng{border-color:#ef4444!important;color:#dc2626!important}
+.ml-judge-ok:hover{background:rgba(34,197,94,.1)!important}
+.ml-judge-ng:hover{background:rgba(239,68,68,.1)!important}
+.ml-judge-ok.on{background:#22c55e!important;color:#fff!important}
+.ml-judge-ng.on{background:#ef4444!important;color:#fff!important}
+
+.ml-test-progress{flex:1;font-size:13px;color:var(--text2)}
+
+/* Phase 5: 결과 stat chip */
+.ml-stat-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ml-stat-chip{padding:4px 11px;border-radius:14px;font-size:12px;font-weight:600}
+.ml-score-big.low{background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(239,68,68,.03));border:2px solid #ef4444}
+
