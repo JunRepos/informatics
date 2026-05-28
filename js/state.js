@@ -166,11 +166,11 @@ const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 let ML_ACTIVE         = {};         // { [classId]: bool } 메뉴 노출 캐시
 let ML_TAB            = 'supervised'; // 'supervised'|'unsupervised'|'reinforce'
 // 지도학습 상태 (학생 주도 흐름)
-let ML_SUP_PHASE      = 'pick';     // 'pick'|'define'|'label'|'test'|'done'
+let ML_SUP_PHASE      = 'pick';     // 'pick'|'label'|'test'|'done'
 let ML_SUP_DATASET    = null;       // ML_DATASETS의 하나
 let ML_SUP_POOL       = null;       // 학습 풀 { samples, classes, def } — 라벨링 대상
 let ML_SUP_TEST_POOL  = null;       // 별도 테스트 풀 (다른 seed)
-// 학생이 정의한 클래스: [{ id, name, color }]
+// 학생이 정의한 클래스: [{ id, name, editing }]
 let ML_SUP_CLASSES    = [];
 let ML_SUP_ACTIVE_CLS = null;       // 현재 라벨링용으로 선택된 클래스 id
 // 라벨링 결과: { [sampleIdx]: classId }

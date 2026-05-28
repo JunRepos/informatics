@@ -48,7 +48,7 @@ const ML_CLS_COLORS = [
 ];
 
 function _mlStepBar(curStep){
-  const steps = ['1. 데이터셋', '2. 클래스 정하기', '3. 라벨링', '4. 테스트'];
+  const steps = ['1. 데이터셋', '2. 그룹 만들고 라벨링', '3. 테스트'];
   return `<div class="ml-stepbar">${steps.map((s, i) => {
     const cls = i === curStep ? 'on' : (i < curStep ? 'done' : '');
     return `<div class="ml-step ${cls}">${s}</div>`;
@@ -56,11 +56,10 @@ function _mlStepBar(curStep){
 }
 
 function _vStMlSupervised(){
-  if(ML_SUP_PHASE === 'pick'   || !ML_SUP_DATASET) return _vStMlSupPick();
-  if(ML_SUP_PHASE === 'define') return _vStMlSupDefine();
-  if(ML_SUP_PHASE === 'label')  return _vStMlSupLabel();
-  if(ML_SUP_PHASE === 'test')   return _vStMlSupTest();
-  if(ML_SUP_PHASE === 'done')   return _vStMlSupDone();
+  if(ML_SUP_PHASE === 'pick' || !ML_SUP_DATASET) return _vStMlSupPick();
+  if(ML_SUP_PHASE === 'label') return _vStMlSupLabel();
+  if(ML_SUP_PHASE === 'test')  return _vStMlSupTest();
+  if(ML_SUP_PHASE === 'done')  return _vStMlSupDone();
   return _vStMlSupPick();
 }
 
@@ -90,45 +89,7 @@ function _vStMlSupPick(){
   </div>`;
 }
 
-/* Phase 2: 클래스 이름 자유 입력 */
-function _vStMlSupDefine(){
-  const ds = ML_SUP_DATASET;
-  const rows = ML_SUP_CLASSES.map((c, i) => {
-    const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
-    return `<div class="ml-cls-row" style="border-left:4px solid ${col.border};background:${col.bg}">
-      <div class="ml-cls-dot" style="background:${col.chip}"></div>
-      <input type="text" class="ml-cls-input" data-action="ml-sup-cls-name" data-cid="${esc(c.id)}" value="${esc(c.name)}" placeholder="클래스 이름 (예: 강아지)" maxlength="20"/>
-      ${ML_SUP_CLASSES.length > 1
-        ? `<button class="ml-cls-del btn-xs" data-action="ml-sup-cls-del" data-cid="${esc(c.id)}" title="삭제">✕</button>`
-        : ''}
-    </div>`;
-  }).join('');
-
-  const canAdd = ML_SUP_CLASSES.length < 5;
-  const valid = ML_SUP_CLASSES.length >= 2 && ML_SUP_CLASSES.every(c => c.name.trim().length > 0);
-
-  return `<div class="back-btn" data-action="ml-sup-back">← 데이터셋 다시 고르기</div>
-    ${_mlStepBar(1)}
-    <div class="section">
-      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 어떤 그룹으로 나눌까요?</div>
-      <div class="ml-sub-explain">
-        분류하고 싶은 <b>클래스 이름</b>을 자유롭게 정해주세요. (2~5개)<br>
-        나중에 카드를 보고 직접 라벨을 붙일 거예요. 정답이 정해진 게 아니라 <u>여러분이 정하는 거예요!</u>
-      </div>
-      <div class="ml-cls-list">${rows}</div>
-      <div class="ml-cls-add-bar">
-        ${canAdd
-          ? '<button class="btn-sm" data-action="ml-sup-cls-add">+ 클래스 추가</button>'
-          : '<span style="color:var(--text3);font-size:12px">최대 5개까지</span>'}
-        <span class="ml-cls-cnt-msg">${ML_SUP_CLASSES.length}개 클래스</span>
-      </div>
-    </div>
-    <div class="ml-action-bar">
-      <button class="btn-p" data-action="ml-sup-go-label" ${valid ? '' : 'disabled'}>라벨링 시작 →</button>
-    </div>`;
-}
-
-/* Phase 3: 라벨링 */
+/* Phase 2: 한 화면에서 그룹 만들기 + 라벨링 */
 function _vStMlSupLabel(){
   const ds = ML_SUP_DATASET;
   const samples = ML_SUP_POOL.samples;
@@ -141,16 +102,26 @@ function _vStMlSupLabel(){
   const totalLabeled = Object.keys(ML_SUP_LABELS).length;
   const totalSamples = samples.length;
 
-  // 클래스 칩 (선택 가능)
+  // 클래스 칩 (이름 표시/편집/삭제 모드 통합)
   const chips = ML_SUP_CLASSES.map((c, i) => {
     const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
     const isActive = ML_SUP_ACTIVE_CLS === c.id;
-    return `<button class="ml-cls-chip ${isActive ? 'on' : ''}" data-action="ml-sup-cls-pick" data-cid="${esc(c.id)}"
-      style="${isActive ? `background:${col.chip};color:#fff;border-color:${col.chip}` : `background:${col.bg};border-color:${col.border};color:${col.chip}`}">
-      <span>${esc(c.name)}</span>
-      <span class="ml-cls-chip-cnt">${clsCnt[c.id]}</span>
-    </button>`;
+    const inner = c.editing
+      ? `<input type="text" class="ml-chip-input"
+           data-action="ml-sup-cls-name" data-cid="${esc(c.id)}"
+           value="${esc(c.name)}" placeholder="그룹 이름" maxlength="20"
+           autofocus/>`
+      : `<span class="ml-chip-name" data-action="ml-sup-cls-edit" data-cid="${esc(c.id)}" title="이름 수정">${esc(c.name || '(이름 없음)')}</span>
+         <span class="ml-cls-chip-cnt">${clsCnt[c.id]}</span>
+         <button class="ml-chip-del" data-action="ml-sup-cls-del" data-cid="${esc(c.id)}" title="그룹 삭제">✕</button>`;
+    return `<div class="ml-cls-chip ${isActive ? 'on' : ''} ${c.editing ? 'editing' : ''}"
+        data-action="${c.editing ? '' : 'ml-sup-cls-pick'}" data-cid="${esc(c.id)}"
+        style="${isActive ? `background:${col.chip};color:#fff;border-color:${col.chip}` : `background:${col.bg};border-color:${col.border};color:${col.chip}`}">
+      ${inner}
+    </div>`;
   }).join('');
+
+  const canAdd = ML_SUP_CLASSES.length < 5;
 
   // 카드 그리드
   const cardHtml = samples.map((s, i) => {
@@ -167,32 +138,45 @@ function _vStMlSupLabel(){
     </div>`;
   }).join('');
 
-  // 학습 시작 조건: 최소 각 클래스 3장씩 + 활성 클래스 있음 (체크 안 해도 됨 - 너무 빡빡)
-  // 간단히 클래스마다 최소 1장은 있어야 학습 가능
-  const allClassesHaveData = ML_SUP_CLASSES.every(c => clsCnt[c.id] >= 1);
-  const minPerClass = 3;
-  const isEnough = ML_SUP_CLASSES.every(c => clsCnt[c.id] >= minPerClass);
-  const trainHint = !allClassesHaveData
-    ? '모든 클래스에 카드를 1장 이상 붙여주세요.'
-    : (!isEnough ? `클래스마다 ${minPerClass}장 이상이면 더 똑똑해져요 (지금 부족한 클래스 있음)` : '');
+  // 학습 가능 조건
+  const namedClasses = ML_SUP_CLASSES.filter(c => (c.name || '').trim());
+  const allHaveData = namedClasses.length >= 2 && namedClasses.every(c => clsCnt[c.id] >= 1);
+  let trainHint = '';
+  if(ML_SUP_CLASSES.length === 0){
+    trainHint = '👆 먼저 그룹을 만들고 카드들을 분류해보세요.';
+  } else if(namedClasses.length < 2){
+    trainHint = '그룹 이름을 정한 그룹이 2개 이상 있어야 학습할 수 있어요.';
+  } else if(!allHaveData){
+    trainHint = '모든 그룹에 카드를 1장 이상 붙여주세요.';
+  }
 
-  return `<div class="back-btn" data-action="ml-sup-back-define">← 클래스 다시 정하기</div>
-    ${_mlStepBar(2)}
+  const activeName = ML_SUP_ACTIVE_CLS
+    ? ML_SUP_CLASSES.find(c => c.id === ML_SUP_ACTIVE_CLS)?.name
+    : null;
+
+  return `<div class="back-btn" data-action="ml-sup-back">← 다른 데이터셋 고르기</div>
+    ${_mlStepBar(1)}
     <div class="section">
-      <div class="sec-title">🏷️ 카드에 라벨 붙이기</div>
+      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 그룹 만들고 라벨 붙이기</div>
       <div class="ml-sub-explain">
-        <b>① 위의 클래스 중 하나를 선택</b>하고 <b>② 그 클래스에 속하는 카드들을 클릭</b>해서 라벨을 붙이세요.<br>
-        다시 누르면 라벨이 해제돼요. 진행률: <b>${totalLabeled}/${totalSamples}</b>장 라벨됨.
+        아래 카드들을 보고 <b>분류할 그룹을 직접 만들어보세요</b>.<br>
+        ① <b>+ 그룹 추가</b>로 그룹을 만들고 이름 입력 → ② 그룹 칩 선택 → ③ 그 그룹에 속하는 카드들을 클릭.<br>
+        진행률: <b>${totalLabeled}/${totalSamples}</b>장 라벨됨.
       </div>
-      <div class="ml-cls-chips">${chips}</div>
-      ${ML_SUP_ACTIVE_CLS
-        ? `<div class="ml-active-info">선택 모드: <b>${esc(ML_SUP_CLASSES.find(c => c.id === ML_SUP_ACTIVE_CLS).name)}</b> — 이 클래스에 속하는 카드를 클릭하세요</div>`
-        : `<div class="ml-active-info none">👆 먼저 위의 클래스 중 하나를 선택하세요</div>`}
+      <div class="ml-cls-chips">
+        ${chips}
+        ${canAdd ? `<button class="ml-chip-add" data-action="ml-sup-cls-add">+ 그룹 추가</button>` : ''}
+      </div>
+      ${ML_SUP_CLASSES.length === 0
+        ? '<div class="ml-active-info none">👆 위의 <b>+ 그룹 추가</b>를 눌러서 첫 번째 그룹을 만들어보세요.</div>'
+        : ML_SUP_ACTIVE_CLS && activeName
+          ? `<div class="ml-active-info">선택 모드: <b>${esc(activeName)}</b> — 이 그룹에 속하는 카드를 클릭하세요</div>`
+          : '<div class="ml-active-info none">👆 어느 그룹에 카드를 넣을지 위에서 선택하세요</div>'}
       <div class="ml-label-grid">${cardHtml}</div>
     </div>
     <div class="ml-action-bar">
       ${trainHint ? `<div class="ml-train-hint">${trainHint}</div>` : ''}
-      <button class="btn-p" data-action="ml-sup-train" ${allClassesHaveData ? '' : 'disabled'}>🧠 학습하고 테스트하러 가기 →</button>
+      <button class="btn-p" data-action="ml-sup-train" ${allHaveData ? '' : 'disabled'}>🧠 학습하고 테스트하러 가기 →</button>
     </div>`;
 }
 
@@ -255,7 +239,7 @@ function _vStMlSupTest(){
   }
 
   return `<div class="back-btn" data-action="ml-sup-back-label">← 라벨링 다시 하기</div>
-    ${_mlStepBar(3)}
+    ${_mlStepBar(2)}
     <div class="section">
       <div class="sec-title">🧪 모델 테스트  <span class="ml-test-meta">(판정: 👍 ${okCnt} · 👎 ${ngCnt})</span></div>
       <div class="ml-sub-explain">

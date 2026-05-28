@@ -30,30 +30,24 @@ document.addEventListener('click', async e => {
   }
 
   /* ─── 지도학습 (학생 주도 흐름) ─── */
-  // Phase 1: 데이터셋 선택 → Phase 2(클래스 정의)
+  // Phase 1: 데이터셋 선택 → 곧장 Phase 2(라벨링 화면)
   if(act === 'ml-sup-pick'){
     const did = el.dataset.did;
     const ds = mlDatasetById(did);
     if(!ds) return;
     ML_SUP_DATASET = ds;
-    // 학습 풀(라벨링 대상): 클래스 종류 무관, 한 풀에 골고루 섞어서 학생이 분류하게
-    // 클래스당 8장 → 4클래스면 32장 정도가 그리드로 적당
     ML_SUP_POOL = mlGenerateDataset(did, 8, { seedOffset: 0 });
     _mlShuffle(ML_SUP_POOL.samples);
-    // 테스트 풀: 다른 seed로 새 카드 30장 정도
     ML_SUP_TEST_POOL = mlGenerateDataset(did, 7, { seedOffset: 500 });
     _mlShuffle(ML_SUP_TEST_POOL.samples);
-    // 클래스 정의 기본값: 데이터셋 종류 수만큼 빈 칸 (학생이 자유 입력)
+    // 클래스는 빈 상태로 시작 — 학생이 데이터를 보고 직접 만듦
     ML_SUP_CLASSES = [];
-    for(let i = 0; i < Math.min(ds.classes.length, 4); i++){
-      ML_SUP_CLASSES.push({ id: 'c' + (Date.now() + i), name: '', color: null });
-    }
     ML_SUP_ACTIVE_CLS = null;
     ML_SUP_LABELS = {};
     ML_SUP_TRAINED = false;
     ML_SUP_TEST_PICK = null;
     ML_SUP_TEST_JUDGED = {};
-    ML_SUP_PHASE = 'define';
+    ML_SUP_PHASE = 'label';
     render();
     return;
   }
@@ -73,45 +67,59 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // Phase 2: 클래스 추가/삭제
+  // 그룹 추가: 빈 editing 상태로 추가, 입력 받음
   if(act === 'ml-sup-cls-add'){
     if(ML_SUP_CLASSES.length >= 5) return;
-    ML_SUP_CLASSES.push({ id: 'c' + Date.now(), name: '', color: null });
+    const newCls = { id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), name: '', editing: true };
+    ML_SUP_CLASSES.push(newCls);
+    // 새로 만든 그룹을 활성으로 만들지는 않음 (이름 먼저 정해야 의미 있음)
     render();
+    // input에 포커스 (autofocus는 첫 렌더에서만 동작하므로 명시적으로)
+    setTimeout(() => {
+      const inp = document.querySelector(`[data-action="ml-sup-cls-name"][data-cid="${newCls.id}"]`);
+      if(inp){ inp.focus(); inp.select(); }
+    }, 30);
     return;
   }
+
+  // 그룹 이름 편집 진입 (이름 부분 클릭)
+  if(act === 'ml-sup-cls-edit'){
+    const cid = el.dataset.cid;
+    const c = ML_SUP_CLASSES.find(c => c.id === cid);
+    if(!c) return;
+    c.editing = true;
+    render();
+    setTimeout(() => {
+      const inp = document.querySelector(`[data-action="ml-sup-cls-name"][data-cid="${cid}"]`);
+      if(inp){ inp.focus(); inp.select(); }
+    }, 30);
+    return;
+  }
+
   if(act === 'ml-sup-cls-del'){
     const cid = el.dataset.cid;
-    ML_SUP_CLASSES = ML_SUP_CLASSES.filter(c => c.id !== cid);
-    // 이 클래스에 붙어있던 라벨 모두 해제
+    const c = ML_SUP_CLASSES.find(c => c.id === cid);
+    if(!c) return;
+    // 라벨이 있는 그룹은 확인
+    const has = Object.values(ML_SUP_LABELS).includes(cid);
+    if(has && !confirm(`"${c.name || '이 그룹'}"을 삭제할까요? 이 그룹에 붙인 라벨도 함께 사라져요.`)) return;
+    ML_SUP_CLASSES = ML_SUP_CLASSES.filter(x => x.id !== cid);
     Object.keys(ML_SUP_LABELS).forEach(k => { if(ML_SUP_LABELS[k] === cid) delete ML_SUP_LABELS[k]; });
     if(ML_SUP_ACTIVE_CLS === cid) ML_SUP_ACTIVE_CLS = null;
     render();
     return;
   }
-  if(act === 'ml-sup-back-define'){
-    ML_SUP_PHASE = 'define';
-    ML_SUP_TRAINED = false;
-    render();
-    return;
-  }
 
-  // Phase 2 → Phase 3: 라벨링 시작
-  if(act === 'ml-sup-go-label'){
-    if(ML_SUP_CLASSES.length < 2) { toast('클래스를 2개 이상 만들어주세요', 'err'); return; }
-    if(ML_SUP_CLASSES.some(c => !c.name.trim())) { toast('모든 클래스에 이름을 입력해주세요', 'err'); return; }
-    // 이름 중복 체크
-    const names = ML_SUP_CLASSES.map(c => c.name.trim());
-    if(new Set(names).size !== names.length){ toast('클래스 이름이 겹치지 않게 해주세요', 'err'); return; }
-    ML_SUP_ACTIVE_CLS = ML_SUP_CLASSES[0].id;
-    ML_SUP_PHASE = 'label';
-    render();
-    return;
-  }
-
-  // Phase 3: 활성 클래스 선택
+  // 활성 그룹 선택 (편집 모드가 아닌 칩 클릭)
   if(act === 'ml-sup-cls-pick'){
-    ML_SUP_ACTIVE_CLS = el.dataset.cid;
+    const cid = el.dataset.cid;
+    const c = ML_SUP_CLASSES.find(c => c.id === cid);
+    if(!c || c.editing) return;
+    if(!(c.name || '').trim()){
+      toast('이 그룹은 아직 이름이 없어요', 'err');
+      return;
+    }
+    ML_SUP_ACTIVE_CLS = cid;
     render();
     return;
   }
@@ -315,20 +323,56 @@ document.addEventListener('input', e => {
     }
     return;
   }
-  // 클래스 이름 자유 입력 (정의 단계) — 입력 중 렌더 X (포커스 유지), 값만 저장
+  // 그룹 이름 입력 중 — 포커스 유지를 위해 값만 갱신, 렌더 X
   const clsEl = e.target.closest('[data-action="ml-sup-cls-name"]');
   if(clsEl){
     const cid = clsEl.dataset.cid;
     const c = ML_SUP_CLASSES.find(c => c.id === cid);
     if(c) c.name = clsEl.value;
-    // 다음 버튼 활성/비활성을 갱신하기 위해 그 버튼만 직접 토글
-    const valid = ML_SUP_CLASSES.length >= 2 && ML_SUP_CLASSES.every(c => c.name.trim().length > 0);
-    const btn = document.querySelector('[data-action="ml-sup-go-label"]');
-    if(btn){
-      if(valid) btn.removeAttribute('disabled');
-      else btn.setAttribute('disabled', '');
-    }
     return;
+  }
+});
+
+// 그룹 이름 input blur — editing 종료. 빈 이름이면 그룹 삭제.
+document.addEventListener('blur', e => {
+  const el = e.target.closest && e.target.closest('[data-action="ml-sup-cls-name"]');
+  if(!el) return;
+  const cid = el.dataset.cid;
+  const c = ML_SUP_CLASSES.find(c => c.id === cid);
+  if(!c) return;
+  const name = (c.name || '').trim();
+  if(!name){
+    // 빈 이름: 그룹 자동 삭제 (라벨도 정리)
+    ML_SUP_CLASSES = ML_SUP_CLASSES.filter(x => x.id !== cid);
+    Object.keys(ML_SUP_LABELS).forEach(k => { if(ML_SUP_LABELS[k] === cid) delete ML_SUP_LABELS[k]; });
+    if(ML_SUP_ACTIVE_CLS === cid) ML_SUP_ACTIVE_CLS = null;
+  } else {
+    // 중복 체크 (자기 자신 제외)
+    const dup = ML_SUP_CLASSES.some(x => x.id !== cid && (x.name || '').trim() === name);
+    if(dup){
+      toast('같은 이름의 그룹이 이미 있어요', 'err');
+      el.focus();
+      return;
+    }
+    c.name = name;
+    c.editing = false;
+    // 이름을 처음 정한 그룹은 자동으로 활성 그룹으로
+    if(!ML_SUP_ACTIVE_CLS) ML_SUP_ACTIVE_CLS = cid;
+  }
+  render();
+}, true);  // capture phase
+
+// Enter / Escape 키 처리
+document.addEventListener('keydown', e => {
+  const el = e.target.closest && e.target.closest('[data-action="ml-sup-cls-name"]');
+  if(!el) return;
+  if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+  else if(e.key === 'Escape'){
+    // 취소: editing 해제, 이름이 비어있으면 그룹 삭제
+    const cid = el.dataset.cid;
+    const c = ML_SUP_CLASSES.find(c => c.id === cid);
+    if(c) c.editing = false;
+    el.blur();
   }
 });
 

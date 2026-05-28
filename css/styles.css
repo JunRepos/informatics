@@ -2036,13 +2036,23 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-cls-add-bar{display:flex;align-items:center;gap:10px;margin-top:8px}
 .ml-cls-cnt-msg{margin-left:auto;font-size:12px;color:var(--text3)}
 
-/* Phase 3: 클래스 칩 (활성 라벨 선택) */
+/* 클래스 칩 (활성 라벨 선택 + 그룹 관리 통합) */
 .ml-cls-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:10px;background:var(--surface2);border-radius:8px;position:sticky;top:6px;z-index:5}
-.ml-cls-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:18px;border:2px solid;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.ml-cls-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 13px;border-radius:18px;border:2px solid;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
 .ml-cls-chip:hover{transform:translateY(-1px)}
 .ml-cls-chip.on{box-shadow:0 2px 8px rgba(99,102,241,.3)}
-.ml-cls-chip-cnt{font-size:11px;font-weight:700;background:rgba(255,255,255,.4);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center}
+.ml-cls-chip.editing{cursor:default;transform:none}
+.ml-chip-name{padding:0 2px;cursor:pointer}
+.ml-chip-name:hover{text-decoration:underline}
+.ml-cls-chip-cnt{font-size:11px;font-weight:700;background:rgba(255,255,255,.5);padding:1px 7px;border-radius:9px;min-width:18px;text-align:center}
 .ml-cls-chip.on .ml-cls-chip-cnt{background:rgba(255,255,255,.3);color:#fff}
+.ml-chip-del{background:transparent;border:none;color:inherit;opacity:.5;cursor:pointer;font-size:12px;padding:0 4px;border-radius:50%;line-height:1}
+.ml-chip-del:hover{opacity:1;background:rgba(0,0,0,.1)}
+.ml-cls-chip.on .ml-chip-del:hover{background:rgba(255,255,255,.2)}
+.ml-chip-input{background:rgba(255,255,255,.85);border:none;outline:none;border-radius:4px;padding:3px 8px;font-size:13px;font-weight:600;color:#1e293b;width:130px;font-family:inherit}
+.ml-chip-input:focus{box-shadow:0 0 0 2px #6366f1}
+.ml-chip-add{padding:6px 13px;border-radius:18px;border:2px dashed var(--border);background:transparent;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s}
+.ml-chip-add:hover{border-color:#6366f1;color:#6366f1;background:rgba(99,102,241,.05)}
 
 .ml-active-info{padding:8px 12px;border-radius:6px;background:rgba(99,102,241,.1);font-size:13px;margin-bottom:10px}
 .ml-active-info.none{background:rgba(245,158,11,.1);color:#92400e}
