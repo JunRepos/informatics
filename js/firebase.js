@@ -611,6 +611,26 @@ async function loadAllAiaSubmissions(cid, actId){
   }
 }
 
+// ── 🤖 기계학습 체험 ──
+//   ml/active/{cid} : bool — 메뉴 노출 토글 (상태는 모두 클라이언트, 저장 없음)
+async function loadMlActive(cid){
+  try {
+    const s = await db.ref(`ml/active/${cid}`).get();
+    const on = s.exists() ? !!s.val() : false;
+    ML_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[기계학습] active 로드 실패:', err.message || err);
+    ML_ACTIVE[cid] = false;
+    return false;
+  }
+}
+
+async function setMlActive(cid, on){
+  await db.ref(`ml/active/${cid}`).set(!!on);
+  ML_ACTIVE[cid] = !!on;
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -626,7 +646,8 @@ async function loadAllClassData(cid){
     loadAsmtActive(cid),
     loadAsmtGuideActive(cid),
     loadAicActive(cid),
-    loadAiaActive(cid)
+    loadAiaActive(cid),
+    loadMlActive(cid)
   ]);
 }
 

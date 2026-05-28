@@ -32,6 +32,7 @@ function vTeacher(){
     ${tcIsInfo ? tab('🧩 퀴즈','coderead',TC_TAB,"setTC('coderead')") : ''}
     ${tcIsInfo ? tab('🤖 AI 코딩','aicode',TC_TAB,"setTC('aicode')") : ''}
     ${tcIsInfo ? tab('🧠 AI 활동지','aia',TC_TAB,"setTC('aia')") : ''}
+    ${tcIsInfo ? tab('🤖 기계학습','ml',TC_TAB,"setTC('ml')") : ''}
     ${tcIsInfo ? tab('📝 수행평가','asmt',TC_TAB,"setTC('asmt')") : ''}
     ${tcIsInfo ? tab('🏆 점수 관리','scores',TC_TAB,"setTC('scores')") : ''}
     ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
@@ -55,6 +56,7 @@ function vTeacher(){
   else if(TC_TAB === 'coderead')   body = vTcCodeRead();
   else if(TC_TAB === 'aicode')     body = vTcAiCode();
   else if(TC_TAB === 'aia')        body = vTcAiActivity();
+  else if(TC_TAB === 'ml')         body = vTcMl();
   else if(TC_TAB === 'asmt')       body = vTcAssessment();
   else if(TC_TAB === 'scores')     body = vTcScores();
   else if(TC_TAB === 'curriculum') body = vTcCurriculum();
@@ -106,6 +108,9 @@ function setTC(t){
     AIA_TC_SEL_SNUM = null;
     AIA_ALL_SUBS = {};
     loadAiaActive(TC_CLS.id).then(() => render());
+  } else if(t === 'ml' && TC_CLS){
+    // 🤖 기계학습 체험 관리 — active 토글만
+    loadMlActive(TC_CLS.id).then(() => render());
   } else if(t === 'scores' && TC_CLS){
     // 🏆 점수 관리 — 공개 토글 + 모든 수행평가 점수 한번에 로드
     SC_TC_ASMT = SC_TC_ASMT || 'bigdata';

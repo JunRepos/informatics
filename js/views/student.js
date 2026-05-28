@@ -22,6 +22,7 @@ function vStudent(){
     ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
     ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
     ${isInfo && AIA_ACTIVE[SEL_CLS?.id] ? tab('🧠 AI 활동지','aia',ST_TAB,"setST('aia')") : ''}
+    ${isInfo && ML_ACTIVE[SEL_CLS?.id] ? tab('🤖 기계학습','ml',ST_TAB,"setST('ml')") : ''}
     ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
     ${isInfo ? tab('📊 내 점수','myscore',ST_TAB,"setST('myscore')") : ''}
@@ -40,6 +41,7 @@ function vStudent(){
   else if(ST_TAB === 'coderead')body = vStCodeRead();
   else if(ST_TAB === 'aicode')  body = vStAiCode();
   else if(ST_TAB === 'aia')     body = vStAiActivity();
+  else if(ST_TAB === 'ml')      body = vStMl();
   else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
   else if(ST_TAB === 'myscore') body = vStMyScore();
@@ -121,6 +123,14 @@ function setST(t){
     AIA_SUB = null;
     AIA_SAVING = false;
     loadAiaActive(SEL_CLS.id).then(() => render());
+  } else if(t === 'ml' && SEL_CLS && ST_USER){
+    // 🤖 기계학습 체험 — active 확인 + 상태 초기화
+    ML_TAB = 'supervised';
+    ML_SUP_PHASE = 'pick'; ML_SUP_DATASET = null; ML_SUP_TRAIN_DATA = null; ML_SUP_TEST_DATA = null;
+    ML_SUP_TRAINED = false; ML_SUP_TEST_IDX = 0; ML_SUP_TEST_RESULTS = []; ML_SUP_LAST_RESULT = null;
+    ML_UN_PHASE = 'pick'; ML_UN_DATASET = null; ML_UN_DATA = null; ML_UN_KMEANS = null; ML_UN_REVEAL = false;
+    if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
+    loadMlActive(SEL_CLS.id).then(() => render());
   } else if(t === 'myscore' && SEL_CLS && ST_USER){
     // 📊 내 점수 — 공개 토글 + 사유 공개 토글 + 내 점수 함께 로드
     MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;

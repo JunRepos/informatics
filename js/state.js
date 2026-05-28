@@ -162,6 +162,27 @@ let AIC_TC_SEL_SNUM  = null;    // 선생님: 보고 있는 학생 학번
 const AIC_TURN_LIMIT = 40;      // 학생당 최대 메시지 수
 const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 
+// 🤖 기계학습 체험 (지도/비지도/강화) — 정의는 ml-data.js, 엔진은 ml-engine.js
+let ML_ACTIVE         = {};         // { [classId]: bool } 메뉴 노출 캐시
+let ML_TAB            = 'supervised'; // 'supervised'|'unsupervised'|'reinforce'
+// 지도학습 상태
+let ML_SUP_PHASE      = 'pick';     // 'pick'|'learn'|'test'|'done'
+let ML_SUP_DATASET    = null;       // ML_DATASETS의 하나
+let ML_SUP_TRAIN_DATA = null;       // { samples, classes, def } — 학습 데이터
+let ML_SUP_TEST_DATA  = null;       // 테스트 데이터(다른 seed)
+let ML_SUP_TRAINED    = false;
+let ML_SUP_TEST_IDX   = 0;
+let ML_SUP_TEST_RESULTS = [];       // [{ trueLabel, label, ok, dataUrl, probs }]
+let ML_SUP_LAST_RESULT = null;      // 직전 예측 결과 (다음 누르기 전)
+// 비지도학습 상태
+let ML_UN_PHASE       = 'pick';     // 'pick'|'run'
+let ML_UN_DATASET     = null;
+let ML_UN_DATA        = null;
+let ML_UN_KMEANS      = null;       // ml-engine state
+let ML_UN_K           = 4;
+let ML_UN_REVEAL      = false;
+let ML_UN_AUTO_TIMER  = null;
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)

@@ -381,6 +381,17 @@
       }
     },
 
+    // ── 🤖 기계학습 체험 ──
+    //   active/{cid} : bool — 메뉴 노출 토글 (상태는 클라이언트, 저장 없음)
+    "ml": {
+      "active": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      }
+    },
+
     // ── 코드 읽기 학생 진도 ──
     "codeReadingProgress": {
       "$classId": {

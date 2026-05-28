@@ -1888,3 +1888,139 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 
 /* foot 영역 (저장·제출 버튼) */
 .aia-do-foot{justify-content:flex-end}
+
+/* ═══════════════════════════════════════
+   🤖 기계학습 체험 (ml.js)
+═══════════════════════════════════════ */
+.ml-head{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(168,85,247,.05));border-color:rgba(99,102,241,.25)}
+.ml-head-title{font-size:20px;font-weight:800;margin-bottom:4px}
+.ml-head-sub{font-size:13px;color:var(--text2)}
+.ml-intro{background:var(--surface2);padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-bottom:14px;border-left:3px solid #6366f1}
+.ml-intro u{text-decoration:none;background:rgba(99,102,241,.15);padding:1px 4px;border-radius:3px}
+
+/* 내부 탭 */
+.ml-subtabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.ml-subtab{padding:9px 16px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s}
+.ml-subtab:hover{border-color:#6366f1;color:var(--text)}
+.ml-subtab.on{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent}
+
+/* 단계 진행 바 */
+.ml-stepbar{display:flex;gap:8px;margin:10px 0 14px;font-size:12px;color:var(--text3)}
+.ml-step{flex:1;padding:8px 10px;border:1px dashed var(--border);border-radius:6px;text-align:center;font-weight:600}
+.ml-step.on{background:#6366f1;color:#fff;border-style:solid;border-color:#6366f1}
+.ml-step.done{background:var(--ok,#16a34a);color:#fff;border-style:solid;border-color:var(--ok,#16a34a)}
+
+/* 데이터셋 선택 카드 */
+.ml-pick-list{display:flex;flex-direction:column;gap:10px}
+.ml-pick-card{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.ml-pick-card:hover{border-color:#6366f1;transform:translateY(-1px);background:linear-gradient(135deg,rgba(99,102,241,.04),var(--surface))}
+.ml-pick-icon{font-size:36px;line-height:1;flex-shrink:0}
+.ml-pick-body{flex:1;min-width:0}
+.ml-pick-title{font-size:16px;font-weight:700;margin-bottom:3px}
+.ml-pick-desc{font-size:12px;color:var(--text2);margin-bottom:6px}
+.ml-pick-emojis{font-size:14px}
+.ml-pick-emoji{margin-right:5px;font-size:18px}
+.ml-pick-cnt{color:var(--text3);font-size:11px;margin-left:4px}
+.ml-pick-arrow{font-size:22px;color:var(--text3);flex-shrink:0}
+
+/* 설명 박스 */
+.ml-sub-explain{background:var(--surface2);padding:10px 13px;border-radius:7px;font-size:12.5px;line-height:1.6;color:var(--text2);margin-bottom:12px}
+
+/* 학습 화면 — 클래스별 썸네일 */
+.ml-cls-block{margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:8px}
+.ml-cls-head{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ml-cls-emoji{font-size:20px}
+.ml-cls-cnt{margin-left:auto;font-size:11px;color:var(--text3);font-weight:500}
+.ml-thumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ml-thumb{width:42px;height:42px;border:1px solid var(--border);border-radius:5px;background:#fff;object-fit:contain}
+.ml-thumb-big{width:64px;height:64px;border:1px solid var(--border);border-radius:6px;background:#fff;object-fit:contain}
+.ml-thumb-more{font-size:11px;color:var(--text3);padding:0 8px}
+
+/* 액션 바 */
+.ml-action-bar{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px;flex-wrap:wrap}
+.ml-trained-msg{flex:1;font-size:13px;color:var(--ok,#16a34a);font-weight:600}
+
+/* 테스트 화면 */
+.ml-test-meta{font-size:12px;color:var(--text3);font-weight:500;margin-left:6px}
+.ml-test-card{display:flex;gap:20px;align-items:flex-start;padding:16px;background:var(--surface2);border-radius:10px;flex-wrap:wrap}
+.ml-test-left{flex:0 0 auto;text-align:center}
+.ml-test-img{width:140px;height:140px;border:2px solid var(--border);border-radius:10px;background:#fff;object-fit:contain;box-shadow:var(--sh)}
+.ml-test-truth{font-size:12px;color:var(--text3);margin-top:8px}
+.ml-test-right{flex:1;min-width:240px}
+.ml-test-q{font-size:14px;font-weight:600;margin-bottom:12px}
+
+/* 확률 막대 */
+.ml-prob-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px}
+.ml-prob-row.pred{font-weight:700}
+.ml-prob-row.pred .ml-prob-fill{background:#6366f1}
+.ml-prob-label{flex:0 0 80px}
+.ml-prob-bar{flex:1;height:14px;background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.ml-prob-fill{height:100%;background:#94a3b8;transition:width .3s}
+.ml-prob-pct{flex:0 0 38px;text-align:right;font-variant-numeric:tabular-nums}
+
+.ml-verdict{padding:10px 13px;border-radius:8px;margin-top:12px;font-size:13.5px;font-weight:600}
+.ml-verdict.ok{background:rgba(34,197,94,.12);color:var(--ok,#16a34a);border:1px solid rgba(34,197,94,.3)}
+.ml-verdict.ng{background:rgba(239,68,68,.1);color:#dc2626;border:1px solid rgba(239,68,68,.25)}
+
+/* 결과 화면 */
+.ml-score-big{padding:24px;border-radius:12px;text-align:center;margin:14px 0;background:var(--surface2)}
+.ml-score-big.perfect{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border:2px solid #22c55e}
+.ml-score-big.good{background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(59,130,246,.04));border:2px solid #3b82f6}
+.ml-score-big.mid{background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04));border:2px solid #f59e0b}
+.ml-score-pct{font-size:54px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.ml-score-frac{font-size:14px;color:var(--text2);margin-top:6px}
+.ml-wrong-list{display:flex;flex-wrap:wrap;gap:10px}
+.ml-wrong-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+.ml-wrong-meta{font-size:12px;line-height:1.5}
+.ml-perfect{padding:20px;text-align:center;font-size:14px;background:rgba(34,197,94,.08);border-radius:8px;color:var(--ok,#16a34a);font-weight:600}
+
+/* 비지도학습 — K 슬라이더 */
+.ml-k-ctrl{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:10px;flex-wrap:wrap}
+.ml-k-ctrl label{font-size:13px;font-weight:600;min-width:120px}
+.ml-k-slider{flex:1;min-width:200px}
+.ml-step-info{font-size:12px;color:var(--text2);margin-bottom:10px;padding:0 4px}
+
+/* 비지도 그룹 박스 */
+.ml-groups-wrap{display:grid;gap:12px;margin-top:12px}
+.ml-groups-wrap.k-1,.ml-groups-wrap.k-2{grid-template-columns:1fr}
+.ml-groups-wrap.k-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.ml-groups-wrap.k-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.ml-groups-wrap.k-5,.ml-groups-wrap.k-6{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.ml-group{border:2px solid #cbd5e1;border-radius:10px;padding:10px 12px;min-height:120px;transition:all .3s}
+.ml-group-init{grid-column:1/-1}
+.ml-group-head{font-size:13px;font-weight:700;margin-bottom:8px;color:#1e293b}
+.ml-group-cnt{font-size:11px;font-weight:500;color:#64748b;margin-left:6px}
+.ml-group-cards{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:48px}
+.ml-group-empty{font-size:12px;color:#94a3b8;font-style:italic;padding:8px}
+.ml-card-img{width:36px;height:36px;border:1px solid rgba(0,0,0,.1);border-radius:5px;background:#fff;object-fit:contain;transition:transform .25s, opacity .25s}
+.ml-card-img:hover{transform:scale(1.5);z-index:5;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.ml-card-img.scattered{opacity:.85}
+
+/* 정답 공개 영역 */
+.ml-reveal{margin-top:14px}
+.ml-reveal-info{font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.6}
+.ml-reveal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px}
+.ml-reveal-card{padding:10px;background:var(--surface);border:2px solid var(--border);border-radius:8px}
+.ml-reveal-head{font-size:12px;font-weight:700;margin-bottom:6px}
+.ml-reveal-tags{display:flex;flex-wrap:wrap;gap:4px}
+.ml-reveal-tag{font-size:11px;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:inline-block}
+.ml-purity{padding:10px 12px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.02));border-left:3px solid #22c55e;border-radius:6px;font-size:13px}
+
+/* 강화학습 placeholder */
+.ml-rl-card{display:flex;gap:16px;align-items:center;padding:18px;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(99,102,241,.04));border:1px solid rgba(168,85,247,.25);border-radius:10px}
+.ml-rl-icon{font-size:54px;line-height:1;flex-shrink:0}
+.ml-rl-body{flex:1;min-width:0}
+.ml-rl-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.ml-rl-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+
+/* 선생님 화면 */
+.ml-tc-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}
+.ml-tc-flow-card{padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.6}
+.ml-tc-flow-card b{font-size:14px;color:#6366f1}
+.ml-tc-flow-card small{color:var(--text2);font-size:12px}
+.ml-tc-ds-list{display:flex;flex-direction:column;gap:8px}
+.ml-tc-ds{padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.ml-tc-ds-head{font-size:14px;margin-bottom:4px}
+.ml-tc-ds-desc{font-size:12px;color:var(--text2);margin-bottom:5px}
+.ml-tc-ds-cls{font-size:12px}
+
