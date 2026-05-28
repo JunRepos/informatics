@@ -89,65 +89,75 @@ function _vStMlSupPick(){
   </div>`;
 }
 
-/* Phase 2: 한 화면에서 그룹 만들기 + 라벨링 */
+/* Phase 2: Teachable Machine 식 — 그룹 박스에 사진 끌어담기
+   위: 그룹 박스들(각각 드롭존) / 아래: 공용 풀(라벨 안 된 사진, draggable)
+   "전부 분류"가 아니라 "각 그룹에 예시 몇 장 담기" */
 function _vStMlSupLabel(){
   const ds = ML_SUP_DATASET;
   const samples = ML_SUP_POOL.samples;
 
-  // 각 클래스에 부여된 라벨 수
-  const clsCnt = {};
-  ML_SUP_CLASSES.forEach(c => clsCnt[c.id] = 0);
-  Object.values(ML_SUP_LABELS).forEach(cid => { if(clsCnt[cid] != null) clsCnt[cid]++; });
+  // 각 그룹에 담긴 카드 인덱스
+  const clsCards = {};
+  ML_SUP_CLASSES.forEach(c => clsCards[c.id] = []);
+  Object.entries(ML_SUP_LABELS).forEach(([idx, cid]) => {
+    if(clsCards[cid]) clsCards[cid].push(parseInt(idx));
+  });
 
-  const totalLabeled = Object.keys(ML_SUP_LABELS).length;
-  const totalSamples = samples.length;
-
-  // 클래스 칩 (이름 표시/편집/삭제 모드 통합)
-  const chips = ML_SUP_CLASSES.map((c, i) => {
+  // 그룹 박스들
+  const groupBoxes = ML_SUP_CLASSES.map((c, i) => {
     const col = ML_CLS_COLORS[i % ML_CLS_COLORS.length];
     const isActive = ML_SUP_ACTIVE_CLS === c.id;
-    const inner = c.editing
-      ? `<input type="text" class="ml-chip-input"
+    const cards = clsCards[c.id] || [];
+    // 헤더 (이름 편집/삭제)
+    const header = c.editing
+      ? `<input type="text" class="ml-gb-input"
            data-action="ml-sup-cls-name" data-cid="${esc(c.id)}"
-           value="${esc(c.name)}" placeholder="그룹 이름" maxlength="20"
-           autofocus/>`
-      : `<span class="ml-chip-name" data-action="ml-sup-cls-edit" data-cid="${esc(c.id)}" title="이름 수정">${esc(c.name || '(이름 없음)')}</span>
-         <span class="ml-cls-chip-cnt">${clsCnt[c.id]}</span>
-         <button class="ml-chip-del" data-action="ml-sup-cls-del" data-cid="${esc(c.id)}" title="그룹 삭제">✕</button>`;
-    return `<div class="ml-cls-chip ${isActive ? 'on' : ''} ${c.editing ? 'editing' : ''}"
-        data-action="${c.editing ? '' : 'ml-sup-cls-pick'}" data-cid="${esc(c.id)}"
-        style="${isActive ? `background:${col.chip};color:#fff;border-color:${col.chip}` : `background:${col.bg};border-color:${col.border};color:${col.chip}`}">
-      ${inner}
+           value="${esc(c.name)}" placeholder="그룹 이름" maxlength="20" autofocus/>`
+      : `<span class="ml-gb-dot" style="background:${col.chip}"></span>
+         <span class="ml-gb-name" data-action="ml-sup-cls-edit" data-cid="${esc(c.id)}" title="이름 수정">${esc(c.name || '(이름 없음)')}</span>
+         <span class="ml-gb-cnt">${cards.length}장</span>
+         <button class="ml-gb-del" data-action="ml-sup-cls-del" data-cid="${esc(c.id)}" title="그룹 삭제">✕</button>`;
+    // 담긴 카드들
+    const cardsHtml = cards.map(idx => {
+      const s = samples[idx];
+      return `<div class="ml-gb-card" data-action="ml-sup-card-unlabel" data-idx="${idx}" title="클릭하면 다시 빼요">
+        <img src="${s.dataUrl}" alt=""/>
+      </div>`;
+    }).join('');
+    return `<div class="ml-group-box ${isActive ? 'active' : ''} ${c.editing ? 'editing' : ''}"
+        data-group-drop="${esc(c.id)}" data-action="${c.editing ? '' : 'ml-sup-cls-pick'}" data-cid="${esc(c.id)}"
+        style="border-color:${col.border};background:${col.bg}">
+      <div class="ml-gb-head">${header}</div>
+      <div class="ml-gb-cards">
+        ${cardsHtml || '<div class="ml-gb-empty">여기로 사진을<br>끌어다 놓아요</div>'}
+      </div>
     </div>`;
   }).join('');
 
   const canAdd = ML_SUP_CLASSES.length < 5;
+  const addBox = canAdd
+    ? `<button class="ml-group-add" data-action="ml-sup-cls-add">＋<br>그룹 추가</button>`
+    : '';
 
-  // 카드 그리드
-  const cardHtml = samples.map((s, i) => {
-    const labeledCid = ML_SUP_LABELS[i];
-    const ci = labeledCid ? ML_SUP_CLASSES.findIndex(c => c.id === labeledCid) : -1;
-    const col = ci >= 0 ? ML_CLS_COLORS[ci % ML_CLS_COLORS.length] : null;
-    const styleBox = col ? `border-color:${col.border};box-shadow:0 0 0 2px ${col.border}33` : '';
-    const labelTag = col
-      ? `<div class="ml-card-label" style="background:${col.chip};color:#fff">${esc(ML_SUP_CLASSES.find(c => c.id === labeledCid).name)}</div>`
-      : '';
-    return `<div class="ml-label-card ${labeledCid ? 'labeled' : ''}" data-action="ml-sup-card-label" data-idx="${i}" style="${styleBox}">
-      <img src="${s.dataUrl}" alt=""/>
-      ${labelTag}
+  // 공용 풀 (아직 라벨 안 된 카드만)
+  const poolCards = samples.map((s, i) => {
+    if(ML_SUP_LABELS[i] != null) return '';  // 이미 그룹에 담김 → 풀에서 숨김
+    return `<div class="ml-pool-card" data-action="ml-sup-pool-pick" data-idx="${i}">
+      <img src="${s.dataUrl}" draggable="true" data-label-idx="${i}" alt=""/>
     </div>`;
   }).join('');
+  const poolRemaining = samples.length - Object.keys(ML_SUP_LABELS).length;
 
   // 학습 가능 조건
   const namedClasses = ML_SUP_CLASSES.filter(c => (c.name || '').trim());
-  const allHaveData = namedClasses.length >= 2 && namedClasses.every(c => clsCnt[c.id] >= 1);
+  const allHaveData = namedClasses.length >= 2 && namedClasses.every(c => (clsCards[c.id] || []).length >= 1);
   let trainHint = '';
   if(ML_SUP_CLASSES.length === 0){
-    trainHint = '👆 먼저 그룹을 만들고 카드들을 분류해보세요.';
+    trainHint = '👆 먼저 + 그룹 추가로 그룹을 만들어보세요.';
   } else if(namedClasses.length < 2){
-    trainHint = '그룹 이름을 정한 그룹이 2개 이상 있어야 학습할 수 있어요.';
+    trainHint = '그룹이 2개 이상 있어야 학습할 수 있어요.';
   } else if(!allHaveData){
-    trainHint = '모든 그룹에 카드를 1장 이상 붙여주세요.';
+    trainHint = '모든 그룹에 사진을 1장 이상 담아주세요. (그룹마다 3~4장이면 충분해요)';
   }
 
   const activeName = ML_SUP_ACTIVE_CLS
@@ -157,22 +167,25 @@ function _vStMlSupLabel(){
   return `<div class="back-btn" data-action="ml-sup-back">← 다른 데이터셋 고르기</div>
     ${_mlStepBar(1)}
     <div class="section">
-      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 그룹 만들고 라벨 붙이기</div>
+      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 그룹 만들고 사진 담기</div>
       <div class="ml-sub-explain">
-        아래 카드들을 보고 <b>분류할 그룹을 직접 만들어보세요</b>.<br>
-        ① <b>+ 그룹 추가</b>로 그룹을 만들고 이름 입력 → ② 그룹 칩 선택 → ③ 그 그룹에 속하는 카드들을 클릭.<br>
-        진행률: <b>${totalLabeled}/${totalSamples}</b>장 라벨됨.
+        ① <b>＋ 그룹 추가</b>로 그룹을 만들고 이름을 정해요 → ② 아래 사진들을 <b>각 그룹 박스로 끌어다 담아요</b>.<br>
+        <u>전부 담을 필요 없어요!</u> 그룹마다 <b>3~4장</b>만 모으면 충분해요.
+        ${ML_SUP_ACTIVE_CLS && activeName
+          ? `<br><span class="ml-active-inline">📌 클릭으로 담기: 지금 선택된 그룹 <b>${esc(activeName)}</b> — 아래 사진을 클릭하면 담겨요.</span>`
+          : ''}
       </div>
-      <div class="ml-cls-chips">
-        ${chips}
-        ${canAdd ? `<button class="ml-chip-add" data-action="ml-sup-cls-add">+ 그룹 추가</button>` : ''}
+      <div class="ml-group-boxes">
+        ${groupBoxes}
+        ${addBox}
       </div>
-      ${ML_SUP_CLASSES.length === 0
-        ? '<div class="ml-active-info none">👆 위의 <b>+ 그룹 추가</b>를 눌러서 첫 번째 그룹을 만들어보세요.</div>'
-        : ML_SUP_ACTIVE_CLS && activeName
-          ? `<div class="ml-active-info">선택 모드: <b>${esc(activeName)}</b> — 이 그룹에 속하는 카드를 클릭하세요</div>`
-          : '<div class="ml-active-info none">👆 어느 그룹에 카드를 넣을지 위에서 선택하세요</div>'}
-      <div class="ml-label-grid">${cardHtml}</div>
+      <div class="ml-pool-label">
+        아직 분류 안 한 사진 <b>${poolRemaining}장</b>
+        <span class="ml-pool-hint">— 사진을 위 그룹으로 드래그하세요 (또는 그룹 선택 후 클릭)</span>
+      </div>
+      <div class="ml-pool ${ML_SUP_CLASSES.length ? '' : 'dim'}">
+        ${poolRemaining > 0 ? poolCards : '<div class="ml-pool-empty">🎉 모든 사진을 분류했어요!</div>'}
+      </div>
     </div>
     <div class="ml-action-bar">
       ${trainHint ? `<div class="ml-train-hint">${trainHint}</div>` : ''}

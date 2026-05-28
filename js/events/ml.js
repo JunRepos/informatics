@@ -36,7 +36,8 @@ document.addEventListener('click', async e => {
     const ds = mlDatasetById(did);
     if(!ds) return;
     ML_SUP_DATASET = ds;
-    ML_SUP_POOL = mlGenerateDataset(did, 8, { seedOffset: 0 });
+    // 공용 풀 20장 (클래스당 5장). TM식이라 전부 담을 필요 없음.
+    ML_SUP_POOL = mlGenerateDataset(did, 5, { seedOffset: 0 });
     _mlShuffle(ML_SUP_POOL.samples);
     // 테스트 풀은 5장만 (학생이 드래그해서 모델에 넣어보는 용도)
     ML_SUP_TEST_POOL = mlGenerateDataset(did, 7, { seedOffset: 500 });
@@ -126,19 +127,22 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // Phase 3: 카드 클릭 라벨링 (이미 같은 라벨이면 해제, 다른 라벨이면 덮어쓰기)
-  if(act === 'ml-sup-card-label'){
+  // Phase 2: 공용 풀 카드 클릭(폴백) → 활성 그룹에 담기
+  if(act === 'ml-sup-pool-pick'){
     const idx = parseInt(el.dataset.idx);
     if(!ML_SUP_ACTIVE_CLS){
-      toast('먼저 위의 클래스 중 하나를 선택해주세요', 'err');
+      toast('먼저 위에서 그룹을 하나 선택하면 클릭으로 담을 수 있어요 (또는 드래그하세요)', 'err');
       return;
     }
-    if(ML_SUP_LABELS[idx] === ML_SUP_ACTIVE_CLS){
-      // 같은 라벨 다시 클릭 = 해제
-      delete ML_SUP_LABELS[idx];
-    } else {
-      ML_SUP_LABELS[idx] = ML_SUP_ACTIVE_CLS;
-    }
+    ML_SUP_LABELS[idx] = ML_SUP_ACTIVE_CLS;
+    render();
+    return;
+  }
+
+  // Phase 2: 그룹에 담긴 카드 클릭 → 다시 풀로 빼기
+  if(act === 'ml-sup-card-unlabel'){
+    const idx = parseInt(el.dataset.idx);
+    delete ML_SUP_LABELS[idx];
     render();
     return;
   }
@@ -394,51 +398,79 @@ function _mlLoadTestCard(idx){
   render();
 }
 
-// ── 드래그 앤 드롭 (테스트 사진 → 모델 입력칸) ──
-let ML_SUP_DRAG_IDX = null;
+// ── 드래그 앤 드롭 ──
+//   ① 테스트 사진(data-drag-idx) → 모델 입력칸(data-dropzone)
+//   ② 라벨링 풀 사진(data-label-idx) → 그룹 박스(data-group-drop)
+let ML_SUP_DRAG_IDX = null;       // 테스트 카드 드래그 중 idx
+let ML_SUP_LABEL_DRAG = null;     // 라벨링 풀 카드 드래그 중 idx
 
 document.addEventListener('dragstart', e => {
-  const img = e.target.closest('[data-drag-idx]');
-  if(!img) return;
-  ML_SUP_DRAG_IDX = parseInt(img.dataset.dragIdx);
-  if(e.dataTransfer){
-    e.dataTransfer.effectAllowed = 'copy';
-    try { e.dataTransfer.setData('text/plain', String(ML_SUP_DRAG_IDX)); } catch(_){}
+  const testImg = e.target.closest('[data-drag-idx]');
+  if(testImg){
+    ML_SUP_DRAG_IDX = parseInt(testImg.dataset.dragIdx);
+    if(e.dataTransfer){ e.dataTransfer.effectAllowed = 'copy'; try { e.dataTransfer.setData('text/plain', 't' + ML_SUP_DRAG_IDX); } catch(_){} }
+    const card = testImg.closest('.ml-cand-card'); if(card) card.classList.add('dragging');
+    return;
   }
-  const card = img.closest('.ml-cand-card');
-  if(card) card.classList.add('dragging');
+  const poolImg = e.target.closest('[data-label-idx]');
+  if(poolImg){
+    ML_SUP_LABEL_DRAG = parseInt(poolImg.dataset.labelIdx);
+    if(e.dataTransfer){ e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'l' + ML_SUP_LABEL_DRAG); } catch(_){} }
+    const card = poolImg.closest('.ml-pool-card'); if(card) card.classList.add('dragging');
+    return;
+  }
 });
 
 document.addEventListener('dragend', e => {
-  const img = e.target.closest('[data-drag-idx]');
-  if(img){ const card = img.closest('.ml-cand-card'); if(card) card.classList.remove('dragging'); }
-  document.querySelectorAll('.ml-tm-input.dragover').forEach(el => el.classList.remove('dragover'));
+  document.querySelectorAll('.ml-cand-card.dragging, .ml-pool-card.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover'));
 });
 
 document.addEventListener('dragover', e => {
-  const dz = e.target.closest('[data-dropzone]');
+  const dz = e.target.closest('[data-dropzone], [data-group-drop]');
   if(!dz) return;
   e.preventDefault();
-  if(e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  if(e.dataTransfer) e.dataTransfer.dropEffect = dz.hasAttribute('data-group-drop') ? 'move' : 'copy';
   dz.classList.add('dragover');
 });
 
 document.addEventListener('dragleave', e => {
-  const dz = e.target.closest('[data-dropzone]');
+  const dz = e.target.closest('[data-dropzone], [data-group-drop]');
   if(dz && !dz.contains(e.relatedTarget)) dz.classList.remove('dragover');
 });
 
 document.addEventListener('drop', e => {
-  const dz = e.target.closest('[data-dropzone]');
-  if(!dz) return;
-  e.preventDefault();
-  dz.classList.remove('dragover');
-  let idx = ML_SUP_DRAG_IDX;
-  if(idx == null && e.dataTransfer){
-    const t = e.dataTransfer.getData('text/plain');
-    if(t !== '') idx = parseInt(t);
+  // 그룹 박스에 떨어뜨린 경우 (라벨링)
+  const gbox = e.target.closest('[data-group-drop]');
+  if(gbox){
+    e.preventDefault();
+    gbox.classList.remove('dragover');
+    let idx = ML_SUP_LABEL_DRAG;
+    if(idx == null && e.dataTransfer){
+      const t = e.dataTransfer.getData('text/plain');
+      if(t && t[0] === 'l') idx = parseInt(t.slice(1));
+    }
+    ML_SUP_LABEL_DRAG = null;
+    if(idx == null || isNaN(idx)) return;
+    ML_SUP_LABELS[idx] = gbox.dataset.groupDrop;
+    // 담은 그룹을 활성으로 (이어서 클릭으로도 담기 쉽게)
+    ML_SUP_ACTIVE_CLS = gbox.dataset.groupDrop;
+    render();
+    return;
   }
-  ML_SUP_DRAG_IDX = null;
-  if(idx == null || isNaN(idx)) return;
-  _mlLoadTestCard(idx);
+  // 모델 입력칸에 떨어뜨린 경우 (테스트)
+  const dz = e.target.closest('[data-dropzone]');
+  if(dz){
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    let idx = ML_SUP_DRAG_IDX;
+    if(idx == null && e.dataTransfer){
+      const t = e.dataTransfer.getData('text/plain');
+      if(t && t[0] === 't') idx = parseInt(t.slice(1));
+    }
+    ML_SUP_DRAG_IDX = null;
+    if(idx == null || isNaN(idx)) return;
+    _mlLoadTestCard(idx);
+    return;
+  }
 });

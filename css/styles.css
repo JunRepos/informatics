@@ -2067,6 +2067,40 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 
 .ml-train-hint{flex:1;font-size:12px;color:var(--text2);padding:6px 10px;background:var(--surface2);border-radius:6px}
 
+/* Phase 2: TM식 그룹 박스 + 공용 풀 */
+.ml-active-inline{display:inline-block;margin-top:6px;color:#4f46e5}
+.ml-group-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:12px 0}
+.ml-group-box{border:2px solid var(--border);border-radius:12px;padding:10px;min-height:120px;cursor:pointer;transition:all .15s}
+.ml-group-box.active{box-shadow:0 0 0 3px rgba(99,102,241,.35)}
+.ml-group-box.dragover{box-shadow:0 0 0 3px #6366f1;transform:scale(1.02)}
+.ml-gb-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:14px;font-weight:700}
+.ml-gb-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.ml-gb-name{flex:1;cursor:text;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ml-gb-name:hover{text-decoration:underline dotted}
+.ml-gb-cnt{font-size:11px;font-weight:600;color:var(--text3)}
+.ml-gb-del{flex-shrink:0;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:5px;line-height:1}
+.ml-gb-del:hover{background:rgba(239,68,68,.12);color:#dc2626}
+.ml-gb-input{flex:1;border:1px solid #6366f1;border-radius:6px;padding:5px 9px;font-size:13px;font-weight:600;background:#fff;color:#111;min-width:0}
+.ml-gb-input:focus{outline:none}
+.ml-gb-cards{display:flex;flex-wrap:wrap;gap:5px;min-height:56px;align-content:flex-start}
+.ml-gb-card{width:48px;height:48px;border:1px solid rgba(0,0,0,.1);border-radius:6px;background:#fff;overflow:hidden;cursor:pointer;transition:transform .12s}
+.ml-gb-card:hover{transform:scale(1.1);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.ml-gb-card img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.ml-gb-empty{font-size:11px;color:var(--text3);text-align:center;width:100%;align-self:center;line-height:1.5;pointer-events:none}
+.ml-group-add{border:2px dashed var(--border);border-radius:12px;background:var(--surface2);color:var(--text2);cursor:pointer;font-size:13px;font-weight:600;min-height:120px;transition:all .15s;line-height:1.5}
+.ml-group-add:hover{border-color:#6366f1;color:#6366f1;background:rgba(99,102,241,.05)}
+
+.ml-pool-label{font-size:13px;font-weight:600;margin:14px 0 6px}
+.ml-pool-hint{font-weight:400;font-size:12px;color:var(--text3)}
+.ml-pool{display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--surface2);border-radius:10px;min-height:64px}
+.ml-pool.dim{opacity:.5}
+.ml-pool-card{width:56px;height:56px;border:1px solid var(--border);border-radius:8px;background:#fff;overflow:hidden;cursor:grab;transition:all .12s;flex:0 0 auto}
+.ml-pool-card:hover{transform:translateY(-2px);border-color:#6366f1;box-shadow:0 3px 10px rgba(99,102,241,.2)}
+.ml-pool-card:active{cursor:grabbing}
+.ml-pool-card.dragging{opacity:.4;transform:scale(.92)}
+.ml-pool-card img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:element}
+.ml-pool-empty{font-size:13px;color:var(--ok,#16a34a);font-weight:600;text-align:center;width:100%;padding:14px}
+
 /* Phase 4: Teachable Machine 식 테스트 */
 /* 후보 5장 (드래그 가능) */
 .ml-tm-cands-label{font-size:12px;font-weight:600;color:var(--text2);margin:6px 0 6px}
