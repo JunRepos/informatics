@@ -38,8 +38,10 @@ document.addEventListener('click', async e => {
     ML_SUP_DATASET = ds;
     ML_SUP_POOL = mlGenerateDataset(did, 8, { seedOffset: 0 });
     _mlShuffle(ML_SUP_POOL.samples);
+    // 테스트 풀은 5장만 (학생이 드래그해서 모델에 넣어보는 용도)
     ML_SUP_TEST_POOL = mlGenerateDataset(did, 7, { seedOffset: 500 });
     _mlShuffle(ML_SUP_TEST_POOL.samples);
+    ML_SUP_TEST_POOL.samples = ML_SUP_TEST_POOL.samples.slice(0, 5);
     // 클래스는 빈 상태로 시작 — 학생이 데이터를 보고 직접 만듦
     ML_SUP_CLASSES = [];
     ML_SUP_ACTIVE_CLS = null;
@@ -171,20 +173,10 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // Phase 4: 테스트 카드 클릭 → 모델 예측
+  // Phase 4: 테스트 카드 클릭(폴백) → 모델 입력칸에 넣기
   if(act === 'ml-sup-test-pick'){
     const idx = parseInt(el.dataset.idx);
-    const sample = ML_SUP_TEST_POOL.samples[idx];
-    // 학습 샘플 구성: 라벨 붙은 학습 풀 카드 + classId = 학생 정의 클래스 id
-    const trainSamples = Object.entries(ML_SUP_LABELS).map(([sidx, cid]) => {
-      const s = ML_SUP_POOL.samples[parseInt(sidx)];
-      return { vec: s.vec, classId: cid, label: ML_SUP_CLASSES.find(c => c.id === cid)?.name || '?' };
-    });
-    if(!trainSamples.length){ toast('학습 데이터가 없습니다', 'err'); return; }
-    const k = Math.min(5, trainSamples.length);
-    const pred = mlKnnPredict(trainSamples, sample.vec, k);
-    ML_SUP_TEST_PICK = { idx, sample, pred };
-    render();
+    _mlLoadTestCard(idx);
     return;
   }
 
@@ -202,8 +194,8 @@ document.addEventListener('click', async e => {
 
   // Phase 4 → Phase 5
   if(act === 'ml-sup-finish'){
-    if(Object.keys(ML_SUP_TEST_JUDGED).length < 3){
-      toast('3장 이상 판정한 뒤 결과를 볼 수 있어요', 'err');
+    if(Object.keys(ML_SUP_TEST_JUDGED).length < 1){
+      toast('사진을 1장 이상 테스트하고 판정한 뒤 결과를 볼 수 있어요', 'err');
       return;
     }
     ML_SUP_PHASE = 'done';
@@ -384,3 +376,69 @@ function _mlShuffle(arr){
   }
   return arr;
 }
+
+// 테스트 카드 1장을 모델 입력칸에 넣고 KNN 예측 (드롭/클릭 공용)
+function _mlLoadTestCard(idx){
+  if(!ML_SUP_TEST_POOL || isNaN(idx)) return;
+  const sample = ML_SUP_TEST_POOL.samples[idx];
+  if(!sample) return;
+  // 학습 샘플 = 라벨 붙은 학습 풀 카드 (classId = 학생 정의 그룹 id)
+  const trainSamples = Object.entries(ML_SUP_LABELS).map(([sidx, cid]) => {
+    const s = ML_SUP_POOL.samples[parseInt(sidx)];
+    return { vec: s.vec, classId: cid, label: ML_SUP_CLASSES.find(c => c.id === cid)?.name || '?' };
+  });
+  if(!trainSamples.length){ toast('학습 데이터가 없습니다', 'err'); return; }
+  const k = Math.min(5, trainSamples.length);
+  const pred = mlKnnPredict(trainSamples, sample.vec, k);
+  ML_SUP_TEST_PICK = { idx, sample, pred };
+  render();
+}
+
+// ── 드래그 앤 드롭 (테스트 사진 → 모델 입력칸) ──
+let ML_SUP_DRAG_IDX = null;
+
+document.addEventListener('dragstart', e => {
+  const img = e.target.closest('[data-drag-idx]');
+  if(!img) return;
+  ML_SUP_DRAG_IDX = parseInt(img.dataset.dragIdx);
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed = 'copy';
+    try { e.dataTransfer.setData('text/plain', String(ML_SUP_DRAG_IDX)); } catch(_){}
+  }
+  const card = img.closest('.ml-cand-card');
+  if(card) card.classList.add('dragging');
+});
+
+document.addEventListener('dragend', e => {
+  const img = e.target.closest('[data-drag-idx]');
+  if(img){ const card = img.closest('.ml-cand-card'); if(card) card.classList.remove('dragging'); }
+  document.querySelectorAll('.ml-tm-input.dragover').forEach(el => el.classList.remove('dragover'));
+});
+
+document.addEventListener('dragover', e => {
+  const dz = e.target.closest('[data-dropzone]');
+  if(!dz) return;
+  e.preventDefault();
+  if(e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  dz.classList.add('dragover');
+});
+
+document.addEventListener('dragleave', e => {
+  const dz = e.target.closest('[data-dropzone]');
+  if(dz && !dz.contains(e.relatedTarget)) dz.classList.remove('dragover');
+});
+
+document.addEventListener('drop', e => {
+  const dz = e.target.closest('[data-dropzone]');
+  if(!dz) return;
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  let idx = ML_SUP_DRAG_IDX;
+  if(idx == null && e.dataTransfer){
+    const t = e.dataTransfer.getData('text/plain');
+    if(t !== '') idx = parseInt(t);
+  }
+  ML_SUP_DRAG_IDX = null;
+  if(idx == null || isNaN(idx)) return;
+  _mlLoadTestCard(idx);
+});

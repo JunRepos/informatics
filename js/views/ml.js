@@ -180,14 +180,13 @@ function _vStMlSupLabel(){
     </div>`;
 }
 
-/* Phase 4: 테스트 — 별도 풀에서 학생이 카드 선택 */
+/* Phase 4: 테스트 — Teachable Machine 식. 후보 5장 중 하나를 모델 입력칸으로 드래그 */
 function _vStMlSupTest(){
   const ds = ML_SUP_DATASET;
   const pool = ML_SUP_TEST_POOL.samples;
 
-  // 테스트 풀 그리드 (학생이 클릭하면 모델에 물어봄)
-  const judgedKeys = Object.keys(ML_SUP_TEST_JUDGED).map(k => parseInt(k));
-  const cardHtml = pool.map((s, i) => {
+  // 후보 카드 줄 (드래그 가능). 판정 끝난 카드는 배지 표시
+  const candHtml = pool.map((s, i) => {
     const j = ML_SUP_TEST_JUDGED[i];
     let badge = '';
     let extraCls = '';
@@ -196,11 +195,10 @@ function _vStMlSupTest(){
         ? '<div class="ml-test-badge ok">👍</div>'
         : '<div class="ml-test-badge ng">👎</div>';
       extraCls = 'judged ' + (j.judged === 'ok' ? 'judged-ok' : 'judged-ng');
-    } else if(ML_SUP_TEST_PICK && ML_SUP_TEST_PICK.idx === i){
-      extraCls = 'picked';
     }
-    return `<div class="ml-test-grid-card ${extraCls}" data-action="ml-sup-test-pick" data-idx="${i}">
-      <img src="${s.dataUrl}" alt=""/>
+    if(ML_SUP_TEST_PICK && ML_SUP_TEST_PICK.idx === i) extraCls += ' picked';
+    return `<div class="ml-cand-card ${extraCls}" data-action="ml-sup-test-pick" data-idx="${i}">
+      <img src="${s.dataUrl}" draggable="true" data-drag-idx="${i}" alt=""/>
       ${badge}
     </div>`;
   }).join('');
@@ -209,12 +207,23 @@ function _vStMlSupTest(){
   const ngCnt = Object.values(ML_SUP_TEST_JUDGED).filter(j => j.judged === 'ng').length;
   const judgedCnt = okCnt + ngCnt;
 
-  // 현재 선택된 카드의 모델 예측 패널
-  let pickPanel = '<div class="ml-test-pick-empty">👆 위에서 카드를 클릭해 모델에게 물어보세요</div>';
+  // INPUT 박스 (드롭존)
+  const inputBox = ML_SUP_TEST_PICK
+    ? `<div class="ml-tm-input filled" data-dropzone="1">
+         <img src="${ML_SUP_TEST_PICK.sample.dataUrl}" alt=""/>
+       </div>`
+    : `<div class="ml-tm-input" data-dropzone="1">
+         <div class="ml-tm-drop-hint">
+           <div class="ml-tm-drop-icon">📥</div>
+           <div>여기로 사진을<br>끌어다 놓아요</div>
+         </div>
+       </div>`;
+
+  // OUTPUT 박스 (확률 막대)
+  let outputBox;
   if(ML_SUP_TEST_PICK){
-    const { sample, pred, idx } = ML_SUP_TEST_PICK;
-    const judged = ML_SUP_TEST_JUDGED[idx];
-    const probBars = ML_SUP_CLASSES.map((c, ci) => {
+    const { pred } = ML_SUP_TEST_PICK;
+    const bars = ML_SUP_CLASSES.map((c, ci) => {
       const p = pred.probs[c.id] || 0;
       const col = ML_CLS_COLORS[ci % ML_CLS_COLORS.length];
       const isPred = pred.classId === c.id;
@@ -224,16 +233,21 @@ function _vStMlSupTest(){
         <div class="ml-prob-pct">${(p * 100).toFixed(0)}%</div>
       </div>`;
     }).join('');
-    pickPanel = `<div class="ml-test-pick">
-      <div class="ml-test-pick-img"><img src="${sample.dataUrl}" alt=""/></div>
-      <div class="ml-test-pick-right">
-        <div class="ml-test-q">모델의 예측:</div>
-        ${probBars}
-        <div class="ml-test-verdict-q">이 예측이 맞다고 생각해요?</div>
-        <div class="ml-test-judge-bar">
-          <button class="btn-sm ml-judge-ok ${judged?.judged === 'ok' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ok">👍 맞아!</button>
-          <button class="btn-sm ml-judge-ng ${judged?.judged === 'ng' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ng">👎 틀렸어</button>
-        </div>
+    outputBox = `<div class="ml-tm-output"><div class="ml-tm-box-title">출력 (모델의 예측)</div>${bars}</div>`;
+  } else {
+    outputBox = `<div class="ml-tm-output empty"><div class="ml-tm-box-title">출력 (모델의 예측)</div>
+      <div class="ml-tm-output-empty">사진을 입력하면<br>여기에 예측 결과가 나와요</div></div>`;
+  }
+
+  // 판정 영역 (입력된 카드가 있을 때만)
+  let judgeBar = '';
+  if(ML_SUP_TEST_PICK){
+    const judged = ML_SUP_TEST_JUDGED[ML_SUP_TEST_PICK.idx];
+    judgeBar = `<div class="ml-test-judge-wrap">
+      <div class="ml-test-verdict-q">이 예측이 맞다고 생각해요?</div>
+      <div class="ml-test-judge-bar">
+        <button class="btn-sm ml-judge-ok ${judged?.judged === 'ok' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ok">👍 맞아!</button>
+        <button class="btn-sm ml-judge-ng ${judged?.judged === 'ng' ? 'on' : ''}" data-action="ml-sup-judge" data-judge="ng">👎 틀렸어</button>
       </div>
     </div>`;
   }
@@ -243,15 +257,28 @@ function _vStMlSupTest(){
     <div class="section">
       <div class="sec-title">🧪 모델 테스트  <span class="ml-test-meta">(판정: 👍 ${okCnt} · 👎 ${ngCnt})</span></div>
       <div class="ml-sub-explain">
-        새로운 카드 풀이에요. 한 장씩 클릭하면 모델이 어떤 클래스라고 예측하는지 보여줘요.
-        예측이 <b>맞으면 👍, 틀리면 👎</b>를 눌러서 모델 성능을 평가해보세요.
+        새 사진 <b>5장</b>이에요. 이 중 하나를 골라 <b>모델 입력칸으로 드래그</b>해보세요.
+        모델이 어떤 그룹이라고 예측하는지 보고, <b>맞으면 👍 틀리면 👎</b>로 평가해요.
       </div>
-      <div class="ml-test-grid">${cardHtml}</div>
-      ${pickPanel}
+
+      <div class="ml-tm-cands-label">테스트 사진 (드래그하세요)</div>
+      <div class="ml-tm-cands">${candHtml}</div>
+
+      <div class="ml-tm-flow">
+        <div class="ml-tm-col">
+          <div class="ml-tm-box-title">입력</div>
+          ${inputBox}
+        </div>
+        <div class="ml-tm-arrow">➜</div>
+        <div class="ml-tm-col grow">
+          ${outputBox}
+        </div>
+      </div>
+      ${judgeBar}
     </div>
     <div class="ml-action-bar">
       <span class="ml-test-progress">${judgedCnt}장 판정 / ${pool.length}장 중</span>
-      <button class="btn-p btn-sm" data-action="ml-sup-finish" ${judgedCnt >= 3 ? '' : 'disabled'}>결과 보기 →</button>
+      <button class="btn-p btn-sm" data-action="ml-sup-finish" ${judgedCnt >= 1 ? '' : 'disabled'}>결과 보기 →</button>
     </div>`;
 }
 

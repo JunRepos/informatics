@@ -2067,26 +2067,40 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 
 .ml-train-hint{flex:1;font-size:12px;color:var(--text2);padding:6px 10px;background:var(--surface2);border-radius:6px}
 
-/* Phase 4: 테스트 풀 그리드 */
-.ml-test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin:10px 0}
-.ml-test-grid-card{position:relative;aspect-ratio:1;border:2px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;transition:all .15s;overflow:hidden}
-.ml-test-grid-card:hover{transform:scale(1.08);border-color:#6366f1;z-index:2}
-.ml-test-grid-card img{width:100%;height:100%;object-fit:contain;display:block}
-.ml-test-grid-card.picked{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.3);transform:scale(1.06)}
-.ml-test-grid-card.judged-ok{border-color:#22c55e;background:rgba(34,197,94,.06)}
-.ml-test-grid-card.judged-ng{border-color:#ef4444;background:rgba(239,68,68,.06)}
-.ml-test-badge{position:absolute;top:-5px;right:-5px;font-size:14px;background:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid;line-height:1}
+/* Phase 4: Teachable Machine 식 테스트 */
+/* 후보 5장 (드래그 가능) */
+.ml-tm-cands-label{font-size:12px;font-weight:600;color:var(--text2);margin:6px 0 6px}
+.ml-tm-cands{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.ml-cand-card{position:relative;width:84px;height:84px;border:2px solid var(--border);border-radius:10px;background:#fff;cursor:grab;transition:all .15s;overflow:hidden;flex:0 0 auto}
+.ml-cand-card:hover{transform:translateY(-2px);border-color:#6366f1;box-shadow:0 4px 12px rgba(99,102,241,.2)}
+.ml-cand-card:active{cursor:grabbing}
+.ml-cand-card img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:auto;-webkit-user-drag:element}
+.ml-cand-card.dragging{opacity:.4;transform:scale(.95)}
+.ml-cand-card.picked{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.3)}
+.ml-cand-card.judged-ok{border-color:#22c55e;background:rgba(34,197,94,.06)}
+.ml-cand-card.judged-ng{border-color:#ef4444;background:rgba(239,68,68,.06)}
+.ml-test-badge{position:absolute;top:-6px;right:-6px;font-size:14px;background:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);border:1px solid;line-height:1}
 .ml-test-badge.ok{border-color:#22c55e}
 .ml-test-badge.ng{border-color:#ef4444}
 
-/* Phase 4: 선택된 카드 상세 패널 */
-.ml-test-pick{display:flex;gap:16px;padding:14px;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.03));border:1px solid rgba(99,102,241,.25);border-radius:10px;margin-top:10px;flex-wrap:wrap}
-.ml-test-pick-img{flex:0 0 auto}
-.ml-test-pick-img img{width:120px;height:120px;border:2px solid var(--border);border-radius:10px;background:#fff;object-fit:contain;box-shadow:var(--sh)}
-.ml-test-pick-right{flex:1;min-width:220px}
-.ml-test-pick-empty{padding:18px;text-align:center;background:var(--surface2);border:2px dashed var(--border);border-radius:10px;color:var(--text3);font-size:13px;margin-top:10px}
+/* INPUT → OUTPUT 흐름 */
+.ml-tm-flow{display:flex;align-items:stretch;gap:14px;flex-wrap:wrap}
+.ml-tm-col{display:flex;flex-direction:column;gap:6px}
+.ml-tm-col.grow{flex:1;min-width:220px}
+.ml-tm-box-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px}
+.ml-tm-input{width:150px;height:150px;border:3px dashed var(--border);border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;transition:all .15s;overflow:hidden}
+.ml-tm-input.dragover{border-color:#6366f1;background:rgba(99,102,241,.1);transform:scale(1.03)}
+.ml-tm-input.filled{border-style:solid;border-color:#6366f1;background:#fff;padding:6px}
+.ml-tm-input.filled img{width:100%;height:100%;object-fit:contain}
+.ml-tm-drop-hint{text-align:center;color:var(--text3);font-size:12px;line-height:1.5;pointer-events:none}
+.ml-tm-drop-icon{font-size:30px;margin-bottom:4px}
+.ml-tm-arrow{display:flex;align-items:center;font-size:28px;color:#6366f1;font-weight:700}
+.ml-tm-output{flex:1;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:6px;justify-content:center}
+.ml-tm-output.empty{align-items:stretch}
+.ml-tm-output-empty{text-align:center;color:var(--text3);font-size:13px;padding:14px 0;line-height:1.5}
 
-.ml-test-verdict-q{font-size:13px;font-weight:600;margin:10px 0 6px}
+.ml-test-judge-wrap{margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:10px}
+.ml-test-verdict-q{font-size:13px;font-weight:600;margin:0 0 8px}
 .ml-test-judge-bar{display:flex;gap:8px}
 .ml-judge-ok,.ml-judge-ng{padding:8px 16px!important;border:2px solid!important;background:var(--surface)!important;font-weight:700!important}
 .ml-judge-ok{border-color:#22c55e!important;color:#16a34a!important}
