@@ -479,21 +479,41 @@ function _vStMlUnRun(){
 
 /* ─────────────────── 강화학습 ─────────────────── */
 
+const ML_RL_DUCK_URL = 'https://8laos.github.io/reinforced-duck/';
+
 function _vStMlReinforce(){
   return `<div class="section">
     <div class="ml-intro">
       <b>🎮 강화학습</b>은 <u>잘하면 보상, 못하면 벌점</u>을 주면서 스스로 학습시키는 방식이에요.
-      여러분이 만들 플래피 버드의 점수 시스템도 비슷한 원리!
+      AI가 수많은 시도(trial & error)를 반복하며 점점 더 잘하게 됩니다.
     </div>
+
+    <div class="ml-rl-game">
+      <div class="ml-rl-game-head">
+        <div>
+          <div class="ml-rl-title">🦆 강화학습 오리 (Reinforced Duck)</div>
+          <div class="ml-rl-credit">친구가 Unity로 직접 만든 강화학습 게임이에요. AI 오리가 장애물을 피하며 보상을 받아 점점 잘하게 되는 과정을 지켜보세요!</div>
+        </div>
+        <a class="btn-p btn-sm ml-rl-open" href="${ML_RL_DUCK_URL}" target="_blank" rel="noopener">🔗 새 탭에서 크게 열기</a>
+      </div>
+      <div class="ml-rl-frame-wrap">
+        <iframe class="ml-rl-frame" credentialless src="${ML_RL_DUCK_URL}"
+          allow="fullscreen; autoplay; gamepad"
+          allowfullscreen loading="lazy"
+          title="Reinforced Duck"></iframe>
+      </div>
+      <div class="ml-rl-note">게임이 안 보이면 위의 <b>🔗 새 탭에서 크게 열기</b>를 눌러주세요. (불러오는 데 몇 초 걸릴 수 있어요)</div>
+    </div>
+
     <div class="ml-rl-card">
       <div class="ml-rl-icon">🐦</div>
       <div class="ml-rl-body">
-        <div class="ml-rl-title">플래피 버드 — 여러분의 코드가 게임을 학습시켜요</div>
+        <div class="ml-rl-title2">직접 보상 시스템 만들어보기 — 플래피 버드</div>
         <div class="ml-rl-desc">
-          🎮 미션 탭에 가서 플래피 버드를 직접 만들어봐요.<br>
-          점수·레벨 같은 보상 시스템을 여러분이 직접 디자인하면, 그게 곧 강화학습의 핵심이에요.
+          🎮 미션 탭에서 플래피 버드의 점수·레벨 같은 <b>보상 시스템을 직접 디자인</b>해봐요.
+          어떤 행동에 점수를 줄지 정하는 게 곧 강화학습의 핵심이에요.
         </div>
-        <button class="btn-p" data-action="ml-go-mission">🎮 미션 탭으로 이동</button>
+        <button class="btn-sm" data-action="ml-go-mission">🎮 미션 탭으로 이동</button>
       </div>
     </div>
   </div>`;
@@ -536,12 +556,12 @@ function vTcMl(){
     <div class="sec-title">활동 구성</div>
     <div class="ml-sub-explain">
       학생은 데이터를 직접 만들지 않고 <b>미리 준비된 이모지 데이터셋</b>에서 골라 분류기를 만들거나(지도), 그룹화를 체험(비지도)합니다.
-      코드 작성은 0줄. 강화학습은 기존 🎮 미션(플래피 버드)로 연결됩니다.
+      코드 작성은 0줄. 강화학습은 <b>Reinforced Duck</b>(외부 Unity 게임) 임베드로 보여주고, 보조로 🎮 미션(플래피 버드) 보상 설계와 연결됩니다.
     </div>
     <div class="ml-tc-flow">
-      <div class="ml-tc-flow-card"><b>📚 지도학습</b><br><small>데이터셋 선택 → 학습 → 테스트 카드로 정확도 확인</small></div>
+      <div class="ml-tc-flow-card"><b>📚 지도학습</b><br><small>데이터셋 선택 → 그룹 만들어 라벨링 → 테스트(드래그) 정확도 확인</small></div>
       <div class="ml-tc-flow-card"><b>🔍 비지도학습</b><br><small>K-Means로 라벨 없이 그룹화 → 정답 공개로 정확도 확인</small></div>
-      <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>🎮 미션의 플래피 버드 점수 시스템과 연결</small></div>
+      <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>Reinforced Duck 게임 임베드 + 플래피버드 보상 설계 안내</small></div>
     </div>
     <div class="sec-title" style="margin-top:14px">제공되는 데이터셋</div>
     <div class="ml-tc-ds-list">${datasets}</div>

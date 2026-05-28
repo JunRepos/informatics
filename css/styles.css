@@ -2006,11 +2006,21 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-reveal-tag{font-size:11px;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:inline-block}
 .ml-purity{padding:10px 12px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.02));border-left:3px solid #22c55e;border-radius:6px;font-size:13px}
 
-/* 강화학습 placeholder */
-.ml-rl-card{display:flex;gap:16px;align-items:center;padding:18px;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(99,102,241,.04));border:1px solid rgba(168,85,247,.25);border-radius:10px}
-.ml-rl-icon{font-size:54px;line-height:1;flex-shrink:0}
+/* 강화학습 — 임베드 게임 */
+.ml-rl-game{border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:14px;background:linear-gradient(135deg,rgba(168,85,247,.06),rgba(99,102,241,.03));margin-bottom:14px}
+.ml-rl-game-head{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+.ml-rl-credit{font-size:12.5px;color:var(--text2);line-height:1.6;margin-top:4px;max-width:560px}
+.ml-rl-open{flex-shrink:0;text-decoration:none;white-space:nowrap}
+.ml-rl-frame-wrap{position:relative;width:100%;max-width:880px;margin:0 auto;aspect-ratio:1600/720;background:#000;border-radius:10px;overflow:hidden;box-shadow:var(--sh)}
+.ml-rl-frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.ml-rl-note{font-size:11.5px;color:var(--text3);margin-top:8px;text-align:center}
+
+/* 강화학습 — 보조 카드(플래피버드 미션 안내) */
+.ml-rl-card{display:flex;gap:16px;align-items:center;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
+.ml-rl-icon{font-size:44px;line-height:1;flex-shrink:0}
 .ml-rl-body{flex:1;min-width:0}
-.ml-rl-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.ml-rl-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.ml-rl-title2{font-size:14px;font-weight:700;margin-bottom:5px}
 .ml-rl-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
 
 /* 선생님 화면 */
