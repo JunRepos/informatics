@@ -213,6 +213,11 @@ function afterRender(){
     afterRenderAiCode();
   }
 
+  // 🤖 기계학습 — 지도학습 그리기 캔버스 셋업/복원
+  if(typeof afterRenderMl === 'function'){
+    afterRenderMl();
+  }
+
   // 비주얼 OJ — 첫 렌더링 시 시각화 위젯에 첫 공개 TC 입력 그림 (output 없이)
   const visualCanvas = document.getElementById('oj-visual-canvas');
   if(visualCanvas && OJ_SEL_PROB?.visualType && typeof renderVisualWidget === 'function'){

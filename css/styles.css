@@ -2123,6 +2123,16 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-tm-output.empty{align-items:stretch}
 .ml-tm-output-empty{text-align:center;color:var(--text3);font-size:13px;padding:14px 0;line-height:1.5}
 
+/* 그리기 테스트 */
+.ml-draw-canvas{width:280px;max-width:100%;aspect-ratio:1;border:2px solid var(--border);border-radius:12px;background:#fff;cursor:crosshair;touch-action:none;display:block}
+.ml-draw-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.ml-pal-row{display:flex;gap:6px;flex-wrap:wrap}
+.ml-pal{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);cursor:pointer;padding:0;transition:transform .12s}
+.ml-pal:hover{transform:scale(1.15)}
+.ml-pal.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}
+.ml-draw-predict{margin-top:12px;width:100%}
+.ml-draw-verdict{font-size:14px;font-weight:700;padding:8px 12px;background:rgba(99,102,241,.1);border-radius:8px;margin-bottom:4px}
+
 .ml-test-judge-wrap{margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:10px}
 .ml-test-verdict-q{font-size:13px;font-weight:600;margin:0 0 8px}
 .ml-test-judge-bar{display:flex;gap:8px}

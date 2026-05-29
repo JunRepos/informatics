@@ -39,10 +39,6 @@ document.addEventListener('click', async e => {
     // 공용 풀 (클래스당 7장 × 3클래스 = 21장). TM식이라 전부 담을 필요 없음.
     ML_SUP_POOL = mlGenerateDataset(did, 7, { seedOffset: 0 });
     _mlShuffle(ML_SUP_POOL.samples);
-    // 테스트 풀은 5장만 (학생이 드래그해서 모델에 넣어보는 용도)
-    ML_SUP_TEST_POOL = mlGenerateDataset(did, 7, { seedOffset: 500 });
-    _mlShuffle(ML_SUP_TEST_POOL.samples);
-    ML_SUP_TEST_POOL.samples = ML_SUP_TEST_POOL.samples.slice(0, 5);
     // 그룹 3개 고정 — 학생은 이름만 정하고 카드를 담음 (추가/삭제 없음)
     ML_SUP_CLASSES = [
       { id: 'g1', name: '' },
@@ -52,8 +48,8 @@ document.addEventListener('click', async e => {
     ML_SUP_ACTIVE_CLS = null;
     ML_SUP_LABELS = {};
     ML_SUP_TRAINED = false;
-    ML_SUP_TEST_PICK = null;
-    ML_SUP_TEST_JUDGED = {};
+    ML_SUP_DRAW_STROKES = [];
+    ML_SUP_DRAW_PRED = null;
     ML_SUP_PHASE = 'label';
     render();
     return;
@@ -63,13 +59,12 @@ document.addEventListener('click', async e => {
     ML_SUP_PHASE = 'pick';
     ML_SUP_DATASET = null;
     ML_SUP_POOL = null;
-    ML_SUP_TEST_POOL = null;
     ML_SUP_CLASSES = [];
     ML_SUP_ACTIVE_CLS = null;
     ML_SUP_LABELS = {};
     ML_SUP_TRAINED = false;
-    ML_SUP_TEST_PICK = null;
-    ML_SUP_TEST_JUDGED = {};
+    ML_SUP_DRAW_STROKES = [];
+    ML_SUP_DRAW_PRED = null;
     render();
     return;
   }
@@ -108,24 +103,23 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // Phase 3 → Phase 4: 학습 + 테스트로
+  // Phase 3 → Phase 4: 학습 + 테스트(그리기)로
   if(act === 'ml-sup-train'){
-    // 각 클래스에 최소 1장은 있어야
     const clsCnt = {};
     ML_SUP_CLASSES.forEach(c => clsCnt[c.id] = 0);
     Object.values(ML_SUP_LABELS).forEach(cid => { if(clsCnt[cid] != null) clsCnt[cid]++; });
-    const empty = ML_SUP_CLASSES.filter(c => clsCnt[c.id] === 0);
-    if(empty.length){
-      toast(`"${empty[0].name}" 클래스에 카드를 1장 이상 붙여주세요`, 'err');
+    const named = ML_SUP_CLASSES.filter(c => (c.name || '').trim());
+    const empty = named.filter(c => clsCnt[c.id] === 0);
+    if(named.length < 2 || empty.length){
+      toast(`이름 정한 그룹마다 사진을 1장 이상 담아주세요`, 'err');
       return;
     }
-    // 학습 데이터 = 라벨이 붙은 카드들만 + classId를 학생 정의 id로
     toast('🧠 학습 중...', 'info');
     setTimeout(() => {
       ML_SUP_TRAINED = true;
       ML_SUP_PHASE = 'test';
-      ML_SUP_TEST_PICK = null;
-      ML_SUP_TEST_JUDGED = {};
+      ML_SUP_DRAW_STROKES = [];
+      ML_SUP_DRAW_PRED = null;
       render();
     }, 600);
     return;
@@ -133,53 +127,38 @@ document.addEventListener('click', async e => {
 
   if(act === 'ml-sup-back-label'){
     ML_SUP_PHASE = 'label';
-    ML_SUP_TEST_PICK = null;
     render();
     return;
   }
 
-  // Phase 4: 테스트 카드 클릭(폴백) → 모델 입력칸에 넣기
-  if(act === 'ml-sup-test-pick'){
-    const idx = parseInt(el.dataset.idx);
-    _mlLoadTestCard(idx);
-    return;
-  }
-
-  // Phase 4: 학생 판정 (맞아/틀려)
-  if(act === 'ml-sup-judge'){
-    if(!ML_SUP_TEST_PICK) return;
-    const j = el.dataset.judge;
-    ML_SUP_TEST_JUDGED[ML_SUP_TEST_PICK.idx] = {
-      pred: ML_SUP_TEST_PICK.pred,
-      judged: j,
-    };
+  // Phase 4(그리기): 색 선택
+  if(act === 'ml-sup-draw-color'){
+    ML_SUP_DRAW_COLOR = el.dataset.color || '#333333';
     render();
     return;
   }
 
-  // Phase 4 → Phase 5
-  if(act === 'ml-sup-finish'){
-    if(Object.keys(ML_SUP_TEST_JUDGED).length < 1){
-      toast('사진을 1장 이상 테스트하고 판정한 뒤 결과를 볼 수 있어요', 'err');
-      return;
-    }
-    ML_SUP_PHASE = 'done';
-    ML_SUP_TEST_PICK = null;
+  // Phase 4(그리기): 지우기
+  if(act === 'ml-sup-draw-clear'){
+    ML_SUP_DRAW_STROKES = [];
+    ML_SUP_DRAW_PRED = null;
     render();
     return;
   }
 
-  // Phase 5: 다시 흐름
-  if(act === 'ml-sup-back-test'){
-    ML_SUP_PHASE = 'test';
-    ML_SUP_TEST_PICK = null;
-    render();
-    return;
-  }
-  if(act === 'ml-sup-relabel'){
-    ML_SUP_PHASE = 'label';
-    ML_SUP_TEST_PICK = null;
-    ML_SUP_TEST_JUDGED = {};
+  // Phase 4(그리기): 맞춰보기 → 캔버스 벡터화 후 KNN 예측
+  if(act === 'ml-sup-draw-predict'){
+    if(!ML_SUP_DRAW_STROKES.length){ toast('먼저 그림을 그려주세요', 'err'); return; }
+    const canvas = document.getElementById('ml-draw-canvas');
+    if(!canvas){ return; }
+    const vec = _mlCanvasToVec(canvas);
+    const trainSamples = Object.entries(ML_SUP_LABELS).map(([sidx, cid]) => {
+      const s = ML_SUP_POOL.samples[parseInt(sidx)];
+      return { vec: s.vec, classId: cid, label: ML_SUP_CLASSES.find(c => c.id === cid)?.name || '?' };
+    });
+    if(!trainSamples.length){ toast('학습 데이터가 없습니다', 'err'); return; }
+    const k = Math.min(3, trainSamples.length);
+    ML_SUP_DRAW_PRED = mlKnnPredict(trainSamples, vec, k);
     render();
     return;
   }
@@ -397,96 +376,132 @@ function _mlShuffle(arr){
   return arr;
 }
 
-// 테스트 카드 1장을 모델 입력칸에 넣고 KNN 예측 (드롭/클릭 공용)
-function _mlLoadTestCard(idx){
-  if(!ML_SUP_TEST_POOL || isNaN(idx)) return;
-  const sample = ML_SUP_TEST_POOL.samples[idx];
-  if(!sample) return;
-  // 학습 샘플 = 라벨 붙은 학습 풀 카드 (classId = 학생 정의 그룹 id)
-  const trainSamples = Object.entries(ML_SUP_LABELS).map(([sidx, cid]) => {
-    const s = ML_SUP_POOL.samples[parseInt(sidx)];
-    return { vec: s.vec, classId: cid, label: ML_SUP_CLASSES.find(c => c.id === cid)?.name || '?' };
-  });
-  if(!trainSamples.length){ toast('학습 데이터가 없습니다', 'err'); return; }
-  const k = Math.min(3, trainSamples.length);
-  const pred = mlKnnPredict(trainSamples, sample.vec, k);
-  ML_SUP_TEST_PICK = { idx, sample, pred };
-  render();
-}
-
-// ── 드래그 앤 드롭 ──
-//   ① 테스트 사진(data-drag-idx) → 모델 입력칸(data-dropzone)
-//   ② 라벨링 풀 사진(data-label-idx) → 그룹 박스(data-group-drop)
-let ML_SUP_DRAG_IDX = null;       // 테스트 카드 드래그 중 idx
+// ── 드래그 앤 드롭 (라벨링: 풀 사진 → 그룹 박스) ──
 let ML_SUP_LABEL_DRAG = null;     // 라벨링 풀 카드 드래그 중 idx
 
 document.addEventListener('dragstart', e => {
-  const testImg = e.target.closest('[data-drag-idx]');
-  if(testImg){
-    ML_SUP_DRAG_IDX = parseInt(testImg.dataset.dragIdx);
-    if(e.dataTransfer){ e.dataTransfer.effectAllowed = 'copy'; try { e.dataTransfer.setData('text/plain', 't' + ML_SUP_DRAG_IDX); } catch(_){} }
-    const card = testImg.closest('.ml-cand-card'); if(card) card.classList.add('dragging');
-    return;
-  }
   const poolImg = e.target.closest('[data-label-idx]');
   if(poolImg){
     ML_SUP_LABEL_DRAG = parseInt(poolImg.dataset.labelIdx);
     if(e.dataTransfer){ e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'l' + ML_SUP_LABEL_DRAG); } catch(_){} }
     const card = poolImg.closest('.ml-pool-card'); if(card) card.classList.add('dragging');
-    return;
   }
 });
 
 document.addEventListener('dragend', e => {
-  document.querySelectorAll('.ml-cand-card.dragging, .ml-pool-card.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.ml-pool-card.dragging').forEach(el => el.classList.remove('dragging'));
   document.querySelectorAll('.dragover').forEach(el => el.classList.remove('dragover'));
 });
 
 document.addEventListener('dragover', e => {
-  const dz = e.target.closest('[data-dropzone], [data-group-drop]');
+  const dz = e.target.closest('[data-group-drop]');
   if(!dz) return;
   e.preventDefault();
-  if(e.dataTransfer) e.dataTransfer.dropEffect = dz.hasAttribute('data-group-drop') ? 'move' : 'copy';
+  if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
   dz.classList.add('dragover');
 });
 
 document.addEventListener('dragleave', e => {
-  const dz = e.target.closest('[data-dropzone], [data-group-drop]');
+  const dz = e.target.closest('[data-group-drop]');
   if(dz && !dz.contains(e.relatedTarget)) dz.classList.remove('dragover');
 });
 
 document.addEventListener('drop', e => {
-  // 그룹 박스에 떨어뜨린 경우 (라벨링)
   const gbox = e.target.closest('[data-group-drop]');
-  if(gbox){
-    e.preventDefault();
-    gbox.classList.remove('dragover');
-    let idx = ML_SUP_LABEL_DRAG;
-    if(idx == null && e.dataTransfer){
-      const t = e.dataTransfer.getData('text/plain');
-      if(t && t[0] === 'l') idx = parseInt(t.slice(1));
-    }
-    ML_SUP_LABEL_DRAG = null;
-    if(idx == null || isNaN(idx)) return;
-    ML_SUP_LABELS[idx] = gbox.dataset.groupDrop;
-    // 담은 그룹을 활성으로 (이어서 클릭으로도 담기 쉽게)
-    ML_SUP_ACTIVE_CLS = gbox.dataset.groupDrop;
-    render();
-    return;
+  if(!gbox) return;
+  e.preventDefault();
+  gbox.classList.remove('dragover');
+  let idx = ML_SUP_LABEL_DRAG;
+  if(idx == null && e.dataTransfer){
+    const t = e.dataTransfer.getData('text/plain');
+    if(t && t[0] === 'l') idx = parseInt(t.slice(1));
   }
-  // 모델 입력칸에 떨어뜨린 경우 (테스트)
-  const dz = e.target.closest('[data-dropzone]');
-  if(dz){
-    e.preventDefault();
-    dz.classList.remove('dragover');
-    let idx = ML_SUP_DRAG_IDX;
-    if(idx == null && e.dataTransfer){
-      const t = e.dataTransfer.getData('text/plain');
-      if(t && t[0] === 't') idx = parseInt(t.slice(1));
-    }
-    ML_SUP_DRAG_IDX = null;
-    if(idx == null || isNaN(idx)) return;
-    _mlLoadTestCard(idx);
-    return;
-  }
+  ML_SUP_LABEL_DRAG = null;
+  if(idx == null || isNaN(idx)) return;
+  ML_SUP_LABELS[idx] = gbox.dataset.groupDrop;
+  ML_SUP_ACTIVE_CLS = gbox.dataset.groupDrop;  // 이어서 클릭으로도 담기 쉽게
+  render();
 });
+
+// ── 그리기 캔버스 → 28×28 RGB 벡터 (학습 이모지와 동일 방식: 흰 배경, 1-RGB) ──
+function _mlCanvasToVec(canvas){
+  const small = document.createElement('canvas');
+  small.width = 28; small.height = 28;
+  const sctx = small.getContext('2d');
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0, 0, 28, 28);
+  sctx.drawImage(canvas, 0, 0, 28, 28);
+  const px = sctx.getImageData(0, 0, 28, 28).data;
+  const vec = new Float32Array(28 * 28 * 3);
+  for(let i = 0, j = 0; i < px.length; i += 4, j += 3){
+    vec[j]     = 1 - px[i]     / 255;
+    vec[j + 1] = 1 - px[i + 1] / 255;
+    vec[j + 2] = 1 - px[i + 2] / 255;
+  }
+  return vec;
+}
+
+// ── 지도학습 그리기 캔버스 셋업/복원 (afterRender 훅) ──
+const _mlDraw = { drawing: false, cur: null };
+
+// window pointerup은 단 한 번만 등록 (그리기 종료)
+window.addEventListener('pointerup', () => { _mlDraw.drawing = false; _mlDraw.cur = null; });
+
+function afterRenderMl(){
+  const canvas = document.getElementById('ml-draw-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // 흰 배경 + 기존 획 복원
+  const repaint = () => {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for(const st of ML_SUP_DRAW_STROKES){
+      ctx.strokeStyle = st.color;
+      ctx.lineWidth = st.size;
+      const pts = st.points;
+      if(pts.length === 1){
+        ctx.fillStyle = st.color;
+        ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], st.size / 2, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+      }
+    }
+  };
+  repaint();
+
+  const posOf = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const cx = (e.clientX) - r.left;
+    const cy = (e.clientY) - r.top;
+    return [cx * (W / r.width), cy * (H / r.height)];
+  };
+
+  // 캔버스 리스너는 요소가 매 렌더 새로 생성되므로 자동 정리됨
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture?.(e.pointerId);
+    _mlDraw.drawing = true;
+    _mlDraw.cur = { color: ML_SUP_DRAW_COLOR, size: ML_SUP_DRAW_SIZE, points: [posOf(e)] };
+    ML_SUP_DRAW_STROKES.push(_mlDraw.cur);
+    repaint();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if(!_mlDraw.drawing || !_mlDraw.cur) return;
+    e.preventDefault();
+    _mlDraw.cur.points.push(posOf(e));
+    const pts = _mlDraw.cur.points, n = pts.length;
+    ctx.strokeStyle = _mlDraw.cur.color; ctx.lineWidth = _mlDraw.cur.size;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[n - 2][0], pts[n - 2][1]);
+    ctx.lineTo(pts[n - 1][0], pts[n - 1][1]);
+    ctx.stroke();
+  });
+}
