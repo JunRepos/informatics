@@ -451,10 +451,10 @@ function _vStMlUnRun(){
       ${stepInfo}
       <div class="ml-action-bar">
         ${km
-          ? `<button class="btn-sm" data-action="ml-un-step">⏭ 한 단계 진행</button>
-             <button class="btn-sm" data-action="ml-un-run">▶ 끝까지 진행</button>
-             <button class="btn-sm" data-action="ml-un-reset">⟲ 초기화</button>
-             <button class="btn-p btn-sm" data-action="ml-un-reveal">${ML_UN_REVEAL ? '🙈 정답 숨기기' : '😎 정답 공개'}</button>`
+          ? `<button class="btn-sm" data-action="ml-un-step" ${ML_UN_AUTO_TIMER ? 'disabled' : ''}>⏭ 한 단계</button>
+             <button class="btn-sm" data-action="ml-un-run">${ML_UN_AUTO_TIMER ? '⏸ 정지' : '▶ 자동 재생'}</button>
+             <button class="btn-sm" data-action="ml-un-reset" ${ML_UN_AUTO_TIMER ? 'disabled' : ''}>⟲ 초기화</button>
+             <button class="btn-p btn-sm" data-action="ml-un-reveal" ${ML_UN_AUTO_TIMER ? 'disabled' : ''}>${ML_UN_REVEAL ? '🙈 정답 숨기기' : '😎 정답 공개'}</button>`
           : `<button class="btn-p" data-action="ml-un-start">▶ 그룹 짓기 시작</button>`}
       </div>
       <div class="ml-plot">

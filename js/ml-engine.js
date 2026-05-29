@@ -73,33 +73,56 @@ function mlKMeansInit(samples, k, opts){
   const dim = samples[0].vec.length;
   const n = samples.length;
 
-  // 초기 중심: K-Means++ 단순화 (첫 점 무작위, 다음 점들은 기존 중심과 가장 먼 점)
   const seed = opts.seed != null ? opts.seed : Math.floor(Math.random() * 1e9);
   const rng = (() => { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xFFFFFFFF; }; })();
 
-  const centroidIdx = [Math.floor(rng() * n)];
-  while(centroidIdx.length < k){
-    const dists = samples.map((s, i) => {
-      let minD = Infinity;
-      for(const ci of centroidIdx){
-        const d = mlEuclid(s.vec, samples[ci].vec);
-        if(d < minD) minD = d;
-      }
-      return { i, d: minD };
+  let centroids;
+  if(opts.init === 'center' && dim === 2){
+    // 모든 점의 중앙 근처 작은 원에 K개 중심을 균등 배치.
+    // → 가운데서 출발해 여러 단계에 걸쳐 각 덩어리로 "찾아가는" 과정이 보임.
+    const mean = [0, 0];
+    for(const s of samples){ mean[0] += s.vec[0]; mean[1] += s.vec[1]; }
+    mean[0] /= n; mean[1] /= n;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for(const s of samples){
+      const x = s.vec[0], y = s.vec[1];
+      if(x < minX) minX = x; if(x > maxX) maxX = x;
+      if(y < minY) minY = y; if(y > maxY) maxY = y;
+    }
+    const spread = Math.max(maxX - minX, maxY - minY) || 1;
+    const r = spread * 0.12;
+    const a0 = rng() * Math.PI * 2;  // 시작 각도 무작위
+    centroids = [];
+    for(let c = 0; c < k; c++){
+      const ang = a0 + (Math.PI * 2 * c) / k;
+      const v = new Float32Array(2);
+      v[0] = mean[0] + r * Math.cos(ang);
+      v[1] = mean[1] + r * Math.sin(ang);
+      centroids.push(v);
+    }
+  } else {
+    // 기본: K-Means++ 단순화 (첫 점 무작위, 다음은 기존 중심과 가장 먼 점)
+    const centroidIdx = [Math.floor(rng() * n)];
+    while(centroidIdx.length < k){
+      const dists = samples.map((s, i) => {
+        let minD = Infinity;
+        for(const ci of centroidIdx){
+          const d = mlEuclid(s.vec, samples[ci].vec);
+          if(d < minD) minD = d;
+        }
+        return { i, d: minD };
+      });
+      dists.sort((a, b) => b.d - a.d);
+      const next = dists.find(d => !centroidIdx.includes(d.i));
+      if(!next) break;
+      centroidIdx.push(next.i);
+    }
+    centroids = centroidIdx.map(i => {
+      const v = new Float32Array(dim);
+      for(let j = 0; j < dim; j++) v[j] = samples[i].vec[j];
+      return v;
     });
-    // 가장 먼 점을 다음 중심으로
-    dists.sort((a, b) => b.d - a.d);
-    // 이미 선택된 점 제외
-    const next = dists.find(d => !centroidIdx.includes(d.i));
-    if(!next) break;
-    centroidIdx.push(next.i);
   }
-
-  const centroids = centroidIdx.map(i => {
-    const v = new Float32Array(dim);
-    for(let j = 0; j < dim; j++) v[j] = samples[i].vec[j];
-    return v;
-  });
 
   const state = {
     k,

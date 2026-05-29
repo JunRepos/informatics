@@ -215,35 +215,45 @@ document.addEventListener('click', async e => {
 
   if(act === 'ml-un-start'){
     if(!ML_UN_2D) return;
-    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K);
-    ML_UN_KMEANS.assignStep();  // 첫 색칠
+    _mlStopAuto();
+    // 중심을 중앙 근처 무작위로 시작 → 여러 단계에 걸쳐 덩어리를 찾아감
+    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K, { init: 'center' });
+    ML_UN_KMEANS.assignStep();  // 첫 색칠(중심이 가운데라 뒤섞여 보임)
     render();
     return;
   }
 
   if(act === 'ml-un-step'){
     if(!ML_UN_KMEANS) return;
+    _mlStopAuto();
     ML_UN_KMEANS.step();
     render();
     return;
   }
 
+  // 자동 재생: 한 단계씩 0.8초 간격으로 진행하며 중심이 이동하는 과정을 보여줌
   if(act === 'ml-un-run'){
     if(!ML_UN_KMEANS) return;
-    let safety = 0;
-    while(safety++ < 30){
-      ML_UN_KMEANS.updateStep();
-      ML_UN_KMEANS.assignStep();
-      if(!ML_UN_KMEANS.changed) break;
-    }
-    toast('수렴 완료!', 'ok');
+    if(ML_UN_AUTO_TIMER){ _mlStopAuto(); render(); return; }  // 재생 중이면 정지
+    let stable = 0;
+    ML_UN_AUTO_TIMER = setInterval(() => {
+      // ml 비지도 화면을 벗어났으면 정지 (누수 방지)
+      if(ST_TAB !== 'ml' || ML_TAB !== 'unsupervised' || !ML_UN_KMEANS){ _mlStopAuto(); return; }
+      ML_UN_KMEANS.step();
+      // update 단계 직후 변화 없으면 카운트 (assign/update 둘 다 무변이면 수렴)
+      if(ML_UN_KMEANS.phase === 'assign' && !ML_UN_KMEANS.changed) stable++;
+      else stable = 0;
+      render();
+      if(stable >= 1){ _mlStopAuto(); render(); }
+    }, 800);
     render();
     return;
   }
 
   if(act === 'ml-un-reset'){
     if(!ML_UN_2D) return;
-    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K);
+    _mlStopAuto();
+    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K, { init: 'center' });
     ML_UN_KMEANS.assignStep();
     ML_UN_REVEAL = false;
     render();
@@ -279,6 +289,11 @@ document.addEventListener('click', async e => {
     return;
   }
 });
+
+// 비지도 자동 재생 정지
+function _mlStopAuto(){
+  if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
+}
 
 // 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
 function _mlBuildUn2D(){
