@@ -869,8 +869,15 @@ function _parseOJProblemBody(title, body){
       // 첫 fenced 블록의 내용
       starterCode = _firstFencedContent(sec.content);
     } else if(t === '테스트' || t === 'tests' || t === '테스트케이스' || t === 'testcases'){
-      // 이 섹션의 sub(### 케이스 N) 들을 모은다
-      testRawSections = _splitMdSections(sec.content).filter(s => s.level === 3);
+      // _splitMdSections 는 평면 구조라 "### 케이스 N" 들은 "## 테스트" 의 형제로 뒤따라온다.
+      // → 다음 level-2 헤더 전까지 따라오는 level-3 섹션들을 케이스로 수집.
+      testRawSections = [];
+      for(let j = i + 1; j < sections.length && sections[j].level >= 3; j++){
+        testRawSections.push(sections[j]);
+      }
+      // (호환) 혹시 content 안에 직접 들어있는 경우도 포함
+      const inside = _splitMdSections(sec.content).filter(s => s.level === 3);
+      if(inside.length) testRawSections = inside.concat(testRawSections);
     }
   }
 
