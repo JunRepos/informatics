@@ -631,6 +631,25 @@ async function setMlActive(cid, on){
   ML_ACTIVE[cid] = !!on;
 }
 
+// 강화학습 설명 텍스트 (선생님 편집 → 학생 표시)
+async function loadMlRlDesc(cid){
+  try {
+    const s = await db.ref(`ml/rlDesc/${cid}`).get();
+    const v = s.exists() ? String(s.val() || '') : '';
+    ML_RL_DESC[cid] = v;
+    return v;
+  } catch(err){
+    console.warn('[기계학습] rlDesc 로드 실패:', err.message || err);
+    ML_RL_DESC[cid] = '';
+    return '';
+  }
+}
+
+async function setMlRlDesc(cid, text){
+  await db.ref(`ml/rlDesc/${cid}`).set(String(text || ''));
+  ML_RL_DESC[cid] = String(text || '');
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([

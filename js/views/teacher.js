@@ -109,8 +109,8 @@ function setTC(t){
     AIA_ALL_SUBS = {};
     loadAiaActive(TC_CLS.id).then(() => render());
   } else if(t === 'ml' && TC_CLS){
-    // 🤖 기계학습 체험 관리 — active 토글만
-    loadMlActive(TC_CLS.id).then(() => render());
+    // 🤖 기계학습 체험 관리 — active 토글 + 강화학습 설명
+    Promise.all([loadMlActive(TC_CLS.id), loadMlRlDesc(TC_CLS.id)]).then(() => render());
   } else if(t === 'scores' && TC_CLS){
     // 🏆 점수 관리 — 공개 토글 + 모든 수행평가 점수 한번에 로드
     SC_TC_ASMT = SC_TC_ASMT || 'bigdata';

@@ -36,15 +36,19 @@ document.addEventListener('click', async e => {
     const ds = mlDatasetById(did);
     if(!ds) return;
     ML_SUP_DATASET = ds;
-    // 공용 풀 20장 (클래스당 5장). TM식이라 전부 담을 필요 없음.
-    ML_SUP_POOL = mlGenerateDataset(did, 5, { seedOffset: 0 });
+    // 공용 풀 (클래스당 7장 × 3클래스 = 21장). TM식이라 전부 담을 필요 없음.
+    ML_SUP_POOL = mlGenerateDataset(did, 7, { seedOffset: 0 });
     _mlShuffle(ML_SUP_POOL.samples);
     // 테스트 풀은 5장만 (학생이 드래그해서 모델에 넣어보는 용도)
     ML_SUP_TEST_POOL = mlGenerateDataset(did, 7, { seedOffset: 500 });
     _mlShuffle(ML_SUP_TEST_POOL.samples);
     ML_SUP_TEST_POOL.samples = ML_SUP_TEST_POOL.samples.slice(0, 5);
-    // 클래스는 빈 상태로 시작 — 학생이 데이터를 보고 직접 만듦
-    ML_SUP_CLASSES = [];
+    // 그룹 3개 고정 — 학생은 이름만 정하고 카드를 담음 (추가/삭제 없음)
+    ML_SUP_CLASSES = [
+      { id: 'g1', name: '' },
+      { id: 'g2', name: '' },
+      { id: 'g3', name: '' },
+    ];
     ML_SUP_ACTIVE_CLS = null;
     ML_SUP_LABELS = {};
     ML_SUP_TRAINED = false;
@@ -70,56 +74,13 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // 그룹 추가: 빈 editing 상태로 추가, 입력 받음
-  if(act === 'ml-sup-cls-add'){
-    if(ML_SUP_CLASSES.length >= 5) return;
-    const newCls = { id: 'c' + Date.now() + Math.random().toString(36).slice(2, 6), name: '', editing: true };
-    ML_SUP_CLASSES.push(newCls);
-    // 새로 만든 그룹을 활성으로 만들지는 않음 (이름 먼저 정해야 의미 있음)
-    render();
-    // input에 포커스 (autofocus는 첫 렌더에서만 동작하므로 명시적으로)
-    setTimeout(() => {
-      const inp = document.querySelector(`[data-action="ml-sup-cls-name"][data-cid="${newCls.id}"]`);
-      if(inp){ inp.focus(); inp.select(); }
-    }, 30);
-    return;
-  }
-
-  // 그룹 이름 편집 진입 (이름 부분 클릭)
-  if(act === 'ml-sup-cls-edit'){
-    const cid = el.dataset.cid;
-    const c = ML_SUP_CLASSES.find(c => c.id === cid);
-    if(!c) return;
-    c.editing = true;
-    render();
-    setTimeout(() => {
-      const inp = document.querySelector(`[data-action="ml-sup-cls-name"][data-cid="${cid}"]`);
-      if(inp){ inp.focus(); inp.select(); }
-    }, 30);
-    return;
-  }
-
-  if(act === 'ml-sup-cls-del'){
-    const cid = el.dataset.cid;
-    const c = ML_SUP_CLASSES.find(c => c.id === cid);
-    if(!c) return;
-    // 라벨이 있는 그룹은 확인
-    const has = Object.values(ML_SUP_LABELS).includes(cid);
-    if(has && !confirm(`"${c.name || '이 그룹'}"을 삭제할까요? 이 그룹에 붙인 라벨도 함께 사라져요.`)) return;
-    ML_SUP_CLASSES = ML_SUP_CLASSES.filter(x => x.id !== cid);
-    Object.keys(ML_SUP_LABELS).forEach(k => { if(ML_SUP_LABELS[k] === cid) delete ML_SUP_LABELS[k]; });
-    if(ML_SUP_ACTIVE_CLS === cid) ML_SUP_ACTIVE_CLS = null;
-    render();
-    return;
-  }
-
-  // 활성 그룹 선택 (편집 모드가 아닌 칩 클릭)
+  // 활성 그룹 선택 (그룹 박스 본문 클릭 — 클릭으로 카드 담기용)
   if(act === 'ml-sup-cls-pick'){
     const cid = el.dataset.cid;
     const c = ML_SUP_CLASSES.find(c => c.id === cid);
-    if(!c || c.editing) return;
+    if(!c) return;
     if(!(c.name || '').trim()){
-      toast('이 그룹은 아직 이름이 없어요', 'err');
+      toast('이 그룹의 이름을 먼저 정해주세요', 'err');
       return;
     }
     ML_SUP_ACTIVE_CLS = cid;
@@ -223,16 +184,17 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  /* ── 비지도학습 ── */
+  /* ── 비지도학습 (2D 점 지도 + K-Means) ── */
   if(act === 'ml-un-pick'){
     const did = el.dataset.did;
     const ds = mlDatasetById(did);
     if(!ds) return;
     ML_UN_DATASET = ds;
-    // 클래스당 8장 정도 (총 ~32장이 화면에 보이기 좋음)
-    ML_UN_DATA = mlGenerateDataset(did, 8, { seedOffset: 100 });
+    // 클래스당 10장 → 3클래스면 30점. 2D로 투영해 산점도로 보여줌.
+    ML_UN_DATA = mlGenerateDataset(did, 10, { seedOffset: 100 });
+    _mlBuildUn2D();
     ML_UN_KMEANS = null;
-    ML_UN_K = ds.classes.length;  // 기본은 정답 클래스 수와 같게
+    ML_UN_K = 3;
     ML_UN_REVEAL = false;
     if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
     ML_UN_PHASE = 'run';
@@ -243,7 +205,7 @@ document.addEventListener('click', async e => {
   if(act === 'ml-un-back'){
     ML_UN_PHASE = 'pick';
     ML_UN_DATASET = null;
-    ML_UN_DATA = null;
+    ML_UN_DATA = null; ML_UN_PTS = null; ML_UN_BOUNDS = null; ML_UN_2D = null;
     ML_UN_KMEANS = null;
     ML_UN_REVEAL = false;
     if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
@@ -252,10 +214,9 @@ document.addEventListener('click', async e => {
   }
 
   if(act === 'ml-un-start'){
-    if(!ML_UN_DATA) return;
-    ML_UN_KMEANS = mlKMeansInit(ML_UN_DATA.samples, ML_UN_K);
-    // 첫 assignStep을 바로 돌려서 첫 그룹화 한 번 보여줌
-    ML_UN_KMEANS.assignStep();
+    if(!ML_UN_2D) return;
+    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K);
+    ML_UN_KMEANS.assignStep();  // 첫 색칠
     render();
     return;
   }
@@ -269,9 +230,8 @@ document.addEventListener('click', async e => {
 
   if(act === 'ml-un-run'){
     if(!ML_UN_KMEANS) return;
-    // 끝까지 (수렴할 때까지 최대 20회)
     let safety = 0;
-    while(safety++ < 20){
+    while(safety++ < 30){
       ML_UN_KMEANS.updateStep();
       ML_UN_KMEANS.assignStep();
       if(!ML_UN_KMEANS.changed) break;
@@ -282,8 +242,8 @@ document.addEventListener('click', async e => {
   }
 
   if(act === 'ml-un-reset'){
-    if(!ML_UN_DATA) return;
-    ML_UN_KMEANS = mlKMeansInit(ML_UN_DATA.samples, ML_UN_K);
+    if(!ML_UN_2D) return;
+    ML_UN_KMEANS = mlKMeansInit(ML_UN_2D, ML_UN_K);
     ML_UN_KMEANS.assignStep();
     ML_UN_REVEAL = false;
     render();
@@ -302,7 +262,41 @@ document.addEventListener('click', async e => {
     setST('mission');
     return;
   }
+
+  /* ── 강화학습 — 선생님 설명 저장 ── */
+  if(act === 'ml-rl-save-desc'){
+    if(!TC_CLS) return;
+    const ta = document.getElementById('ml-rl-desc-input');
+    const val = ta ? ta.value : '';
+    try {
+      await setMlRlDesc(TC_CLS.id, val);
+      toast('💾 강화학습 설명을 저장했어요', 'ok');
+      render();
+    } catch(err){
+      console.error(err);
+      toast('저장 실패: ' + (err.message || err), 'err');
+    }
+    return;
+  }
 });
+
+// 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
+function _mlBuildUn2D(){
+  const samples = ML_UN_DATA.samples;
+  const pts = mlProject2D(samples);
+  ML_UN_PTS = pts;
+  // K-Means용 2D 샘플 (정답 classId 동반 — 정답 공개/순도 계산용)
+  ML_UN_2D = samples.map((s, i) => ({ vec: [pts[i][0], pts[i][1]], classId: s.classId, emoji: s.emoji, dataUrl: s.dataUrl }));
+  // 정규화 범위
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for(const [x, y] of pts){
+    if(x < minX) minX = x; if(x > maxX) maxX = x;
+    if(y < minY) minY = y; if(y > maxY) maxY = y;
+  }
+  // 여유 패딩
+  const padX = (maxX - minX) * 0.08 || 1, padY = (maxY - minY) * 0.08 || 1;
+  ML_UN_BOUNDS = { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY };
+}
 
 // K 슬라이더 (input)
 document.addEventListener('input', e => {
@@ -329,48 +323,17 @@ document.addEventListener('input', e => {
   }
 });
 
-// 그룹 이름 input blur — editing 종료. 빈 이름이면 그룹 삭제.
+// 그룹 이름 input blur — 이름이 채워졌고 활성 그룹이 없으면 자동 활성화 (그룹은 3개 고정, 삭제 없음)
 document.addEventListener('blur', e => {
   const el = e.target.closest && e.target.closest('[data-action="ml-sup-cls-name"]');
   if(!el) return;
   const cid = el.dataset.cid;
   const c = ML_SUP_CLASSES.find(c => c.id === cid);
   if(!c) return;
-  const name = (c.name || '').trim();
-  if(!name){
-    // 빈 이름: 그룹 자동 삭제 (라벨도 정리)
-    ML_SUP_CLASSES = ML_SUP_CLASSES.filter(x => x.id !== cid);
-    Object.keys(ML_SUP_LABELS).forEach(k => { if(ML_SUP_LABELS[k] === cid) delete ML_SUP_LABELS[k]; });
-    if(ML_SUP_ACTIVE_CLS === cid) ML_SUP_ACTIVE_CLS = null;
-  } else {
-    // 중복 체크 (자기 자신 제외)
-    const dup = ML_SUP_CLASSES.some(x => x.id !== cid && (x.name || '').trim() === name);
-    if(dup){
-      toast('같은 이름의 그룹이 이미 있어요', 'err');
-      el.focus();
-      return;
-    }
-    c.name = name;
-    c.editing = false;
-    // 이름을 처음 정한 그룹은 자동으로 활성 그룹으로
-    if(!ML_SUP_ACTIVE_CLS) ML_SUP_ACTIVE_CLS = cid;
-  }
+  c.name = (c.name || '').trim();
+  if(c.name && !ML_SUP_ACTIVE_CLS) ML_SUP_ACTIVE_CLS = cid;
   render();
 }, true);  // capture phase
-
-// Enter / Escape 키 처리
-document.addEventListener('keydown', e => {
-  const el = e.target.closest && e.target.closest('[data-action="ml-sup-cls-name"]');
-  if(!el) return;
-  if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
-  else if(e.key === 'Escape'){
-    // 취소: editing 해제, 이름이 비어있으면 그룹 삭제
-    const cid = el.dataset.cid;
-    const c = ML_SUP_CLASSES.find(c => c.id === cid);
-    if(c) c.editing = false;
-    el.blur();
-  }
-});
 
 // 헬퍼: Fisher-Yates 셔플 (in-place)
 function _mlShuffle(arr){
@@ -392,7 +355,7 @@ function _mlLoadTestCard(idx){
     return { vec: s.vec, classId: cid, label: ML_SUP_CLASSES.find(c => c.id === cid)?.name || '?' };
   });
   if(!trainSamples.length){ toast('학습 데이터가 없습니다', 'err'); return; }
-  const k = Math.min(5, trainSamples.length);
+  const k = Math.min(3, trainSamples.length);
   const pred = mlKnnPredict(trainSamples, sample.vec, k);
   ML_SUP_TEST_PICK = { idx, sample, pred };
   render();

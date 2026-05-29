@@ -182,11 +182,17 @@ let ML_SUP_TEST_JUDGED = {};        // { [idx]: { pred, judged: 'ok'|'ng' } } - 
 // 비지도학습 상태
 let ML_UN_PHASE       = 'pick';     // 'pick'|'run'
 let ML_UN_DATASET     = null;
-let ML_UN_DATA        = null;
-let ML_UN_KMEANS      = null;       // ml-engine state
-let ML_UN_K           = 4;
+let ML_UN_DATA        = null;       // { samples, classes, def }
+let ML_UN_PTS         = null;       // [[x,y], ...] — PCA 2D 좌표 (samples 순서)
+let ML_UN_BOUNDS      = null;       // { minX, maxX, minY, maxY } — 정규화용
+let ML_UN_2D          = null;       // K-Means용 샘플 [{ vec:[x,y], classId }]
+let ML_UN_KMEANS      = null;       // ml-engine state (2D)
+let ML_UN_K           = 3;          // 그룹 수 (3 고정)
 let ML_UN_REVEAL      = false;
 let ML_UN_AUTO_TIMER  = null;
+
+// 🤖 강화학습 — 선생님이 편집하는 설명 텍스트
+let ML_RL_DESC        = {};         // { [classId]: string }
 
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시

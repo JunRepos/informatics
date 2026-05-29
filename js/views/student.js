@@ -130,7 +130,7 @@ function setST(t){
     ML_SUP_TRAINED = false; ML_SUP_TEST_IDX = 0; ML_SUP_TEST_RESULTS = []; ML_SUP_LAST_RESULT = null;
     ML_UN_PHASE = 'pick'; ML_UN_DATASET = null; ML_UN_DATA = null; ML_UN_KMEANS = null; ML_UN_REVEAL = false;
     if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
-    loadMlActive(SEL_CLS.id).then(() => render());
+    Promise.all([loadMlActive(SEL_CLS.id), loadMlRlDesc(SEL_CLS.id)]).then(() => render());
   } else if(t === 'myscore' && SEL_CLS && ST_USER){
     // 📊 내 점수 — 공개 토글 + 사유 공개 토글 + 내 점수 함께 로드
     MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;

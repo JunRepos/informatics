@@ -382,9 +382,16 @@
     },
 
     // ── 🤖 기계학습 체험 ──
-    //   active/{cid} : bool — 메뉴 노출 토글 (상태는 클라이언트, 저장 없음)
+    //   active/{cid} : bool — 메뉴 노출 토글
+    //   rlDesc/{cid} : string — 강화학습 게임 설명(선생님 편집)
     "ml": {
       "active": {
+        "$classId": {
+          ".read": true,
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+        }
+      },
+      "rlDesc": {
         "$classId": {
           ".read": true,
           ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"

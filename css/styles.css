@@ -1974,27 +1974,14 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-wrong-meta{font-size:12px;line-height:1.5}
 .ml-perfect{padding:20px;text-align:center;font-size:14px;background:rgba(34,197,94,.08);border-radius:8px;color:var(--ok,#16a34a);font-weight:600}
 
-/* 비지도학습 — K 슬라이더 */
-.ml-k-ctrl{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:10px;flex-wrap:wrap}
-.ml-k-ctrl label{font-size:13px;font-weight:600;min-width:120px}
-.ml-k-slider{flex:1;min-width:200px}
 .ml-step-info{font-size:12px;color:var(--text2);margin-bottom:10px;padding:0 4px}
 
-/* 비지도 그룹 박스 */
-.ml-groups-wrap{display:grid;gap:12px;margin-top:12px}
-.ml-groups-wrap.k-1,.ml-groups-wrap.k-2{grid-template-columns:1fr}
-.ml-groups-wrap.k-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-.ml-groups-wrap.k-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.ml-groups-wrap.k-5,.ml-groups-wrap.k-6{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
-.ml-group{border:2px solid #cbd5e1;border-radius:10px;padding:10px 12px;min-height:120px;transition:all .3s}
-.ml-group-init{grid-column:1/-1}
-.ml-group-head{font-size:13px;font-weight:700;margin-bottom:8px;color:#1e293b}
-.ml-group-cnt{font-size:11px;font-weight:500;color:#64748b;margin-left:6px}
-.ml-group-cards{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:48px}
-.ml-group-empty{font-size:12px;color:#94a3b8;font-style:italic;padding:8px}
-.ml-card-img{width:36px;height:36px;border:1px solid rgba(0,0,0,.1);border-radius:5px;background:#fff;object-fit:contain;transition:transform .25s, opacity .25s}
-.ml-card-img:hover{transform:scale(1.5);z-index:5;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.2)}
-.ml-card-img.scattered{opacity:.85}
+/* 비지도 — 2D 점 지도 */
+.ml-plot{position:relative;width:100%;max-width:520px;margin:12px auto 0;aspect-ratio:1;background:repeating-linear-gradient(0deg,transparent,transparent 11.1%,rgba(0,0,0,.04) 11.1%,rgba(0,0,0,.04) calc(11.1% + 1px)),repeating-linear-gradient(90deg,transparent,transparent 11.1%,rgba(0,0,0,.04) 11.1%,rgba(0,0,0,.04) calc(11.1% + 1px));background-color:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ml-pt{position:absolute;width:30px;height:30px;border:2px solid #cbd5e1;border-radius:7px;background:#fff;overflow:hidden;transform:translate(-50%,-50%);transition:border-color .35s, box-shadow .35s;z-index:1}
+.ml-pt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.ml-pt:hover{z-index:10;transform:translate(-50%,-50%) scale(1.7);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.ml-centroid{position:absolute;transform:translate(-50%,-50%);font-size:20px;font-weight:900;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:2px dashed;border-radius:50%;background:rgba(255,255,255,.85);transition:left .5s, top .5s;z-index:5;pointer-events:none}
 
 /* 정답 공개 영역 */
 .ml-reveal{margin-top:14px}
@@ -2006,22 +1993,15 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml-reveal-tag{font-size:11px;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:inline-block}
 .ml-purity{padding:10px 12px;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.02));border-left:3px solid #22c55e;border-radius:6px;font-size:13px}
 
-/* 강화학습 — 임베드 게임 */
-.ml-rl-game{border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:14px;background:linear-gradient(135deg,rgba(168,85,247,.06),rgba(99,102,241,.03));margin-bottom:14px}
-.ml-rl-game-head{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
-.ml-rl-credit{font-size:12.5px;color:var(--text2);line-height:1.6;margin-top:4px;max-width:560px}
-.ml-rl-open{flex-shrink:0;text-decoration:none;white-space:nowrap}
-.ml-rl-frame-wrap{position:relative;width:100%;max-width:880px;margin:0 auto;aspect-ratio:1600/720;background:#000;border-radius:10px;overflow:hidden;box-shadow:var(--sh)}
-.ml-rl-frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
-.ml-rl-note{font-size:11.5px;color:var(--text3);margin-top:8px;text-align:center}
+/* 강화학습 — 게임 카드 (새 탭 버튼 + 선생님 설명) */
+.ml-rl-game{border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:20px;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(99,102,241,.04));text-align:center}
+.ml-rl-title{font-size:18px;font-weight:800;margin-bottom:10px}
+.ml-rl-desc-box{font-size:13.5px;color:var(--text);line-height:1.7;margin:0 auto 16px;max-width:560px;white-space:pre-line;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.ml-rl-open-big{display:inline-block;text-decoration:none;font-size:16px;padding:14px 32px;border-radius:10px}
 
-/* 강화학습 — 보조 카드(플래피버드 미션 안내) */
-.ml-rl-card{display:flex;gap:16px;align-items:center;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
-.ml-rl-icon{font-size:44px;line-height:1;flex-shrink:0}
-.ml-rl-body{flex:1;min-width:0}
-.ml-rl-title{font-size:15px;font-weight:700;margin-bottom:2px}
-.ml-rl-title2{font-size:14px;font-weight:700;margin-bottom:5px}
-.ml-rl-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+/* 선생님 — 강화학습 설명 편집 */
+.ml-rl-desc-edit{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;line-height:1.6;color:var(--text);background:var(--surface);resize:vertical}
+.ml-rl-desc-edit:focus{outline:none;border-color:#6366f1}
 
 /* 선생님 화면 */
 .ml-tc-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0}

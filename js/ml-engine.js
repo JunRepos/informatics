@@ -166,6 +166,86 @@ function mlKMeansInit(samples, k, opts){
   return state;
 }
 
+/* ─────────────────── 2D 투영 (PCA) ───────────────────
+   고차원 벡터(RGB 2352차원)를 2D로 떨어뜨려 산점도로 시각화.
+   샘플 수 N이 작으므로 Gram 행렬(N×N) 고유분해로 빠르게 PCA 수행.
+   반환: [[x, y], ...] (samples와 같은 순서) */
+function mlProject2D(samples){
+  const n = samples.length;
+  if(n === 0) return [];
+  if(n === 1) return [[0, 0]];
+  const dim = samples[0].vec.length;
+
+  // 평균
+  const mean = new Float64Array(dim);
+  for(const s of samples) for(let j = 0; j < dim; j++) mean[j] += s.vec[j];
+  for(let j = 0; j < dim; j++) mean[j] /= n;
+
+  // 중심화 행렬 X (n×dim)
+  const X = [];
+  for(let i = 0; i < n; i++){
+    const row = new Float64Array(dim);
+    const v = samples[i].vec;
+    for(let j = 0; j < dim; j++) row[j] = v[j] - mean[j];
+    X.push(row);
+  }
+
+  // Gram 행렬 G = X Xᵀ (n×n)
+  const G = [];
+  for(let i = 0; i < n; i++) G.push(new Float64Array(n));
+  for(let i = 0; i < n; i++){
+    for(let k = i; k < n; k++){
+      let s = 0;
+      const xi = X[i], xk = X[k];
+      for(let j = 0; j < dim; j++) s += xi[j] * xk[j];
+      G[i][k] = s; G[k][i] = s;
+    }
+  }
+
+  // 상위 2개 고유벡터 (power iteration + deflation)
+  const e1 = _mlTopEigen(G, n);
+  _mlDeflate(G, e1.vec, e1.val, n);
+  const e2 = _mlTopEigen(G, n);
+
+  const c1 = Math.sqrt(Math.max(e1.val, 0));
+  const c2 = Math.sqrt(Math.max(e2.val, 0));
+  const pts = [];
+  for(let i = 0; i < n; i++) pts.push([e1.vec[i] * c1, e2.vec[i] * c2]);
+  return pts;
+}
+
+function _mlTopEigen(M, n){
+  // power iteration
+  let v = new Float64Array(n);
+  let seed = 12345;
+  for(let i = 0; i < n; i++){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; v[i] = (seed / 0x7fffffff) - 0.5; }
+  let val = 0;
+  for(let iter = 0; iter < 120; iter++){
+    const w = new Float64Array(n);
+    for(let i = 0; i < n; i++){
+      let s = 0; const Mi = M[i];
+      for(let j = 0; j < n; j++) s += Mi[j] * v[j];
+      w[i] = s;
+    }
+    let norm = 0;
+    for(let i = 0; i < n; i++) norm += w[i] * w[i];
+    norm = Math.sqrt(norm);
+    if(norm < 1e-12) break;
+    for(let i = 0; i < n; i++) w[i] /= norm;
+    let dot = 0;
+    for(let i = 0; i < n; i++) dot += w[i] * v[i];
+    v = w; val = norm;
+    if(Math.abs(Math.abs(dot) - 1) < 1e-9) break;
+  }
+  return { vec: v, val };
+}
+
+function _mlDeflate(M, v, val, n){
+  for(let i = 0; i < n; i++)
+    for(let j = 0; j < n; j++)
+      M[i][j] -= val * v[i] * v[j];
+}
+
 // 그룹별로 sample 인덱스 묶어주기 (UI 표시용)
 function mlKMeansGroups(state){
   const groups = Array.from({ length: state.k }, () => []);

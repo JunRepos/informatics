@@ -21,36 +21,33 @@ const ML_DATASETS = [
     id: 'fruit',
     title: '🍎 과일',
     icon: '🍎',
-    desc: '사과·바나나·포도·오렌지 — 색과 모양으로 구분돼요',
+    desc: '사과·바나나·포도 — 색이 뚜렷하게 달라요',
     classes: [
       { id: 'apple',  label: '사과',  emoji: '🍎' },
       { id: 'banana', label: '바나나', emoji: '🍌' },
       { id: 'grape',  label: '포도',  emoji: '🍇' },
-      { id: 'orange', label: '오렌지', emoji: '🍊' },
     ],
   },
   {
     id: 'animal',
     title: '🐶 동물',
     icon: '🐶',
-    desc: '강아지·고양이·새·물고기 — 실루엣이 꽤 달라요',
+    desc: '강아지·고양이·새 — 색과 실루엣이 달라요',
     classes: [
       { id: 'dog',  label: '강아지', emoji: '🐶' },
       { id: 'cat',  label: '고양이', emoji: '🐱' },
       { id: 'bird', label: '새',    emoji: '🐦' },
-      { id: 'fish', label: '물고기', emoji: '🐟' },
     ],
   },
   {
     id: 'face',
     title: '😀 표정',
     icon: '😀',
-    desc: '기쁨·슬픔·화남·놀람 — 표정이 다르면 모델이 알아챌까?',
+    desc: '기쁨·슬픔·화남 — 표정이 다르면 모델이 알아챌까?',
     classes: [
-      { id: 'happy',    label: '기쁨', emoji: '😀' },
-      { id: 'sad',      label: '슬픔', emoji: '😢' },
-      { id: 'angry',    label: '화남', emoji: '😡' },
-      { id: 'surprise', label: '놀람', emoji: '😲' },
+      { id: 'happy', label: '기쁨', emoji: '😀' },
+      { id: 'sad',   label: '슬픔', emoji: '😢' },
+      { id: 'angry', label: '화남', emoji: '😡' },
     ],
   },
 ];
@@ -86,17 +83,17 @@ function _mlSeededRng(seed){
 function _mlRenderSample(emoji, sampleIdx, classIdx){
   const rng = _mlSeededRng(sampleIdx * 9173 + classIdx * 31 + emoji.charCodeAt(0));
   const fontIdx = Math.floor(rng() * _ML_EMOJI_FONTS.length);
-  const bgIdx   = Math.floor(rng() * _ML_BG_COLORS.length);
-  const scale   = 0.7 + rng() * 0.3;       // 0.7~1.0 크기
-  const rot     = (rng() - 0.5) * 0.5;     // -0.25 ~ +0.25 rad (≈ ±14°)
-  const offX    = (rng() - 0.5) * 0.15;    // ±7.5% 위치
-  const offY    = (rng() - 0.5) * 0.15;
+  // 정확도(같은 클래스끼리 비슷하게)를 위해 변동을 줄이고 배경은 흰색 고정
+  const scale   = 0.86 + rng() * 0.14;     // 0.86~1.0 크기
+  const rot     = (rng() - 0.5) * 0.26;    // ≈ ±7.5°
+  const offX    = (rng() - 0.5) * 0.08;    // ±4% 위치
+  const offY    = (rng() - 0.5) * 0.08;
 
   // 1) 큰 캔버스에 한 번 그려서 미리보기 dataUrl 생성
   const big = document.createElement('canvas');
   big.width = 64; big.height = 64;
   const bctx = big.getContext('2d');
-  bctx.fillStyle = _ML_BG_COLORS[bgIdx];
+  bctx.fillStyle = '#ffffff';
   bctx.fillRect(0, 0, 64, 64);
   bctx.save();
   bctx.translate(32 + offX * 64, 32 + offY * 64);
@@ -108,17 +105,18 @@ function _mlRenderSample(emoji, sampleIdx, classIdx){
   bctx.restore();
   const dataUrl = big.toDataURL('image/png');
 
-  // 2) 28x28 그레이스케일 벡터 (KNN 입력용)
+  // 2) 28x28 RGB 벡터 (KNN/PCA 입력용). 색이 클래스 구분에 중요해서 채널 분리 유지.
+  //    배경(흰색)은 0에 가깝게(1-x), 색이 있는 곳은 채널별로 값이 살아남 → 색+모양 모두 반영.
   const small = document.createElement('canvas');
   small.width = 28; small.height = 28;
   const sctx = small.getContext('2d');
   sctx.drawImage(big, 0, 0, 28, 28);
   const px = sctx.getImageData(0, 0, 28, 28).data;
-  const vec = new Float32Array(784);
-  for(let i = 0, j = 0; i < px.length; i += 4, j++){
-    // RGB → 그레이스케일(0~1). 배경이 밝으니 1에서 빼서 "획이 있는 곳=큰 값"으로
-    const gray = (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114) / 255;
-    vec[j] = 1 - gray;
+  const vec = new Float32Array(28 * 28 * 3);
+  for(let i = 0, j = 0; i < px.length; i += 4, j += 3){
+    vec[j]     = 1 - px[i]     / 255;  // R
+    vec[j + 1] = 1 - px[i + 1] / 255;  // G
+    vec[j + 2] = 1 - px[i + 2] / 255;  // B
   }
   return { vec, dataUrl };
 }
