@@ -296,11 +296,50 @@ function _mlStopAuto(){
 }
 
 // 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
+//   이모지가 색으로 너무 깔끔히 나뉘면 K-Means가 1~2단계에 끝나 과정이 안 보임.
+//   → PCA 좌표에서 클래스 중심을 서로 당기고(shrink) 점을 퍼뜨려(spread+노이즈)
+//     경계를 겹치게 만들어, K-Means가 여러 단계에 걸쳐 경계를 다듬게 한다.
 function _mlBuildUn2D(){
   const samples = ML_UN_DATA.samples;
-  const pts = mlProject2D(samples);
+  let pts = mlProject2D(samples);
+
+  const n = pts.length;
+  // 글로벌 평균
+  let gx = 0, gy = 0;
+  for(const p of pts){ gx += p[0]; gy += p[1]; }
+  gx /= n; gy /= n;
+  // 클래스별 평균
+  const byClass = {};
+  samples.forEach((s, i) => { (byClass[s.classId] = byClass[s.classId] || []).push(i); });
+  const classMean = {};
+  for(const cid in byClass){
+    let cx = 0, cy = 0;
+    for(const i of byClass[cid]){ cx += pts[i][0]; cy += pts[i][1]; }
+    const m = byClass[cid].length;
+    classMean[cid] = [cx / m, cy / m];
+  }
+  // 데이터 규모 (노이즈 스케일)
+  let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+  for(const p of pts){ mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]); }
+  const span = Math.max(mxx - mnx, mxy - mny) || 1;
+
+  const shrink = 0.5;              // 클래스 간 거리를 50%로 압축 → 덩어리들이 가까워짐
+  const spread = 1.1;              // 클래스 내 퍼짐 약간 확대
+  const jitter = span * 0.05;      // 가우시안 노이즈로 경계 겹치게
+  let seed = 7919;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const gauss = () => (rnd() + rnd() + rnd() - 1.5);  // 대략 정규분포
+
+  pts = pts.map((p, i) => {
+    const cm = classMean[samples[i].classId];
+    const ncx = gx + (cm[0] - gx) * shrink;
+    const ncy = gy + (cm[1] - gy) * shrink;
+    const x = ncx + (p[0] - cm[0]) * spread + gauss() * jitter;
+    const y = ncy + (p[1] - cm[1]) * spread + gauss() * jitter;
+    return [x, y];
+  });
+
   ML_UN_PTS = pts;
-  // K-Means용 2D 샘플 (정답 classId 동반 — 정답 공개/순도 계산용)
   ML_UN_2D = samples.map((s, i) => ({ vec: [pts[i][0], pts[i][1]], classId: s.classId, emoji: s.emoji, dataUrl: s.dataUrl }));
   // 정규화 범위
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -308,7 +347,6 @@ function _mlBuildUn2D(){
     if(x < minX) minX = x; if(x > maxX) maxX = x;
     if(y < minY) minY = y; if(y > maxY) maxY = y;
   }
-  // 여유 패딩
   const padX = (maxX - minX) * 0.08 || 1, padY = (maxY - minY) * 0.08 || 1;
   ML_UN_BOUNDS = { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY };
 }
