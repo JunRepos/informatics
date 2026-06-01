@@ -115,19 +115,27 @@ function setTC(t){
     // 🏆 점수 관리 — 공개 토글 + 모든 수행평가 점수 한번에 로드
     SC_TC_ASMT = SC_TC_ASMT || 'bigdata';
     SC_SAVING_SNUM = null;
+    SC_LOADING = true;
+    render();   // 즉시 탭 전환 + "불러오는 중" 표시 (학생 '내 점수'와 동일 패턴)
+    const cid = TC_CLS.id;
     Promise.all([
-      loadAsmtPublished(TC_CLS.id),
-      loadAsmtReasonsPublished(TC_CLS.id),
-      loadAllAsmtScores(TC_CLS.id),                 // PET병(legacy)
-      loadAllAsmtScoresExt(TC_CLS.id, 'bigdata'),
-      loadAllAsmtScoresExt(TC_CLS.id, 'aicode'),
+      loadAsmtPublished(cid),
+      loadAsmtReasonsPublished(cid),
+      loadAllAsmtScores(cid),                 // PET병(legacy)
+      loadAllAsmtScoresExt(cid, 'bigdata'),
+      loadAllAsmtScoresExt(cid, 'aicode'),
     ]).then(([pub, rpub, pet, big, ai]) => {
-      SC_PUBLISHED[TC_CLS.id] = pub;
-      SC_REASONS_PUB[TC_CLS.id] = rpub;
+      SC_PUBLISHED[cid] = pub;
+      SC_REASONS_PUB[cid] = rpub;
       ASMT_ALL_SCORES = pet || {};
       SC_BIGDATA_SCORES = big || {};
       SC_AICODE_SCORES = ai || {};
-      render();
+      SC_LOADING = false;
+      if(TC_TAB === 'scores') render();   // 아직 점수 탭일 때만 갱신
+    }).catch(err => {
+      console.error('[점수관리] 로드 실패:', err);
+      SC_LOADING = false;
+      if(TC_TAB === 'scores') render();
     });
   } else if(t === 'coderead' && TC_CLS){
     CR_VIEW = 'list';

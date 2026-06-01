@@ -137,6 +137,7 @@ let SC_REASONS_PUB   = {};          // { [cid]: { bigdata:bool, petbottle:bool, 
 let SC_BIGDATA_SCORES = {};         // { [학번]: { prob,data,viz,insight, reasons:{key:str}, comment, scoredAt } } — 현재 반의 빅데이터 점수
 let SC_AICODE_SCORES  = {};         // { [학번]: {...} } — AI 점수 (구체화 시)
 let SC_SAVING_SNUM    = null;       // 저장 중인 학번 (UI 잠금용)
+let SC_LOADING        = false;      // 🏆 점수 관리 데이터 로딩 중 (true면 "불러오는 중" 표시)
 let SC_EXPAND_SNUM    = null;       // 사유 입력 행 펼침 학번 (null=모두 접힘, 한 번에 하나만)
 let SC_EXPAND_ASMT    = null;       // 펼친 수행평가 ID (탭 바뀌면 자연스레 접힘)
 

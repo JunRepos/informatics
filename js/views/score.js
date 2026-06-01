@@ -178,6 +178,7 @@ function _vStMyScoreCard(asmt, score, isPub, isReasonsPub){
 
 function vTcScores(){
   if(!TC_CLS) return emptyBox('👆', '관리할 반을 먼저 선택하세요.');
+  if(SC_LOADING) return `<div class="sc-loading">⏳ 점수를 불러오는 중...</div>`;
 
   // 수행평가 선택 칩
   const tabs = ASMT_LIST.map(a => {
