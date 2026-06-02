@@ -1,3 +1,37 @@
+# 🔄 세션 핸드오프 (2026-06-01 갱신)
+
+> 새 세션은 **메모리(자동로드) + 이 핸드오프 + PROJECT_CONTEXT.md** 만 읽으면 복원 완료.
+> 워크트리 `claude/musing-kapitsa-488f5f` / 배포 `git push origin claude/musing-kapitsa-488f5f:main` / curl 확인.
+> 환경: node 없음·python 3.14 / 프리뷰는 python http.server 포트 +1 + preview_eval / 한글 콘솔 깨짐→파일 저장 후 Read.
+
+## 🆕 2026-06-01 작업 요약
+
+### 1. 🤖 기계학습 체험 메뉴 신규 (정보반, 코드 0줄) — 자세한 건 메모리 [ml_feature.md]
+- **지도학습**: 이모지 데이터셋(과일/동물/표정, 각 3클래스) 선택 → 3개 고정 그룹에 이름 입력 → 공용 풀 사진을 그룹으로 **드래그/클릭**해 담기 → 학습(KNN) → **테스트는 마우스로 직접 그림 그려서** 모델이 맞춤(확률막대).
+- **비지도학습**: 사진을 PCA로 **2D 점 지도**에 배치 + 적당히 겹치게 변환 → K-Means 중심(✕)이 무작위에서 출발해 단계별로 색으로 묶임("자동 재생"/"한 단계"/"정답 공개" 순도).
+- **강화학습**: 친구 Unity 게임 **Reinforced Duck**(https://8laos.github.io/reinforced-duck/) 새 탭 버튼 + **선생님이 설명 직접 편집**(ml/rlDesc). 플래피 카드 제거.
+- 파일: `js/ml-data.js`·`js/ml-engine.js`·`js/views/ml.js`·`js/events/ml.js` + state/firebase/rules/css/student/teacher/index.html.
+- 선생님 `🤖 기계학습` 탭에서 노출 토글(ml/active) + 설명 편집. **active 켜야 학생에게 보임.**
+
+### 2. 💻 OJ 난이도 높은 5문제 제안 + import 파서 버그 수정
+- `OJ_HARD_5_PROPOSAL.md` (최장연속출석·반장선거개표·숫자삼각형·산봉우리개수·거스름돈동전, 모두 1~6차시 범위·Python 검증). **OJ 마크다운 가져오기 형식**이라 일괄 import 가능.
+- 버그 수정(`js/events/oj-actions.js` `parseOJMarkdown`): `### 케이스`가 `## 테스트`의 형제로 분해돼 테스트케이스 0개로 읽혀 **import 자체가 안 되던 버그** 수정. 기존 oj-조건문-반복문.md도 이제 import됨.
+
+### 3. 정보 2-B 수행평가 채점 (Firebase 반영 완료) — 메모리 [assessment_grading_workflow.md]
+- **프로그래밍(PET병)** 18명, **빅데이터** 14명(영역별 사유+종합 코멘트). 2-A 기준 역산해 일관 채점, 미제출 비움/8점 등 정책은 사용자 확인 후 적용. 선생님이 빅데이터 일부 직접 수정·미제출 7명 8점 부여함(형평성 검토 완료, 현행 유지).
+- ⚠️ **두 평가 모두 학생 공개(published)는 꺼진 상태.**
+
+### 4. 🐛 점수 관리 탭 레이스 수정
+- 진입 즉시 render 안 하고 .then에서만 해서 "데이터 안 뜨다가 메뉴 왔다갔다 하면 뜨는" 버그 → `SC_LOADING` 플래그 + 즉시 로딩렌더 + `.catch` (학생 '내 점수' 패턴과 동일).
+
+### ⚠️ 펜딩 (선생님이 할 일)
+1. **Firebase 콘솔에서 `database.rules.json` 재게시** — `ml/active`·`ml/rlDesc` 노드 추가됨 (안 하면 기계학습 토글·강화 설명저장 PERMISSION_DENIED). 이전 펜딩(scoresExt/published/reasonsPublished/aiactivity/studentDownloadLocked)도 함께 적용.
+2. 정보반에 `🤖 기계학습` **노출 토글 ON** + 강화학습 설명 입력.
+3. 수행평가 점수 **공개 토글** (검토 후) 켜기.
+4. `OJ_HARD_5_PROPOSAL.md` import (원하면).
+
+---
+
 # 🔄 세션 핸드오프 (2026-05-28 갱신)
 
 ## 🆕 2026-05-27~28 작업 요약
