@@ -14,12 +14,14 @@ function vStMl(){
 
   const sub = `<div class="ml-subtabs">
     <button class="ml-subtab ${ML_TAB === 'supervised' ? 'on' : ''}" data-action="ml-tab" data-t="supervised">📚 지도학습</button>
+    <button class="ml-subtab ${ML_TAB === 'linreg' ? 'on' : ''}" data-action="ml-tab" data-t="linreg">📈 선형회귀</button>
     <button class="ml-subtab ${ML_TAB === 'unsupervised' ? 'on' : ''}" data-action="ml-tab" data-t="unsupervised">🔍 비지도학습</button>
     <button class="ml-subtab ${ML_TAB === 'reinforce' ? 'on' : ''}" data-action="ml-tab" data-t="reinforce">🎮 강화학습</button>
   </div>`;
 
   let body = '';
   if     (ML_TAB === 'supervised')   body = _vStMlSupervised();
+  else if(ML_TAB === 'linreg')       body = _vStMlLinreg();
   else if(ML_TAB === 'unsupervised') body = _vStMlUnsupervised();
   else if(ML_TAB === 'reinforce')    body = _vStMlReinforce();
 
@@ -258,6 +260,372 @@ function _vStMlSupTest(){
     </div>`;
 }
 
+/* ═══════════════════════════════════════
+   📈 선형회귀 (단순회귀) — 학생 주도 흐름
+   Stage: draw → learn → optimal → mse
+     draw    : 산점도 보고 직접 직선 맞추기(양 끝 ● 드래그) + 새 값 예측 적기
+     learn   : 경사하강법으로 직선이 움직이며 오차(MSE) 줄어드는 과정 관찰
+     optimal : 최소제곱 정답선 공개 + 내 선과 비교 + 새 값 예측 확인
+     mse     : 잔차(세로 오차선) 시각화 + MSE 계산법 단계별 설명
+═══════════════════════════════════════ */
+
+// ── SVG 산점도 좌표계 (viewBox 고정, CSS로 가로 100%) ──
+const LR_SVG_W = 540, LR_SVG_H = 380;
+const LR_PAD = { l: 52, r: 18, t: 18, b: 42 };
+const LR_PLOT_W = LR_SVG_W - LR_PAD.l - LR_PAD.r;
+const LR_PLOT_H = LR_SVG_H - LR_PAD.t - LR_PAD.b;
+
+function _mlLrBounds(ds){
+  const xs = ds.points.map(p => p[0]), ys = ds.points.map(p => p[1]);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const ymin = Math.min(...ys), ymax = Math.max(...ys);
+  const xpad = (xmax - xmin) * 0.08 || 1;
+  const ypad = (ymax - ymin) * 0.12 || 1;
+  return {
+    xMin: xmin - xpad, xMax: xmax + xpad,
+    yMin: ds.yAnchor0 ? 0 : ymin - ypad, yMax: ymax + ypad,
+  };
+}
+function _mlLrSX(b, x){ return LR_PAD.l + (x - b.xMin) / (b.xMax - b.xMin) * LR_PLOT_W; }
+function _mlLrSY(b, y){ return LR_PAD.t + (1 - (y - b.yMin) / (b.yMax - b.yMin)) * LR_PLOT_H; }
+
+// 보기 좋은 눈금값 생성
+function _mlLrTicks(min, max, count){
+  const span = max - min || 1;
+  const raw = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const stepN = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  const step = stepN * mag;
+  const start = Math.ceil(min / step) * step;
+  const ticks = [];
+  for(let v = start; v <= max + 1e-9; v += step) ticks.push(+v.toFixed(6));
+  return ticks;
+}
+
+function _mlLrNum(v, d){ d = d == null ? 1 : d; const m = Math.pow(10, d); return (Math.round(v * m) / m).toFixed(d); }
+function _mlLrRound(v, d){ const m = Math.pow(10, d || 0); return Math.round(v * m) / m; }
+function _mlLrFmtEq(a, b){ return `y = ${_mlLrNum(a, 1)} x ${b >= 0 ? '+' : '−'} ${_mlLrNum(Math.abs(b), 1)}`; }
+
+// 직선 두 끝점(xMin/xMax 높이) → { a, b }
+function _mlLrLineFromHandles(b, h){
+  const a = (h.yR - h.yL) / (b.xMax - b.xMin);
+  return { a, b: h.yL - a * b.xMin };
+}
+
+// SVG 산점도 빌더. opts: { mine, handles, gd:{a,b}, opt:{a,b}, residFor:'mine'|'opt', predict:{x,ab} }
+function _mlLrPlotSvg(ds, opts){
+  opts = opts || {};
+  const b = _mlLrBounds(ds);
+
+  // 격자 + 눈금
+  let grid = '', tickLabels = '';
+  _mlLrTicks(b.xMin, b.xMax, 5).forEach(t => {
+    if(t < b.xMin || t > b.xMax) return;
+    const x = _mlLrSX(b, t);
+    grid += `<line class="lr-grid" x1="${x.toFixed(1)}" y1="${LR_PAD.t}" x2="${x.toFixed(1)}" y2="${LR_PAD.t + LR_PLOT_H}"/>`;
+    tickLabels += `<text class="lr-tick" x="${x.toFixed(1)}" y="${LR_PAD.t + LR_PLOT_H + 16}" text-anchor="middle">${_mlLrNum(t, t % 1 === 0 ? 0 : 1)}</text>`;
+  });
+  _mlLrTicks(b.yMin, b.yMax, 5).forEach(t => {
+    if(t < b.yMin || t > b.yMax) return;
+    const y = _mlLrSY(b, t);
+    grid += `<line class="lr-grid" x1="${LR_PAD.l}" y1="${y.toFixed(1)}" x2="${LR_PAD.l + LR_PLOT_W}" y2="${y.toFixed(1)}"/>`;
+    tickLabels += `<text class="lr-tick" x="${LR_PAD.l - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end">${_mlLrNum(t, 0)}</text>`;
+  });
+  const axis = `<line class="lr-axis" x1="${LR_PAD.l}" y1="${LR_PAD.t}" x2="${LR_PAD.l}" y2="${LR_PAD.t + LR_PLOT_H}"/>
+    <line class="lr-axis" x1="${LR_PAD.l}" y1="${LR_PAD.t + LR_PLOT_H}" x2="${LR_PAD.l + LR_PLOT_W}" y2="${LR_PAD.t + LR_PLOT_H}"/>`;
+  const cy = LR_PAD.t + LR_PLOT_H / 2;
+  const axisName = `<text class="lr-axisname" x="${LR_PAD.l + LR_PLOT_W / 2}" y="${LR_SVG_H - 6}" text-anchor="middle">${esc(ds.xLabel)} (${esc(ds.xUnit)})</text>
+    <text class="lr-axisname" x="14" y="${cy}" text-anchor="middle" transform="rotate(-90 14 ${cy})">${esc(ds.yLabel)} (${esc(ds.yUnit)})</text>`;
+
+  // 잔차(세로 오차선)
+  let resid = '';
+  if(opts.residFor){
+    const ab = opts.residFor === 'mine' ? _mlLrLineFromHandles(b, ML_LR_HANDLES) : (opts.opt || ML_LR_FIT);
+    if(ab) ds.points.forEach(([x, y]) => {
+      const yhat = ab.a * x + ab.b;
+      resid += `<line class="lr-resid" x1="${_mlLrSX(b, x).toFixed(1)}" y1="${_mlLrSY(b, y).toFixed(1)}" x2="${_mlLrSX(b, x).toFixed(1)}" y2="${_mlLrSY(b, yhat).toFixed(1)}"/>`;
+    });
+  }
+
+  // 직선들
+  const seg = (ab, cls, id) => {
+    const y1 = ab.a * b.xMin + ab.b, y2 = ab.a * b.xMax + ab.b;
+    return `<line ${id ? `id="${id}" ` : ''}class="${cls}" x1="${_mlLrSX(b, b.xMin).toFixed(1)}" y1="${_mlLrSY(b, y1).toFixed(1)}" x2="${_mlLrSX(b, b.xMax).toFixed(1)}" y2="${_mlLrSY(b, y2).toFixed(1)}"/>`;
+  };
+  let lines = '';
+  if(opts.mine && ML_LR_HANDLES) lines += seg(_mlLrLineFromHandles(b, ML_LR_HANDLES), 'lr-line-mine', 'lr-line-mine');
+  if(opts.gd) lines += seg(opts.gd, 'lr-line-gd', 'lr-line-gd');
+  if(opts.opt) lines += seg(opts.opt, 'lr-line-opt', 'lr-line-opt');
+
+  // 예측 표시 (십자 점선 + 예측점)
+  let predict = '';
+  if(opts.predict && opts.predict.ab){
+    const { x, ab } = opts.predict;
+    const yhat = ab.a * x + ab.b;
+    const px = _mlLrSX(b, x), py = _mlLrSY(b, yhat);
+    predict = `<line id="lr-pred-v" class="lr-pred-line" x1="${px.toFixed(1)}" y1="${(LR_PAD.t + LR_PLOT_H).toFixed(1)}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}"/>
+      <line id="lr-pred-h" class="lr-pred-line" x1="${LR_PAD.l}" y1="${py.toFixed(1)}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}"/>
+      <circle id="lr-pred-dot" class="lr-pred-dot" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="6"/>`;
+  }
+
+  // 데이터 점
+  const dots = ds.points.map(([x, y]) => `<circle class="lr-dot" cx="${_mlLrSX(b, x).toFixed(1)}" cy="${_mlLrSY(b, y).toFixed(1)}" r="5"/>`).join('');
+
+  // 드래그 핸들 (양 끝)
+  let handles = '';
+  if(opts.handles && ML_LR_HANDLES){
+    const HX = { L: _mlLrSX(b, b.xMin), R: _mlLrSX(b, b.xMax) };
+    const HY = { L: _mlLrSY(b, ML_LR_HANDLES.yL), R: _mlLrSY(b, ML_LR_HANDLES.yR) };
+    ['L', 'R'].forEach(s => {
+      handles += `<circle class="lr-handle-hit" id="lr-hhit-${s}" data-h="${s}" cx="${HX[s].toFixed(1)}" cy="${HY[s].toFixed(1)}" r="22"/>
+        <circle class="lr-handle" id="lr-h-${s}" data-h="${s}" cx="${HX[s].toFixed(1)}" cy="${HY[s].toFixed(1)}" r="9"/>`;
+    });
+  }
+
+  return `<svg id="lr-svg" class="lr-svg" viewBox="0 0 ${LR_SVG_W} ${LR_SVG_H}" ${opts.handles ? 'data-interactive="1"' : ''} role="img">
+    <defs><clipPath id="lr-clip"><rect x="${LR_PAD.l}" y="${LR_PAD.t}" width="${LR_PLOT_W}" height="${LR_PLOT_H}"/></clipPath></defs>
+    ${grid}${axis}
+    <g clip-path="url(#lr-clip)">${resid}${lines}${predict}${dots}</g>
+    ${tickLabels}${axisName}${handles}
+  </svg>`;
+}
+
+function _lrStepBar(cur){
+  const steps = ['1. 선 긋기', '2. 학습', '3. 최적선·예측', '4. 오차(MSE)'];
+  return `<div class="ml-stepbar">${steps.map((s, i) => {
+    const cls = i === cur ? 'on' : (i < cur ? 'done' : '');
+    return `<div class="ml-step ${cls}">${s}</div>`;
+  }).join('')}</div>`;
+}
+
+function _vStMlLinreg(){
+  if(!ML_LR_DATASET) return _vStMlLrPick();
+  if(ML_LR_STAGE === 'learn')   return _vStMlLrLearn();
+  if(ML_LR_STAGE === 'optimal') return _vStMlLrOptimal();
+  if(ML_LR_STAGE === 'mse')     return _vStMlLrMse();
+  return _vStMlLrDraw();
+}
+
+/* Stage 0: 데이터 선택 */
+function _vStMlLrPick(){
+  const cards = ML_LR_DATASETS.map(d => `<div class="ml-pick-card click" data-action="ml-lr-pick" data-did="${esc(d.id)}">
+    <div class="ml-pick-icon">${d.icon}</div>
+    <div class="ml-pick-body">
+      <div class="ml-pick-title">${esc(d.title)}</div>
+      <div class="ml-pick-desc">${esc(d.desc)}</div>
+      <div class="ml-pick-emojis"><span class="ml-pick-cnt">데이터 ${d.points.length}개 · ${esc(d.xLabel)} ↔ ${esc(d.yLabel)}</span></div>
+    </div>
+    <div class="ml-pick-arrow">→</div>
+  </div>`).join('');
+
+  return `<div class="section">
+    <div class="ml-intro">
+      <b>📈 선형회귀</b>는 흩어진 점들 사이를 가장 잘 지나는 <u>직선 하나</u>를 찾는 거예요.
+      그 직선만 있으면 <u>새로운 값도 예측</u>할 수 있죠. 직접 그어보고, 기계가 어떻게 더 잘 긋는지 봐요!
+    </div>
+    ${_lrStepBar(-1)}
+    <div class="sec-title">어떤 데이터로 해볼까요?</div>
+    <div class="ml-pick-list">${cards}</div>
+  </div>`;
+}
+
+/* Stage 1(draw): 직접 직선 긋기 + 새 값 예측 적기 */
+function _vStMlLrDraw(){
+  const ds = ML_LR_DATASET;
+  const b = _mlLrBounds(ds);
+  const mine = _mlLrLineFromHandles(b, ML_LR_HANDLES);
+  const plot = _mlLrPlotSvg(ds, { mine: true, handles: true, predict: { x: ds.predictX, ab: mine } });
+
+  return `<div class="back-btn" data-action="ml-lr-back">← 다른 데이터 고르기</div>
+    ${_lrStepBar(0)}
+    <div class="section">
+      <div class="sec-title">${ds.icon} ${esc(ds.title)} — 직접 직선 그어보기</div>
+      <div class="ml-sub-explain">
+        점들이 오른쪽 위로 올라가죠? 이 흐름을 가장 잘 나타내는 <b>직선</b>을 그어봐요.<br>
+        직선 양 끝의 <span class="lr-inline-handle">●</span> 점을 <b>위아래로 끌어서</b> 점들 한가운데를 지나가도록 맞추세요.
+      </div>
+      <div class="lr-plot-wrap">${plot}</div>
+      <div class="lr-eq-row">
+        <span class="lr-eq-label">내 직선</span>
+        <span class="lr-eq" id="lr-eq-mine">${_mlLrFmtEq(mine.a, mine.b)}</span>
+      </div>
+      <div class="lr-eq-help">기울기 a = x가 1 늘 때 y가 오르는 양 · 절편 b = 직선이 세로축과 만나는 값</div>
+
+      <div class="lr-predict-box">
+        <div class="lr-predict-q">🔮 ${esc(ds.xLabel)}가 <b>${ds.predictX}${esc(ds.xUnit)}</b>이면 ${esc(ds.yLabel)}는 얼마쯤일까요?</div>
+        <div class="lr-predict-hint">그래프의 점선을 따라 <b>내 직선</b>이 가리키는 값을 읽어서 적어보세요. (정답은 나중에 확인해요!)</div>
+        <div class="lr-predict-input">
+          <input type="number" id="lr-userpred" class="lr-num-input" placeholder="예측값" value="${esc(ML_LR_USER_PRED)}"/>
+          <span class="lr-unit">${esc(ds.yUnit)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="ml-action-bar">
+      <button class="btn-p" data-action="ml-lr-stage" data-s="learn">🧠 기계가 학습하는 과정 보기 →</button>
+    </div>`;
+}
+
+/* Stage 2(learn): 경사하강법 애니메이션 */
+function _vStMlLrLearn(){
+  const ds = ML_LR_DATASET;
+  const b = _mlLrBounds(ds);
+  const gd = ML_LR_GD;
+  const mine = _mlLrLineFromHandles(b, ML_LR_HANDLES);
+  const mineMse = mlLinregMSE(ds.points, mine.a, mine.b);
+  const plot = _mlLrPlotSvg(ds, { mine: true, gd: gd ? { a: gd.a, b: gd.b } : null });
+
+  const running = !!ML_LR_AUTO;
+  const done = gd && gd.done;
+  const info = gd
+    ? `<div class="lr-learn-info">
+         <div class="lr-learn-stat"><span>학습 횟수</span><b>${gd.iter}</b></div>
+         <div class="lr-learn-stat big"><span>기계 직선의 오차(MSE)</span><b>${_mlLrNum(gd.mse, 1)}</b></div>
+         <div class="lr-learn-stat"><span>내 직선의 오차</span><b>${_mlLrNum(mineMse, 1)}</b></div>
+       </div>
+       ${done ? '<div class="lr-converged">✓ 거의 다 찾았어요! 더 움직여도 오차가 거의 안 줄어요.</div>' : ''}`
+    : `<div class="lr-learn-info"><div class="lr-learn-stat big"><span>내 직선의 오차(MSE)</span><b>${_mlLrNum(mineMse, 1)}</b></div></div>`;
+
+  return `<div class="back-btn" data-action="ml-lr-stage" data-s="draw">← 선 다시 긋기</div>
+    ${_lrStepBar(1)}
+    <div class="section">
+      <div class="sec-title">🧠 기계가 스스로 직선을 찾아가요</div>
+      <div class="ml-sub-explain">
+        기계는 처음엔 <b>평평한 직선(평균)</b>에서 시작해, 오차가 작아지는 쪽으로 기울기와 위치를 <b>조금씩</b> 고쳐가요.
+        <b>▶ 학습</b>을 눌러 <span class="lr-key-gd">주황 직선</span>이 점들 사이로 들어가며 <b>오차(MSE)가 줄어드는</b> 걸 보세요. (<span class="lr-key-mine">회색</span> = 내가 그은 선)
+      </div>
+      ${info}
+      <div class="ml-action-bar lr-learn-bar">
+        <button class="btn-sm" data-action="ml-lr-step" ${running ? 'disabled' : ''}>⏭ 한 단계</button>
+        <button class="btn-p btn-sm" data-action="ml-lr-run">${running ? '⏸ 정지' : (gd && gd.iter ? '▶ 이어서 학습' : '▶ 학습 시작')}</button>
+        <button class="btn-sm" data-action="ml-lr-reset" ${running ? 'disabled' : ''}>⟲ 처음부터</button>
+      </div>
+      <div class="lr-plot-wrap">${plot}</div>
+    </div>
+    <div class="ml-action-bar">
+      <button class="btn-p" data-action="ml-lr-stage" data-s="optimal">✅ 최적의 직선 확인하기 →</button>
+    </div>`;
+}
+
+/* Stage 3(optimal): 최적선 공개 + 비교 + 예측 확인 */
+function _vStMlLrOptimal(){
+  const ds = ML_LR_DATASET;
+  const b = _mlLrBounds(ds);
+  const fit = ML_LR_FIT || (ML_LR_FIT = mlLinregFit(ds.points));
+  const mine = _mlLrLineFromHandles(b, ML_LR_HANDLES);
+  const mineMse = mlLinregMSE(ds.points, mine.a, mine.b);
+  const plot = _mlLrPlotSvg(ds, { mine: true, opt: { a: fit.a, b: fit.b }, predict: { x: ds.predictX, ab: fit } });
+
+  const optPred = _mlLrRound(fit.a * ds.predictX + fit.b, ds.decimals);
+  const userPredTxt = (ML_LR_USER_PRED || '').trim();
+  const probeX = (ML_LR_PROBE_X || '').trim();
+  const probeVal = probeX !== '' && !isNaN(parseFloat(probeX)) ? _mlLrRound(fit.a * parseFloat(probeX) + fit.b, ds.decimals) : null;
+
+  return `<div class="back-btn" data-action="ml-lr-stage" data-s="learn">← 학습 과정 다시 보기</div>
+    ${_lrStepBar(2)}
+    <div class="section">
+      <div class="sec-title">✅ 최적의 회귀선</div>
+      <div class="ml-sub-explain">
+        오차(MSE)가 <b>가장 작아지는</b> 직선이에요. (<span class="lr-key-opt">초록</span> = 최적선, <span class="lr-key-mine">회색</span> = 내가 그은 선)
+      </div>
+      <div class="lr-plot-wrap">${plot}</div>
+
+      <div class="lr-compare">
+        <div class="lr-compare-card mine">
+          <div class="lr-compare-head">✏️ 내 직선</div>
+          <div class="lr-compare-eq">${_mlLrFmtEq(mine.a, mine.b)}</div>
+          <div class="lr-compare-mse">오차 ${_mlLrNum(mineMse, 1)}</div>
+        </div>
+        <div class="lr-compare-card opt">
+          <div class="lr-compare-head">🎯 최적 직선</div>
+          <div class="lr-compare-eq">${_mlLrFmtEq(fit.a, fit.b)}</div>
+          <div class="lr-compare-mse">오차 ${_mlLrNum(fit.mse, 1)}</div>
+        </div>
+      </div>
+      <div class="lr-compare-note">${mineMse <= fit.mse + 0.5 ? '내 직선도 아주 잘 그었네요! 👏 거의 최적이에요.' : '오차가 작을수록 점들에 더 잘 맞는 직선이에요. 최적 직선의 오차가 더 작죠?'}</div>
+
+      <div class="lr-predict-box confirm">
+        <div class="lr-predict-q">🔮 새로운 값으로 예측 확인</div>
+        <div class="lr-confirm-row">
+          <div class="lr-confirm-item"><span>${esc(ds.xLabel)} ${ds.predictX}${esc(ds.xUnit)}일 때</span></div>
+          <div class="lr-confirm-item ${userPredTxt ? '' : 'muted'}"><span>내가 적은 값</span><b>${userPredTxt ? esc(userPredTxt) + esc(ds.yUnit) : '—'}</b></div>
+          <div class="lr-confirm-item hi"><span>최적선 예측</span><b>${optPred}${esc(ds.yUnit)}</b></div>
+        </div>
+        <div class="lr-probe">
+          <span class="lr-probe-eq">${esc(ds.xLabel)} =</span>
+          <input type="number" id="lr-probe" class="lr-num-input sm" placeholder="${ds.predictX}" value="${esc(ML_LR_PROBE_X)}"/>
+          <span class="lr-unit">${esc(ds.xUnit)}</span>
+          <span class="lr-probe-arrow">→</span>
+          <span class="lr-probe-out" id="lr-probe-out">${probeVal != null ? `${esc(ds.yLabel)} 약 <b>${probeVal}${esc(ds.yUnit)}</b>` : '다른 값을 넣으면 예측값이 나와요'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="ml-action-bar">
+      <button class="btn-p" data-action="ml-lr-stage" data-s="mse">📏 오차(MSE)는 어떻게 구할까? →</button>
+    </div>`;
+}
+
+/* Stage 4(mse): 잔차 시각화 + MSE 계산법 */
+function _vStMlLrMse(){
+  const ds = ML_LR_DATASET;
+  const b = _mlLrBounds(ds);
+  const fit = ML_LR_FIT || (ML_LR_FIT = mlLinregFit(ds.points));
+  const mine = _mlLrLineFromHandles(b, ML_LR_HANDLES);
+  const forMine = ML_LR_RESID_FOR === 'mine';
+  const ab = forMine ? mine : fit;
+  const plot = _mlLrPlotSvg(ds, { mine: forMine, opt: forMine ? null : { a: fit.a, b: fit.b }, residFor: ML_LR_RESID_FOR });
+
+  let sumSq = 0;
+  const rows = ds.points.map(([x, y]) => {
+    const yhat = ab.a * x + ab.b, e = y - yhat;
+    sumSq += e * e;
+    return `<tr><td>${_mlLrNum(x, x % 1 === 0 ? 0 : 1)}</td><td>${y}</td><td>${_mlLrNum(yhat, 1)}</td><td>${_mlLrNum(e, 1)}</td><td>${_mlLrNum(e * e, 1)}</td></tr>`;
+  }).join('');
+  const n = ds.points.length;
+  const mse = sumSq / n;
+  const mineMse = mlLinregMSE(ds.points, mine.a, mine.b);
+
+  return `<div class="back-btn" data-action="ml-lr-stage" data-s="optimal">← 최적선으로</div>
+    ${_lrStepBar(3)}
+    <div class="section">
+      <div class="sec-title">📏 오차(MSE)는 어떻게 구할까?</div>
+      <div class="ml-sub-explain">
+        <b>MSE</b>(평균제곱오차)는 <u>직선이 점들에서 평균적으로 얼마나 벗어났는지</u>를 나타내는 숫자예요. 작을수록 잘 맞는 직선이죠.
+      </div>
+
+      <div class="lr-resid-toggle">
+        <span>잔차를 볼 직선:</span>
+        <button class="lr-seg ${!forMine ? 'on' : ''}" data-action="ml-lr-resid" data-for="opt">🎯 최적 직선</button>
+        <button class="lr-seg ${forMine ? 'on' : ''}" data-action="ml-lr-resid" data-for="mine">✏️ 내 직선</button>
+      </div>
+      <div class="lr-plot-wrap">${plot}</div>
+
+      <ol class="lr-mse-steps">
+        <li><b>① 오차</b> = 실제값 − 예측값. 위 그래프의 <span class="lr-resid-key">빨간 세로선</span> 하나하나가 그 오차예요.</li>
+        <li><b>② 제곱</b>: 오차에는 +(위로 벗어남)도 −(아래로 벗어남)도 있어 그냥 더하면 상쇄돼요. 그래서 <b>제곱</b>해 모두 양수로 만들고, 큰 오차일수록 더 크게 벌해요.</li>
+        <li><b>③ 평균</b>: 제곱한 오차들을 모두 더해 개수(${n})로 나눠요.</li>
+      </ol>
+      <div class="lr-formula">MSE = <span class="lr-frac"><span>1</span><span>${n}</span></span> × ((실제−예측)² 의 합) = <span class="lr-frac"><span>${_mlLrNum(sumSq, 1)}</span><span>${n}</span></span> = <b>${_mlLrNum(mse, 1)}</b></div>
+
+      <details class="lr-table-wrap">
+        <summary>점별 오차 계산 표 펼치기 (${n}개)</summary>
+        <table class="lr-table">
+          <thead><tr><th>${esc(ds.xLabel)}</th><th>실제값</th><th>예측값</th><th>오차</th><th>오차²</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="4">오차² 합계</td><td><b>${_mlLrNum(sumSq, 1)}</b></td></tr></tfoot>
+        </table>
+      </details>
+
+      <div class="lr-mse-conclude">
+        내 직선의 MSE = <b>${_mlLrNum(mineMse, 1)}</b> · 최적 직선의 MSE = <b>${_mlLrNum(fit.mse, 1)}</b><br>
+        기계가 한 ‘학습’이 바로 이 <b>MSE가 가장 작아지는 직선</b>을 찾는 일이었어요! 🎉
+      </div>
+    </div>
+    <div class="ml-action-bar">
+      <button class="btn-sm" data-action="ml-lr-back">↺ 다른 데이터로 다시 하기</button>
+    </div>`;
+}
+
 /* ─────────────────── 비지도학습 ─────────────────── */
 
 function _vStMlUnsupervised(){
@@ -448,6 +816,7 @@ function vTcMl(){
     </div>
     <div class="ml-tc-flow">
       <div class="ml-tc-flow-card"><b>📚 지도학습</b><br><small>3개 그룹 이름 정하고 사진 끌어담기 → 학습 → 테스트(드래그) 후 👍/👎 판정</small></div>
+      <div class="ml-tc-flow-card"><b>📈 선형회귀</b><br><small>산점도에 직접 직선 긋기 → 경사하강법으로 학습 과정 관찰 → 최적선·예측·오차(MSE) 이해</small></div>
       <div class="ml-tc-flow-card"><b>🔍 비지도학습</b><br><small>사진을 2D 점 지도로 흩뿌리고 K-Means가 색으로 묶는 과정 관찰 → 정답 공개</small></div>
       <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>Reinforced Duck 게임을 새 탭에서 플레이 (설명은 아래에서 직접 작성)</small></div>
     </div>

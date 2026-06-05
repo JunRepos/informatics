@@ -162,3 +162,45 @@ function mlGenerateDataset(datasetId, perClass, opts){
   });
   return { samples, classes: def.classes, def };
 }
+
+/* ═══════════════════════════════════════
+   📈 단순 선형회귀 실습용 데이터셋
+
+   학생이 산점도를 보고 직접 직선을 맞추고, 기계가 학습(경사하강법)하는
+   과정을 관찰하는 용도. points 는 고정 데이터(재현 가능).
+   - xUnit/yUnit: 축·예측 문구에 붙는 단위
+   - predictX  : "새 값 예측" 기본 질문에 쓰는 x값 (데이터 범위 안)
+   - yAnchor0  : true 면 y축 아래를 0에 고정 (점수·판매량처럼 0이 자연스러운 값)
+═══════════════════════════════════════ */
+const ML_LR_DATASETS = [
+  {
+    id: 'study',
+    icon: '📖',
+    title: '공부 시간 → 시험 점수',
+    desc: '하루 공부 시간이 늘면 시험 점수는 어떻게 변할까요?',
+    xLabel: '하루 공부 시간', xUnit: '시간',
+    yLabel: '시험 점수',     yUnit: '점',
+    yAnchor0: true, decimals: 0,
+    predictX: 6.5,
+    points: [
+      [0.5, 32], [1, 38], [1.5, 45], [2, 44], [2.5, 55], [3, 52],
+      [3.5, 63], [4, 61], [5, 72], [6, 74], [7, 83], [8, 88],
+    ],
+  },
+  {
+    id: 'icecream',
+    icon: '🍦',
+    title: '기온 → 아이스크림 판매량',
+    desc: '날이 더울수록 아이스크림이 더 많이 팔릴까요?',
+    xLabel: '기온',          xUnit: '℃',
+    yLabel: '하루 판매량',   yUnit: '개',
+    yAnchor0: true, decimals: 0,
+    predictX: 27,
+    points: [
+      [20, 135], [22, 150], [23, 165], [25, 180], [26, 205], [28, 210],
+      [29, 235], [30, 250], [31, 255], [33, 295], [34, 300], [35, 330],
+    ],
+  },
+];
+
+function mlLrDatasetById(id){ return ML_LR_DATASETS.find(d => d.id === id) || null; }

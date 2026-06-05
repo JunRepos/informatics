@@ -276,6 +276,101 @@ function mlKMeansGroups(state){
   return groups;
 }
 
+/* ─────────────────── 단순 선형회귀 (지도학습 — 회귀) ───────────────────
+   data: [[x, y], ...]
+   학생 실습용. 최소제곱 정답선 + 경사하강법 단계별 애니메이션. */
+
+// 평균제곱오차 MSE = (1/n) Σ (y − (a x + b))²
+function mlLinregMSE(data, a, b){
+  const n = data.length;
+  if(!n) return 0;
+  let s = 0;
+  for(const [x, y] of data){ const e = y - (a * x + b); s += e * e; }
+  return s / n;
+}
+
+// 최소제곱 정확해(닫힌 형태). 반환 { a, b, mse }
+function mlLinregFit(data){
+  const n = data.length;
+  if(!n) return { a: 0, b: 0, mse: 0 };
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for(const [x, y] of data){ sx += x; sy += y; sxx += x * x; sxy += x * y; }
+  const denom = n * sxx - sx * sx;
+  const a = denom === 0 ? 0 : (n * sxy - sx * sy) / denom;
+  const b = (sy - a * sx) / n;
+  return { a, b, mse: mlLinregMSE(data, a, b) };
+}
+
+// 경사하강법 단계별 stepper (시각화용).
+//   x,y를 [0,1]로 정규화해 학습률을 데이터 규모와 무관하게 안정화.
+//   처음엔 "평균값을 지나는 수평선"에서 출발 → 기울기를 차차 찾아감.
+//   const gd = mlLinregGD(data);
+//   gd.step();          // 한 번 호출 = perStep epoch 진행
+//   gd.a, gd.b          // 현재 직선(원래 스케일)
+//   gd.mse              // 현재 MSE(원래 스케일)
+//   gd.iter             // 진행한 epoch 수
+//   gd.done             // 수렴 여부
+function mlLinregGD(data, opts){
+  opts = opts || {};
+  const lr = opts.lr != null ? opts.lr : 0.2;
+  const perStep = opts.perStep || 4;
+  const tol = opts.tol != null ? opts.tol : 1e-5;
+  const maxIter = opts.maxIter || 600;
+  const n = data.length;
+
+  // 정규화 범위
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for(const [x, y] of data){
+    if(x < minX) minX = x; if(x > maxX) maxX = x;
+    if(y < minY) minY = y; if(y > maxY) maxY = y;
+  }
+  const rx = (maxX - minX) || 1, ry = (maxY - minY) || 1;
+  const nx = data.map(d => (d[0] - minX) / rx);
+  const ny = data.map(d => (d[1] - minY) / ry);
+
+  // 정규화 공간 파라미터: ny ≈ p·nx + q.  평균을 지나는 수평선에서 시작.
+  let p = 0, q = ny.reduce((s, v) => s + v, 0) / (n || 1);
+
+  // 정규화 파라미터(p,q) → 원래 스케일(a,b)
+  function toOrig(){
+    const a = p * ry / rx;
+    const b = minY + q * ry - p * ry * minX / rx;
+    return { a, b };
+  }
+  function mseNorm(){
+    let s = 0;
+    for(let i = 0; i < n; i++){ const e = (p * nx[i] + q) - ny[i]; s += e * e; }
+    return s / n;
+  }
+
+  const state = { iter: 0, done: false, a: 0, b: 0, mse: 0, step };
+  syncOut();
+
+  function syncOut(){
+    const o = toOrig();
+    state.a = o.a; state.b = o.b;
+    state.mse = mlLinregMSE(data, o.a, o.b);
+  }
+  function step(){
+    if(state.done) return;
+    const prev = mseNorm();
+    for(let k = 0; k < perStep; k++){
+      let dp = 0, dq = 0;
+      for(let i = 0; i < n; i++){
+        const e = (p * nx[i] + q) - ny[i];
+        dp += e * nx[i]; dq += e;
+      }
+      dp = (2 / n) * dp; dq = (2 / n) * dq;
+      p -= lr * dp; q -= lr * dq;
+      state.iter++;
+    }
+    syncOut();
+    if(state.iter >= maxIter) state.done = true;
+    else if(Math.abs(prev - mseNorm()) < tol && state.iter > 6 * perStep) state.done = true;
+  }
+  return state;
+}
+
 // 정답(classId)이 있는 데이터셋에서 K-Means 결과와의 일치율 계산
 //   각 그룹에서 가장 많은 정답 라벨을 그 그룹의 "대표"로 보고 정확도 산출
 function mlKMeansPurity(state, samples){

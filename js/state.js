@@ -197,6 +197,17 @@ let ML_UN_AUTO_TIMER  = null;
 // 🤖 강화학습 — 선생님이 편집하는 설명 텍스트
 let ML_RL_DESC        = {};         // { [classId]: string }
 
+// 📈 선형회귀 실습 (단순회귀) — 학생이 직접 선 긋고 기계가 학습하는 과정 체험
+let ML_LR_DATASET   = null;       // ML_LR_DATASETS 중 하나
+let ML_LR_STAGE     = 'draw';     // 'draw'|'learn'|'optimal'|'mse'
+let ML_LR_HANDLES   = null;       // { yL, yR } — 직선 양 끝(xMin/xMax)의 데이터 y값. 학생이 드래그
+let ML_LR_USER_PRED = '';         // 학생이 손으로 적은 예측값(문자열)
+let ML_LR_GD        = null;       // 경사하강법 stepper 상태 (ml-engine)
+let ML_LR_AUTO      = null;       // 자동 학습 setInterval id
+let ML_LR_FIT       = null;       // 최소제곱 정답선 { a, b, mse }
+let ML_LR_PROBE_X   = '';         // 최적선 단계에서 임의 x 입력(문자열)
+let ML_LR_RESID_FOR = 'opt';      // MSE 단계 잔차 표시 대상 'opt'|'mine'
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)

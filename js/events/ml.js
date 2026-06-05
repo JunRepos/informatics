@@ -10,6 +10,8 @@ document.addEventListener('click', async e => {
   /* ── 공통: 내부 탭 전환 ── */
   if(act === 'ml-tab'){
     ML_TAB = el.dataset.t || 'supervised';
+    _mlStopAuto();      // 비지도 K-Means 타이머 정리
+    _mlLrStopAuto();    // 선형회귀 학습 타이머 정리
     render();
     return;
   }
@@ -163,6 +165,83 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  /* ─── 📈 선형회귀 ─── */
+  if(act === 'ml-lr-pick'){
+    const ds = mlLrDatasetById(el.dataset.did);
+    if(!ds) return;
+    ML_LR_DATASET = ds;
+    const b = _mlLrBounds(ds);
+    const midY = (b.yMin + b.yMax) / 2;       // 평평한 선에서 시작 → 학생이 기울여 맞춤
+    ML_LR_HANDLES = { yL: midY, yR: midY };
+    ML_LR_STAGE = 'draw';
+    ML_LR_USER_PRED = '';
+    ML_LR_PROBE_X = '';
+    ML_LR_RESID_FOR = 'opt';
+    ML_LR_GD = null;
+    ML_LR_FIT = null;
+    _mlLrStopAuto();
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-back'){
+    _mlLrStopAuto();
+    ML_LR_DATASET = null;
+    ML_LR_GD = null; ML_LR_FIT = null;
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-stage'){
+    if(!ML_LR_DATASET) return;
+    const s = el.dataset.s;
+    _mlLrStopAuto();
+    if(s === 'learn' && !ML_LR_GD) ML_LR_GD = mlLinregGD(ML_LR_DATASET.points);
+    if((s === 'optimal' || s === 'mse') && !ML_LR_FIT) ML_LR_FIT = mlLinregFit(ML_LR_DATASET.points);
+    ML_LR_STAGE = s;
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-step'){
+    if(!ML_LR_DATASET) return;
+    if(!ML_LR_GD) ML_LR_GD = mlLinregGD(ML_LR_DATASET.points);
+    _mlLrStopAuto();
+    ML_LR_GD.step();
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-run'){
+    if(!ML_LR_DATASET) return;
+    if(!ML_LR_GD) ML_LR_GD = mlLinregGD(ML_LR_DATASET.points);
+    if(ML_LR_AUTO){ _mlLrStopAuto(); render(); return; }   // 재생 중이면 정지
+    if(ML_LR_GD.done) ML_LR_GD = mlLinregGD(ML_LR_DATASET.points);  // 끝났으면 처음부터
+    ML_LR_AUTO = setInterval(() => {
+      // 선형회귀 학습 화면을 벗어났으면 정지 (누수 방지)
+      if(ST_TAB !== 'ml' || ML_TAB !== 'linreg' || ML_LR_STAGE !== 'learn' || !ML_LR_GD){ _mlLrStopAuto(); return; }
+      ML_LR_GD.step();
+      render();
+      if(ML_LR_GD.done){ _mlLrStopAuto(); render(); }
+    }, 280);
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-reset'){
+    if(!ML_LR_DATASET) return;
+    _mlLrStopAuto();
+    ML_LR_GD = mlLinregGD(ML_LR_DATASET.points);
+    render();
+    return;
+  }
+
+  if(act === 'ml-lr-resid'){
+    ML_LR_RESID_FOR = el.dataset.for === 'mine' ? 'mine' : 'opt';
+    render();
+    return;
+  }
+
   /* ── 비지도학습 (2D 점 지도 + K-Means) ── */
   if(act === 'ml-un-pick'){
     const did = el.dataset.did;
@@ -274,6 +353,63 @@ function _mlStopAuto(){
   if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
 }
 
+// 선형회귀 학습 자동 재생 정지
+function _mlLrStopAuto(){
+  if(ML_LR_AUTO){ clearInterval(ML_LR_AUTO); ML_LR_AUTO = null; }
+}
+
+// ── 선형회귀: 직선 끝점(●) 드래그 (한 번만 등록, 전역 위임) ──
+let _mlLrDrag = { side: null };
+
+// 드래그 중 예측 십자선을 직선 따라 이동 (full render 없이 DOM만)
+function _mlLrUpdatePredictMarker(b, ab){
+  const ds = ML_LR_DATASET; if(!ds) return;
+  const x = ds.predictX, yhat = ab.a * x + ab.b;
+  const px = _mlLrSX(b, x), py = _mlLrSY(b, yhat);
+  const v = document.getElementById('lr-pred-v');
+  const h = document.getElementById('lr-pred-h');
+  const dot = document.getElementById('lr-pred-dot');
+  if(v){ v.setAttribute('x1', px.toFixed(1)); v.setAttribute('x2', px.toFixed(1)); v.setAttribute('y2', py.toFixed(1)); }
+  if(h){ h.setAttribute('y1', py.toFixed(1)); h.setAttribute('y2', py.toFixed(1)); h.setAttribute('x2', px.toFixed(1)); }
+  if(dot){ dot.setAttribute('cx', px.toFixed(1)); dot.setAttribute('cy', py.toFixed(1)); }
+}
+
+document.addEventListener('pointerdown', e => {
+  const h = e.target.closest && e.target.closest('#lr-svg [data-h]');
+  if(!h) return;
+  if(ST_TAB !== 'ml' || ML_TAB !== 'linreg' || ML_LR_STAGE !== 'draw' || !ML_LR_HANDLES) return;
+  e.preventDefault();
+  _mlLrDrag.side = h.dataset.h;
+  const svg = document.getElementById('lr-svg');
+  try { svg && svg.setPointerCapture && svg.setPointerCapture(e.pointerId); } catch(_){}
+});
+
+window.addEventListener('pointermove', e => {
+  if(!_mlLrDrag.side || !ML_LR_DATASET || !ML_LR_HANDLES) return;
+  const svg = document.getElementById('lr-svg');
+  if(!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const b = _mlLrBounds(ML_LR_DATASET);
+  const svgY = (e.clientY - rect.top) / rect.height * LR_SVG_H;
+  let dataY = b.yMin + (1 - (svgY - LR_PAD.t) / LR_PLOT_H) * (b.yMax - b.yMin);
+  dataY = Math.max(b.yMin, Math.min(b.yMax, dataY));
+  const side = _mlLrDrag.side;
+  if(side === 'L') ML_LR_HANDLES.yL = dataY; else ML_LR_HANDLES.yR = dataY;
+  const cy = _mlLrSY(b, dataY).toFixed(1);
+  const vis = document.getElementById('lr-h-' + side);
+  const hit = document.getElementById('lr-hhit-' + side);
+  if(vis) vis.setAttribute('cy', cy);
+  if(hit) hit.setAttribute('cy', cy);
+  const line = document.getElementById('lr-line-mine');
+  if(line) line.setAttribute(side === 'L' ? 'y1' : 'y2', cy);
+  const mine = _mlLrLineFromHandles(b, ML_LR_HANDLES);
+  const eq = document.getElementById('lr-eq-mine');
+  if(eq) eq.textContent = _mlLrFmtEq(mine.a, mine.b);
+  _mlLrUpdatePredictMarker(b, mine);
+});
+
+window.addEventListener('pointerup', () => { _mlLrDrag.side = null; });
+
 // 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
 //   이모지가 색으로 너무 깔끔히 나뉘면 K-Means가 1~2단계에 끝나 과정이 안 보임.
 //   → PCA 좌표에서 클래스 중심을 서로 당기고(shrink) 점을 퍼뜨려(spread+노이즈)
@@ -351,6 +487,26 @@ document.addEventListener('input', e => {
     const cid = clsEl.dataset.cid;
     const c = ML_SUP_CLASSES.find(c => c.id === cid);
     if(c) c.name = clsEl.value;
+    return;
+  }
+  // 선형회귀: 학생이 손으로 적는 예측값 (렌더 X — 포커스 유지)
+  const upEl = e.target.closest('#lr-userpred');
+  if(upEl){ ML_LR_USER_PRED = upEl.value; return; }
+  // 선형회귀: 임의 x 예측(probe) — 결과 span만 직접 갱신
+  const probeEl = e.target.closest('#lr-probe');
+  if(probeEl){
+    ML_LR_PROBE_X = probeEl.value;
+    const out = document.getElementById('lr-probe-out');
+    const ds = ML_LR_DATASET, fit = ML_LR_FIT;
+    if(out && ds && fit){
+      const xv = parseFloat(probeEl.value);
+      if(probeEl.value.trim() !== '' && !isNaN(xv)){
+        const yv = _mlLrRound(fit.a * xv + fit.b, ds.decimals);
+        out.innerHTML = `${esc(ds.yLabel)} 약 <b>${yv}${esc(ds.yUnit)}</b>`;
+      } else {
+        out.innerHTML = '다른 값을 넣으면 예측값이 나와요';
+      }
+    }
     return;
   }
 });
