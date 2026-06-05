@@ -204,3 +204,57 @@ const ML_LR_DATASETS = [
 ];
 
 function mlLrDatasetById(id){ return ML_LR_DATASETS.find(d => d.id === id) || null; }
+
+/* ═══════════════════════════════════════
+   🌳 결정 트리 실습용 데이터셋 (표정)
+
+   각 얼굴은 3가지 특징값(-2~+2 단계)으로 정의되고, 그 값에서 SVG 얼굴을 그림.
+   - mouth(입 기울기): -2 많이 내려감 ~ +2 활짝 웃음
+   - brow (눈썹 기울기): -2 안쪽 내려감(찡그림/화남) ~ +2 안쪽 올라감(ㅅ자/슬픔)
+   - eye  (눈 크기): -2 가늘게 ~ +2 크게 뜸  ← 표정 구분엔 약한 특징(일부러 겹치게)
+   설계: (입 × 눈썹) 두 축이면 두 칸막이로 깔끔히 갈리고, 눈 크기는 잘 안 갈림
+        → 학생이 "어떤 특징이 잘 나누나" 직접 발견.
+═══════════════════════════════════════ */
+const ML_DT_DATASET = (() => {
+  const classes = [
+    { id: 'happy', label: '기쁨', emoji: '😀', color: '#22c55e' },
+    { id: 'sad',   label: '슬픔', emoji: '😢', color: '#3b82f6' },
+    { id: 'angry', label: '화남', emoji: '😡', color: '#ef4444' },
+  ];
+  const features = [
+    { key: 'mouth', label: '입 기울기', lowDesc: '입꼬리 내려감', highDesc: '입꼬리 올라감' },
+    { key: 'brow',  label: '눈썹 기울기', lowDesc: '안쪽 내려감(찡그림)', highDesc: '안쪽 올라감(ㅅ자)' },
+    { key: 'eye',   label: '눈 크기', lowDesc: '가늘게', highDesc: '크게 뜸' },
+  ];
+  const base = [
+    // 기쁨: 입꼬리 ↑, 눈썹 ~평평, 눈 다양
+    { mouth: 2, brow: 0, eye: 0,  cls: 'happy' },
+    { mouth: 2, brow: 1, eye: 1,  cls: 'happy' },
+    { mouth: 1, brow: 0, eye: -1, cls: 'happy' },
+    { mouth: 2, brow: 0, eye: 1,  cls: 'happy' },
+    { mouth: 1, brow: 1, eye: 0,  cls: 'happy' },
+    // 슬픔: 입꼬리 ↓, 눈썹 안쪽 ↑(ㅅ자), 눈 다양
+    { mouth: -2, brow: 2, eye: 0,  cls: 'sad' },
+    { mouth: -1, brow: 2, eye: 1,  cls: 'sad' },
+    { mouth: -2, brow: 1, eye: -1, cls: 'sad' },
+    { mouth: -1, brow: 2, eye: 0,  cls: 'sad' },
+    { mouth: -2, brow: 2, eye: 1,  cls: 'sad' },
+    // 화남: 입꼬리 ↓/앙다묾, 눈썹 안쪽 ↓(찡그림), 눈 부릅
+    { mouth: -1, brow: -2, eye: 1, cls: 'angry' },
+    { mouth: 0,  brow: -2, eye: 2, cls: 'angry' },
+    { mouth: -1, brow: -1, eye: 0, cls: 'angry' },
+    { mouth: -2, brow: -2, eye: 2, cls: 'angry' },
+    { mouth: 0,  brow: -2, eye: 1, cls: 'angry' },
+  ];
+  // 같은 좌표 겹침 방지용 고정(시드) 지터
+  let s = 20260605;
+  const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  const samples = base.map((b, i) => ({
+    ...b, id: 'f' + i,
+    jx: (rnd() - 0.5) * 0.42, jy: (rnd() - 0.5) * 0.42,
+  }));
+  return { classes, features, samples };
+})();
+
+function mlDtFeature(key){ return ML_DT_DATASET.features.find(f => f.key === key) || null; }
+function mlDtClass(id){ return ML_DT_DATASET.classes.find(c => c.id === id) || null; }

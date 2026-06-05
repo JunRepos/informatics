@@ -390,3 +390,74 @@ function mlKMeansPurity(state, samples){
     groupDominant,
   };
 }
+
+/* ─────────────────── 결정 트리 (지도학습 — 분류) ───────────────────
+   samples: [{ [featureKey]: number, cls: classId }, ...]
+   학생이 직접 칸을 나눈 것과 비교할 "모델". 그리디 CART(Gini), 축정렬 분할. */
+
+function _mlCounts(rows){ const c = {}; for(const r of rows) c[r.cls] = (c[r.cls] || 0) + 1; return c; }
+function _mlMajority(c){ let id = null, n = -1; for(const k in c){ if(c[k] > n){ n = c[k]; id = k; } } return id; }
+function _mlGini(c, n){ if(!n) return 0; let s = 1; for(const k in c){ const p = c[k] / n; s -= p * p; } return s; }
+
+// 결정 트리 만들기 (그리디). featureKeys 안에서만 분할 → 2D 비교 시 [fx,fy]만 넘기면 사각형 영역.
+function mlBuildTree(samples, featureKeys, opts){
+  opts = opts || {};
+  const maxDepth = opts.maxDepth != null ? opts.maxDepth : 3;
+  const minLeaf = opts.minLeaf || 1;
+
+  function build(rows, depth){
+    const c = _mlCounts(rows);
+    const node = { counts: c, label: _mlMajority(c), n: rows.length };
+    if(depth >= maxDepth || rows.length <= minLeaf || Object.keys(c).length <= 1) return node;
+    const parentGini = _mlGini(c, rows.length);
+    let best = null;
+    featureKeys.forEach(fk => {
+      const vals = [...new Set(rows.map(r => r[fk]))].sort((a, b) => a - b);
+      for(let i = 0; i < vals.length - 1; i++){
+        const thr = (vals[i] + vals[i + 1]) / 2;
+        const L = rows.filter(r => r[fk] < thr), R = rows.filter(r => r[fk] >= thr);
+        if(L.length < minLeaf || R.length < minLeaf) continue;
+        const g = (L.length * _mlGini(_mlCounts(L), L.length) + R.length * _mlGini(_mlCounts(R), R.length)) / rows.length;
+        if(!best || g < best.g){ best = { g, fk, thr, L, R }; }
+      }
+    });
+    if(!best || best.g >= parentGini - 1e-9) return node;  // 개선 없으면 잎
+    node.feature = best.fk; node.thr = best.thr;
+    node.left = build(best.L, depth + 1);
+    node.right = build(best.R, depth + 1);
+    node.label = null;  // 내부 노드
+    return node;
+  }
+  return build(samples, 0);
+}
+
+// 한 샘플 예측 (잎의 다수 라벨)
+function mlTreePredict(node, sample){
+  while(node && node.feature != null) node = sample[node.feature] < node.thr ? node.left : node.right;
+  return node ? node.label : null;
+}
+
+// 정확도
+function mlTreeAccuracy(node, samples){
+  if(!samples.length) return 0;
+  let ok = 0;
+  for(const s of samples) if(mlTreePredict(node, s) === s.cls) ok++;
+  return ok / samples.length;
+}
+
+// 2개 축(fx,fy)만 쓰는 트리 → 잎 사각형 목록 (경계 그리기용)
+function mlTreeRegions(node, fx, fy, x0, x1, y0, y1){
+  if(!node) return [];
+  if(node.feature == null) return [{ x0, x1, y0, y1, label: node.label, n: node.n }];
+  if(node.feature === fx){
+    return mlTreeRegions(node.left, fx, fy, x0, node.thr, y0, y1)
+      .concat(mlTreeRegions(node.right, fx, fy, node.thr, x1, y0, y1));
+  }
+  if(node.feature === fy){
+    return mlTreeRegions(node.left, fx, fy, x0, x1, y0, node.thr)
+      .concat(mlTreeRegions(node.right, fx, fy, x0, x1, node.thr, y1));
+  }
+  // 다른 특징(2D 외) — 같은 영역에 병합(모델을 [fx,fy]로 build하면 발생 안 함)
+  return mlTreeRegions(node.left, fx, fy, x0, x1, y0, y1)
+    .concat(mlTreeRegions(node.right, fx, fy, x0, x1, y0, y1));
+}

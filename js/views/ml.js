@@ -15,6 +15,7 @@ function vStMl(){
   const sub = `<div class="ml-subtabs">
     <button class="ml-subtab ${ML_TAB === 'supervised' ? 'on' : ''}" data-action="ml-tab" data-t="supervised">📚 지도학습</button>
     <button class="ml-subtab ${ML_TAB === 'linreg' ? 'on' : ''}" data-action="ml-tab" data-t="linreg">📈 선형회귀</button>
+    <button class="ml-subtab ${ML_TAB === 'dtree' ? 'on' : ''}" data-action="ml-tab" data-t="dtree">🌳 결정 트리</button>
     <button class="ml-subtab ${ML_TAB === 'unsupervised' ? 'on' : ''}" data-action="ml-tab" data-t="unsupervised">🔍 비지도학습</button>
     <button class="ml-subtab ${ML_TAB === 'reinforce' ? 'on' : ''}" data-action="ml-tab" data-t="reinforce">🎮 강화학습</button>
   </div>`;
@@ -22,6 +23,7 @@ function vStMl(){
   let body = '';
   if     (ML_TAB === 'supervised')   body = _vStMlSupervised();
   else if(ML_TAB === 'linreg')       body = _vStMlLinreg();
+  else if(ML_TAB === 'dtree')        body = _vStMlDtree();
   else if(ML_TAB === 'unsupervised') body = _vStMlUnsupervised();
   else if(ML_TAB === 'reinforce')    body = _vStMlReinforce();
 
@@ -626,6 +628,230 @@ function _vStMlLrMse(){
     </div>`;
 }
 
+/* ═══════════════════════════════════════
+   🌳 결정 트리 (2D 평면 칸 나누기) — 표정 데이터
+   학생이 두 특징을 축으로 골라 산점도에 칸막이를 긋고 칸마다 표정을 정함
+   → 내 분류 정확도 확인 → 자동 결정 트리(모델)와 경계·정확도 비교
+═══════════════════════════════════════ */
+
+// 좌표계 (정사각 플롯, 특징 -2~+2 + 여백)
+const DT_SVG_W = 380, DT_SVG_H = 380;
+const DT_PAD = { l: 46, r: 14, t: 18, b: 42 };
+const DT_PW = DT_SVG_W - DT_PAD.l - DT_PAD.r;   // 320
+const DT_PH = DT_SVG_H - DT_PAD.t - DT_PAD.b;   // 320
+const DT_LO = -2.6, DT_HI = 2.6;
+function _mlDtSX(v){ return DT_PAD.l + (v - DT_LO) / (DT_HI - DT_LO) * DT_PW; }
+function _mlDtSY(v){ return DT_PAD.t + (1 - (v - DT_LO) / (DT_HI - DT_LO)) * DT_PH; }
+
+function _mlDtEnsureInit(){
+  if(ML_DT_INIT) return;
+  ML_DT_FX = 'mouth'; ML_DT_FY = 'brow';
+  ML_DT_VCUTS = [0.5]; ML_DT_HCUTS = [0.5];
+  ML_DT_REGIONLAB = {}; ML_DT_REVEAL = false; ML_DT_TREE = null;
+  ML_DT_INIT = true;
+}
+
+// 칸 경계 (정렬된 칸막이 + 양끝)
+function _mlDtBoundsX(){ return [DT_LO, ...[...ML_DT_VCUTS].sort((a, b) => a - b), DT_HI]; }
+function _mlDtBoundsY(){ return [DT_LO, ...[...ML_DT_HCUTS].sort((a, b) => a - b), DT_HI]; }
+function _mlDtCellKeyAt(x, y){
+  const bx = _mlDtBoundsX(), by = _mlDtBoundsY();
+  let ci = 0; while(ci < bx.length - 2 && x >= bx[ci + 1]) ci++;
+  let cj = 0; while(cj < by.length - 2 && y >= by[cj + 1]) cj++;
+  return ci + '_' + cj;
+}
+
+// 특징값에서 표정 얼굴 SVG 내부(100×100 박스, 중심 50,52)
+function _mlDtFaceInner(f, ring){
+  const skin = '#fde68a';
+  const eyeRy = (3 + (f.eye + 2) / 4 * 11).toFixed(1);  // -2 슬릿 ~ +2 크게
+  const t = f.brow * 3.2;                                // +2 안쪽↑(ㅅ) / -2 안쪽↓(찡그림)
+  const mc = (70 - f.mouth * 9).toFixed(1);             // +2 웃음(위로 휨)
+  return `<circle cx="50" cy="52" r="40" fill="${skin}" stroke="${ring || '#e0a93b'}" stroke-width="${ring ? 5 : 2.5}"/>
+    <ellipse cx="35" cy="49" rx="8" ry="${eyeRy}" fill="#fff" stroke="#7a5a1e" stroke-width="1.5"/>
+    <ellipse cx="65" cy="49" rx="8" ry="${eyeRy}" fill="#fff" stroke="#7a5a1e" stroke-width="1.5"/>
+    <circle cx="35" cy="49" r="3" fill="#3a2a10"/><circle cx="65" cy="49" r="3" fill="#3a2a10"/>
+    <line x1="26" y1="${(34 + t).toFixed(1)}" x2="44" y2="${(34 - t).toFixed(1)}" stroke="#5a3a14" stroke-width="3" stroke-linecap="round"/>
+    <line x1="74" y1="${(34 + t).toFixed(1)}" x2="56" y2="${(34 - t).toFixed(1)}" stroke="#5a3a14" stroke-width="3" stroke-linecap="round"/>
+    <path d="M33 70 Q50 ${mc} 67 70" fill="none" stroke="#9a3a2a" stroke-width="3.5" stroke-linecap="round"/>`;
+}
+function _mlDtFace(f, cx, cy, size, ring){
+  return `<g class="dt-face" transform="translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${(size / 100).toFixed(3)})">${_mlDtFaceInner(f, ring)}</g>`;
+}
+
+function _mlDtColorOf(id){ return mlDtClass(id) ? mlDtClass(id).color : '#999'; }
+
+function _mlDtAxes(){
+  const fx = mlDtFeature(ML_DT_FX), fy = mlDtFeature(ML_DT_FY);
+  let g = '';
+  [-2, -1, 0, 1, 2].forEach(t => {
+    const x = _mlDtSX(t), y = _mlDtSY(t);
+    g += `<line class="dt-grid" x1="${x.toFixed(1)}" y1="${DT_PAD.t}" x2="${x.toFixed(1)}" y2="${DT_PAD.t + DT_PH}"/>`;
+    g += `<line class="dt-grid" x1="${DT_PAD.l}" y1="${y.toFixed(1)}" x2="${DT_PAD.l + DT_PW}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="dt-tick" x="${x.toFixed(1)}" y="${(DT_PAD.t + DT_PH + 14).toFixed(1)}" text-anchor="middle">${t}</text>`;
+    g += `<text class="dt-tick" x="${(DT_PAD.l - 7)}" y="${(y + 3).toFixed(1)}" text-anchor="end">${t}</text>`;
+  });
+  g += `<line class="dt-axis" x1="${DT_PAD.l}" y1="${DT_PAD.t}" x2="${DT_PAD.l}" y2="${DT_PAD.t + DT_PH}"/>
+    <line class="dt-axis" x1="${DT_PAD.l}" y1="${DT_PAD.t + DT_PH}" x2="${DT_PAD.l + DT_PW}" y2="${DT_PAD.t + DT_PH}"/>`;
+  const cy = DT_PAD.t + DT_PH / 2;
+  g += `<text class="dt-axisname" x="${DT_PAD.l + DT_PW / 2}" y="${DT_SVG_H - 6}" text-anchor="middle">${esc(fx.label)} →</text>`;
+  g += `<text class="dt-axisname" x="13" y="${cy}" text-anchor="middle" transform="rotate(-90 13 ${cy})">${esc(fy.label)} →</text>`;
+  return g;
+}
+
+// 산점도 플롯. mode: 'mine'(상호작용) | 'model'(읽기전용)
+function _mlDtPlotSvg(mode){
+  const ds = ML_DT_DATASET, fx = ML_DT_FX, fy = ML_DT_FY;
+  let regions = '', predFor;
+
+  if(mode === 'mine'){
+    const bx = _mlDtBoundsX(), by = _mlDtBoundsY();
+    for(let ci = 0; ci < bx.length - 1; ci++) for(let cj = 0; cj < by.length - 1; cj++){
+      const key = ci + '_' + cj, lab = ML_DT_REGIONLAB[key];
+      const x = _mlDtSX(bx[ci]), x2 = _mlDtSX(bx[ci + 1]), y = _mlDtSY(by[cj + 1]), y2 = _mlDtSY(by[cj]);
+      regions += `<rect class="dt-cell" data-action="ml-dt-cell" data-cell="${key}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(x2 - x).toFixed(1)}" height="${(y2 - y).toFixed(1)}" fill="${lab ? _mlDtColorOf(lab) : '#000'}" fill-opacity="${lab ? 0.18 : 0}"/>`;
+    }
+    predFor = s => ML_DT_REGIONLAB[_mlDtCellKeyAt(s[fx], s[fy])] || null;
+  } else {
+    const rs = mlTreeRegions(ML_DT_TREE, fx, fy, DT_LO, DT_HI, DT_LO, DT_HI);
+    rs.forEach(r => {
+      const x = _mlDtSX(r.x0), x2 = _mlDtSX(r.x1), y = _mlDtSY(r.y1), y2 = _mlDtSY(r.y0);
+      regions += `<rect class="dt-cell-ro" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(x2 - x).toFixed(1)}" height="${(y2 - y).toFixed(1)}" fill="${r.label ? _mlDtColorOf(r.label) : '#000'}" fill-opacity="${r.label ? 0.2 : 0}"/>`;
+    });
+    predFor = s => mlTreePredict(ML_DT_TREE, s);
+  }
+
+  // 칸막이 (mine만, 드래그/삭제)
+  let cuts = '';
+  if(mode === 'mine'){
+    ML_DT_VCUTS.forEach((v, i) => {
+      const x = _mlDtSX(v);
+      cuts += `<line class="dt-cut-hit" data-cut="v" data-idx="${i}" x1="${x.toFixed(1)}" y1="${DT_PAD.t}" x2="${x.toFixed(1)}" y2="${DT_PAD.t + DT_PH}"/>
+        <line class="dt-cut" x1="${x.toFixed(1)}" y1="${DT_PAD.t}" x2="${x.toFixed(1)}" y2="${DT_PAD.t + DT_PH}"/>
+        <circle class="dt-cut-rm" data-action="ml-dt-rmcut" data-cut="v" data-idx="${i}" cx="${x.toFixed(1)}" cy="${DT_PAD.t - 3}" r="8"/>
+        <text class="dt-cut-x" data-action="ml-dt-rmcut" data-cut="v" data-idx="${i}" x="${x.toFixed(1)}" y="${DT_PAD.t}" text-anchor="middle">×</text>`;
+    });
+    ML_DT_HCUTS.forEach((v, i) => {
+      const y = _mlDtSY(v);
+      cuts += `<line class="dt-cut-hit" data-cut="h" data-idx="${i}" x1="${DT_PAD.l}" y1="${y.toFixed(1)}" x2="${DT_PAD.l + DT_PW}" y2="${y.toFixed(1)}"/>
+        <line class="dt-cut" x1="${DT_PAD.l}" y1="${y.toFixed(1)}" x2="${DT_PAD.l + DT_PW}" y2="${y.toFixed(1)}"/>
+        <circle class="dt-cut-rm" data-action="ml-dt-rmcut" data-cut="h" data-idx="${i}" cx="${DT_PAD.l - 3}" cy="${y.toFixed(1)}" r="8"/>
+        <text class="dt-cut-x" data-action="ml-dt-rmcut" data-cut="h" data-idx="${i}" x="${DT_PAD.l - 3}" y="${(y + 4).toFixed(1)}" text-anchor="middle">×</text>`;
+    });
+  }
+
+  // 얼굴 (진짜 표정 = 테두리색, 분류 틀리면 ✗)
+  let faces = '';
+  ds.samples.forEach(s => {
+    const cx = _mlDtSX(s[fx] + s.jx), cy = _mlDtSY(s[fy] + s.jy);
+    faces += _mlDtFace(s, cx, cy, 30, _mlDtColorOf(s.cls));
+    const pred = predFor(s);
+    if(pred && pred !== s.cls) faces += `<text class="dt-wrong" x="${cx.toFixed(1)}" y="${(cy + 5).toFixed(1)}" text-anchor="middle">✗</text>`;
+  });
+
+  return `<svg class="dt-svg ${mode}" viewBox="0 0 ${DT_SVG_W} ${DT_SVG_H}" ${mode === 'mine' ? 'id="dt-svg" data-interactive="1"' : ''} role="img">
+    ${_mlDtAxes()}
+    <g>${regions}${faces}</g>
+    ${cuts}
+  </svg>`;
+}
+
+// 결정 트리 구조를 글로 (예/아니오 분기)
+function _mlDtTreeHtml(node){
+  if(!node) return '';
+  if(node.feature == null){
+    const c = mlDtClass(node.label);
+    return `<span class="dt-leaf" style="background:${c ? c.color : '#999'}22;border-color:${c ? c.color : '#999'}">${c ? c.emoji : ''} ${esc(c ? c.label : '?')}</span>`;
+  }
+  const fl = mlDtFeature(node.feature) ? mlDtFeature(node.feature).label : node.feature;
+  return `<div class="dt-node">
+    <div class="dt-q">${esc(fl)}가 ${node.thr}보다 작은가?</div>
+    <div class="dt-branches">
+      <div class="dt-branch"><span class="dt-tag yes">예</span>${_mlDtTreeHtml(node.left)}</div>
+      <div class="dt-branch"><span class="dt-tag no">아니오</span>${_mlDtTreeHtml(node.right)}</div>
+    </div>
+  </div>`;
+}
+
+function _vStMlDtree(){
+  _mlDtEnsureInit();
+  const ds = ML_DT_DATASET;
+  const total = ds.samples.length;
+  let correct = 0;
+  ds.samples.forEach(s => { if(ML_DT_REGIONLAB[_mlDtCellKeyAt(s[ML_DT_FX], s[ML_DT_FY])] === s.cls) correct++; });
+  const anyLabel = Object.keys(ML_DT_REGIONLAB).length > 0;
+
+  const axSel = (which, cur) => `<select class="dt-axis-sel" data-action="ml-dt-axis" data-axis="${which}">${ds.features.map(f => `<option value="${f.key}" ${f.key === cur ? 'selected' : ''}>${esc(f.label)}</option>`).join('')}</select>`;
+
+  const legend = `<div class="dt-legend">${ds.features.map(f => `<div class="dt-legend-feat">
+      <div class="dt-legend-name">${esc(f.label)}</div>
+      <div class="dt-legend-faces">
+        <div class="dt-mini"><svg viewBox="0 0 100 100" class="dt-mini-svg">${_mlDtFaceInner(Object.assign({ mouth: 0, brow: 0, eye: 0 }, { [f.key]: -2 }))}</svg><span>−2 ${esc(f.lowDesc)}</span></div>
+        <div class="dt-mini"><svg viewBox="0 0 100 100" class="dt-mini-svg">${_mlDtFaceInner(Object.assign({ mouth: 0, brow: 0, eye: 0 }, { [f.key]: 2 }))}</svg><span>+2 ${esc(f.highDesc)}</span></div>
+      </div></div>`).join('')}</div>`;
+
+  const classKey = `<div class="dt-classkey">${ds.classes.map(c => `<span class="dt-ck" style="border-color:${c.color}"><span class="dt-ck-dot" style="background:${c.color}"></span>${c.emoji} ${esc(c.label)}</span>`).join('')}</div>`;
+
+  let modelHtml = '';
+  if(ML_DT_REVEAL){
+    if(!ML_DT_TREE || ML_DT_TREE._fx !== ML_DT_FX || ML_DT_TREE._fy !== ML_DT_FY){
+      ML_DT_TREE = mlBuildTree(ds.samples, [ML_DT_FX, ML_DT_FY], { maxDepth: 3 });
+      ML_DT_TREE._fx = ML_DT_FX; ML_DT_TREE._fy = ML_DT_FY;
+    }
+    const macc = Math.round(mlTreeAccuracy(ML_DT_TREE, ds.samples) * total);
+    modelHtml = `<div class="section dt-model">
+      <div class="sec-title">🤖 모델은 이렇게 나눴어요</div>
+      <div class="ml-sub-explain">모델(결정 트리)은 표정이 가장 잘 갈리는 특징과 기준을 <b>스스로</b> 골라 칸을 나눠요. 같은 두 축(${esc(mlDtFeature(ML_DT_FX).label)} × ${esc(mlDtFeature(ML_DT_FY).label)})에서 내 칸막이와 비교해 보세요.</div>
+      <div class="dt-plot-wrap">${_mlDtPlotSvg('model')}</div>
+      <div class="dt-tree-text">${_mlDtTreeHtml(ML_DT_TREE)}</div>
+      <div class="dt-acc-cmp">
+        <div class="dt-acc model ${macc === total ? 'perfect' : ''}">🤖 모델 정확도 <b>${macc} / ${total}</b></div>
+        <div class="dt-acc ${correct === total ? 'perfect' : ''}">✏️ 내 정확도 <b>${correct} / ${total}</b></div>
+      </div>
+      <div class="dt-model-note">${_mlDtModelNote(macc, correct, total)}</div>
+    </div>`;
+  }
+
+  return `<div class="section">
+    <div class="ml-intro">
+      <b>🌳 결정 트리</b>는 <u>'예/아니오' 질문(칸막이)</u>으로 데이터를 점점 더 작은 칸으로 나눠 분류하는 방법이에요.
+      두 특징을 축으로 골라, 같은 표정끼리 모이도록 <u>칸막이를 긋고</u> 칸마다 표정을 정해봐요!
+    </div>
+
+    <div class="sec-title">표정의 특징 (값이 클수록 →)</div>
+    ${legend}
+
+    <div class="dt-axis-row">
+      <span>가로축(→)</span> ${axSel('x', ML_DT_FX)}
+      <span>세로축(↑)</span> ${axSel('y', ML_DT_FY)}
+      <span class="dt-axis-hint">두 특징을 바꿔가며 어떤 조합이 잘 갈리는지 찾아보세요</span>
+    </div>
+
+    <div class="dt-toolbar">
+      <button class="btn-xs" data-action="ml-dt-addcut" data-axis="v" ${ML_DT_VCUTS.length >= 2 ? 'disabled' : ''}>＋ 세로 칸막이</button>
+      <button class="btn-xs" data-action="ml-dt-addcut" data-axis="h" ${ML_DT_HCUTS.length >= 2 ? 'disabled' : ''}>＋ 가로 칸막이</button>
+      <button class="btn-xs" data-action="ml-dt-autolabel">🎯 칸 자동 라벨(다수결)</button>
+      <button class="btn-xs" data-action="ml-dt-clear">🧹 지우기</button>
+    </div>
+
+    ${classKey}
+    <div class="dt-plot-wrap">${_mlDtPlotSvg('mine')}</div>
+    <div class="dt-howto">💡 칸막이(선)를 <b>드래그</b>해 옮기고, 칸을 <b>클릭</b>하면 그 칸의 표정이 바뀌어요(없음→기쁨→슬픔→화남). 얼굴 <b>테두리 색 = 진짜 표정</b>, <b>✗ = 내 칸 분류가 틀림</b>.</div>
+    <div class="dt-acc ${correct === total ? 'perfect' : ''}">✏️ 내 분류 정확도 <b>${correct} / ${total}</b>${anyLabel ? '' : ' — 칸을 클릭해 표정을 정해보세요'}</div>
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-p" data-action="ml-dt-reveal">${ML_DT_REVEAL ? '🙈 모델 숨기기' : '🤖 모델은 어떻게 분류했을까? 비교하기'}</button>
+  </div>
+  ${modelHtml}`;
+}
+
+function _mlDtModelNote(macc, mine, total){
+  if(mine >= macc && mine === total) return '내 분류도 모델만큼 완벽해요! 같은 특징·기준을 찾았네요. 👏';
+  if(mine >= macc) return '내 분류가 모델만큼(또는 그 이상으로) 잘 맞았어요! 👏';
+  if(macc === total) return '모델은 100% 맞혔어요. 두 칸막이만으로도 표정이 깔끔히 갈리는 특징 조합이 있다는 뜻이에요.';
+  return '모델도 이 두 축만으로는 완벽하진 않아요. 다른 특징 조합을 축으로 바꿔보면 더 잘 갈릴 수 있어요!';
+}
+
 /* ─────────────────── 비지도학습 ─────────────────── */
 
 function _vStMlUnsupervised(){
@@ -817,6 +1043,7 @@ function vTcMl(){
     <div class="ml-tc-flow">
       <div class="ml-tc-flow-card"><b>📚 지도학습</b><br><small>3개 그룹 이름 정하고 사진 끌어담기 → 학습 → 테스트(드래그) 후 👍/👎 판정</small></div>
       <div class="ml-tc-flow-card"><b>📈 선형회귀</b><br><small>산점도에 직접 직선 긋기 → 경사하강법으로 학습 과정 관찰 → 최적선·예측·오차(MSE) 이해</small></div>
+      <div class="ml-tc-flow-card"><b>🌳 결정 트리</b><br><small>표정 얼굴을 두 특징 축에 흩뿌리고 칸막이로 영역 분류 → 내 정확도 → 자동 결정 트리(모델)와 비교</small></div>
       <div class="ml-tc-flow-card"><b>🔍 비지도학습</b><br><small>사진을 2D 점 지도로 흩뿌리고 K-Means가 색으로 묶는 과정 관찰 → 정답 공개</small></div>
       <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>Reinforced Duck 게임을 새 탭에서 플레이 (설명은 아래에서 직접 작성)</small></div>
     </div>

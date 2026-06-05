@@ -208,6 +208,17 @@ let ML_LR_FIT       = null;       // 최소제곱 정답선 { a, b, mse }
 let ML_LR_PROBE_X   = '';         // 최적선 단계에서 임의 x 입력(문자열)
 let ML_LR_RESID_FOR = 'opt';      // MSE 단계 잔차 표시 대상 'opt'|'mine'
 
+// 🌳 결정 트리 실습 (2D 평면 칸 나누기) — 표정 데이터, 특징으로 영역 분류 후 모델과 비교
+let ML_DT_INIT      = false;      // 기본값 초기화 여부
+let ML_DT_FX        = 'mouth';    // X축 특징 key
+let ML_DT_FY        = 'brow';     // Y축 특징 key
+let ML_DT_VCUTS     = [];         // 세로 칸막이 x값들 (특징 공간)
+let ML_DT_HCUTS     = [];         // 가로 칸막이 y값들
+let ML_DT_REGIONLAB = {};         // { "ci_cj": classId } 칸별 라벨
+let ML_DT_REVEAL    = false;      // 모델(자동 트리) 비교 공개
+let ML_DT_TREE      = null;       // 모델 결정 트리
+let ML_DT_DRAG      = null;       // 드래그 중 칸막이 { axis:'v'|'h', idx }
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)

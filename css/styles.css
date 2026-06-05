@@ -2252,3 +2252,67 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .lr-mse-conclude{margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(34,197,94,.05));border-left:3px solid #6366f1;border-radius:8px;font-size:13.5px;line-height:1.7}
 .lr-mse-conclude b{font-variant-numeric:tabular-nums}
 
+/* ═══════════════════════════════════════
+   🌳 결정 트리 (2D 칸 나누기)
+═══════════════════════════════════════ */
+.dt-plot-wrap{margin:8px 0}
+.dt-svg{display:block;width:100%;max-width:440px;margin:6px auto;background:var(--surface2);border:1px solid var(--border);border-radius:12px}
+/* SVG 내부 */
+.dt-grid{stroke:var(--border);stroke-width:1;opacity:.5}
+.dt-axis{stroke:var(--text3);stroke-width:1.5}
+.dt-tick{fill:var(--text3);font-size:11px;font-family:inherit}
+.dt-axisname{fill:var(--text2);font-size:12.5px;font-weight:700;font-family:inherit}
+.dt-cell{cursor:pointer;pointer-events:all;transition:fill-opacity .15s}
+.dt-cell:hover{stroke:#6366f1;stroke-width:2;stroke-dasharray:4 3}
+.dt-cell-ro{pointer-events:none}
+.dt-cut{stroke:#6366f1;stroke-width:2.5;pointer-events:none}
+.dt-cut-hit{stroke:transparent;stroke-width:18;pointer-events:stroke}
+.dt-cut-hit[data-cut="v"]{cursor:ew-resize;touch-action:none}
+.dt-cut-hit[data-cut="h"]{cursor:ns-resize;touch-action:none}
+.dt-cut-rm{fill:var(--surface);stroke:#6366f1;stroke-width:1.5;cursor:pointer;pointer-events:all}
+.dt-cut-x{fill:#6366f1;font-size:12px;font-weight:800;cursor:pointer;pointer-events:all;font-family:inherit}
+.dt-face{pointer-events:none}
+.dt-wrong{fill:#dc2626;font-size:24px;font-weight:900;paint-order:stroke;stroke:#fff;stroke-width:3px;pointer-events:none}
+
+/* 특징 설명 (미니 얼굴) */
+.dt-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.dt-legend-feat{flex:1;min-width:150px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:9px}
+.dt-legend-name{font-size:12.5px;font-weight:700;margin-bottom:5px;text-align:center}
+.dt-legend-faces{display:flex;gap:8px;justify-content:center}
+.dt-mini{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.dt-mini-svg{width:46px;height:46px;background:#fff;border:1px solid var(--border);border-radius:8px}
+.dt-mini span{font-size:10.5px;color:var(--text3);text-align:center;line-height:1.3}
+
+/* 표정 색 키 */
+.dt-classkey{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:4px 0 2px}
+.dt-ck{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:3px 11px;border:1.5px solid;border-radius:20px;background:var(--surface)}
+.dt-ck-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+
+/* 축 선택 + 도구 */
+.dt-axis-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px;color:var(--text2);margin-bottom:10px}
+.dt-axis-sel{padding:6px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer}
+.dt-axis-sel:focus{outline:none;border-color:#6366f1}
+.dt-axis-hint{color:var(--text3);font-size:11.5px;flex-basis:100%}
+.dt-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+
+.dt-howto{font-size:12px;color:var(--text2);line-height:1.6;margin-top:8px;padding:8px 11px;background:var(--surface2);border-radius:8px}
+.dt-acc{margin-top:10px;padding:10px 14px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);font-size:14px;font-weight:600;text-align:center}
+.dt-acc b{font-variant-numeric:tabular-nums;font-size:16px}
+.dt-acc.perfect{background:linear-gradient(135deg,rgba(34,197,94,.14),rgba(34,197,94,.04));border-color:#22c55e;color:var(--ok,#16a34a)}
+.dt-acc-cmp{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dt-acc-cmp .dt-acc{flex:1;min-width:140px;margin-top:0}
+.dt-acc.model{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(99,102,241,.03));border-color:#6366f1}
+
+/* 모델 비교 영역 */
+.dt-model{margin-top:14px;border:1px solid rgba(99,102,241,.3);background:linear-gradient(180deg,rgba(99,102,241,.05),transparent)}
+.dt-tree-text{margin:10px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow-x:auto}
+.dt-node{font-size:13px}
+.dt-q{font-weight:700;color:var(--text);padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:inline-block;margin-bottom:4px}
+.dt-branches{padding-left:16px;border-left:2px dashed var(--border);margin-left:8px}
+.dt-branch{display:flex;align-items:flex-start;gap:6px;margin:5px 0}
+.dt-tag{flex-shrink:0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:2px}
+.dt-tag.yes{background:rgba(34,197,94,.15);color:#16a34a}
+.dt-tag.no{background:rgba(239,68,68,.12);color:#dc2626}
+.dt-leaf{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 10px;border:1.5px solid;border-radius:8px}
+.dt-model-note{margin-top:8px;padding:10px 13px;background:var(--surface2);border-left:3px solid #6366f1;border-radius:6px;font-size:13px;line-height:1.6}
+

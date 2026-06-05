@@ -242,6 +242,73 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  /* ─── 🌳 결정 트리 (2D 칸 나누기) ─── */
+  // 칸 클릭 → 라벨 순환 (없음 → 표정들 → 없음)
+  if(act === 'ml-dt-cell'){
+    const key = el.dataset.cell;
+    const order = [null, ...ML_DT_DATASET.classes.map(c => c.id)];
+    const cur = ML_DT_REGIONLAB[key] || null;
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    if(next) ML_DT_REGIONLAB[key] = next; else delete ML_DT_REGIONLAB[key];
+    render();
+    return;
+  }
+  // 칸막이 추가 (가장 넓은 칸 가운데, 최대 2개)
+  if(act === 'ml-dt-addcut'){
+    const axis = el.dataset.axis;
+    const arr = axis === 'v' ? ML_DT_VCUTS : ML_DT_HCUTS;
+    if(arr.length >= 2) return;
+    const oldV = [...ML_DT_VCUTS], oldH = [...ML_DT_HCUTS];
+    const bounds = axis === 'v' ? _mlDtBoundsX() : _mlDtBoundsY();
+    let mid = 0, w = -1;
+    for(let i = 0; i < bounds.length - 1; i++){ const ww = bounds[i + 1] - bounds[i]; if(ww > w){ w = ww; mid = (bounds[i] + bounds[i + 1]) / 2; } }
+    let pos = Math.max(-1.5, Math.min(1.5, Math.round(mid - 0.5) + 0.5));
+    while(arr.includes(pos) && pos < 1.5) pos += 1;
+    while(arr.includes(pos) && pos > -1.5) pos -= 1;
+    if(arr.includes(pos)) return;
+    arr.push(pos); arr.sort((a, b) => a - b);
+    _mlDtRemapLabels(oldV, oldH);
+    render();
+    return;
+  }
+  // 칸막이 삭제 (×)
+  if(act === 'ml-dt-rmcut'){
+    const axis = el.dataset.cut, idx = parseInt(el.dataset.idx);
+    const oldV = [...ML_DT_VCUTS], oldH = [...ML_DT_HCUTS];
+    const arr = axis === 'v' ? ML_DT_VCUTS : ML_DT_HCUTS;
+    if(idx >= 0 && idx < arr.length) arr.splice(idx, 1);
+    _mlDtRemapLabels(oldV, oldH);
+    render();
+    return;
+  }
+  // 칸 자동 라벨 (각 칸 다수 진짜표정)
+  if(act === 'ml-dt-autolabel'){
+    const bx = _mlDtBoundsX(), by = _mlDtBoundsY();
+    const lab = {};
+    for(let ci = 0; ci < bx.length - 1; ci++) for(let cj = 0; cj < by.length - 1; cj++){
+      const cnt = {};
+      ML_DT_DATASET.samples.forEach(s => { if(_mlDtCellKeyAt(s[ML_DT_FX], s[ML_DT_FY]) === ci + '_' + cj) cnt[s.cls] = (cnt[s.cls] || 0) + 1; });
+      let best = null, bn = 0;
+      for(const k in cnt){ if(cnt[k] > bn){ bn = cnt[k]; best = k; } }
+      if(best) lab[ci + '_' + cj] = best;
+    }
+    ML_DT_REGIONLAB = lab;
+    render();
+    return;
+  }
+  // 칸막이·라벨 지우기
+  if(act === 'ml-dt-clear'){
+    ML_DT_VCUTS = []; ML_DT_HCUTS = []; ML_DT_REGIONLAB = {};
+    render();
+    return;
+  }
+  // 모델 비교 공개 토글
+  if(act === 'ml-dt-reveal'){
+    ML_DT_REVEAL = !ML_DT_REVEAL;
+    render();
+    return;
+  }
+
   /* ── 비지도학습 (2D 점 지도 + K-Means) ── */
   if(act === 'ml-un-pick'){
     const did = el.dataset.did;
@@ -409,6 +476,66 @@ window.addEventListener('pointermove', e => {
 });
 
 window.addEventListener('pointerup', () => { _mlLrDrag.side = null; });
+
+// ── 🌳 결정 트리: 축 선택(change) ──
+document.addEventListener('change', e => {
+  const el = e.target.closest && e.target.closest('[data-action="ml-dt-axis"]');
+  if(!el) return;
+  const which = el.dataset.axis, val = el.value;
+  if(which === 'x'){ if(val === ML_DT_FY) ML_DT_FY = ML_DT_FX; ML_DT_FX = val; }
+  else { if(val === ML_DT_FX) ML_DT_FX = ML_DT_FY; ML_DT_FY = val; }
+  ML_DT_TREE = null;  // 축 바뀌면 모델 다시 학습
+  render();
+});
+
+// 칸막이 추가/삭제 시 칸별 라벨을 칸 중심 기준으로 이어받기
+function _mlDtRemapLabels(oldV, oldH){
+  const oBX = [DT_LO, ...[...oldV].sort((a, b) => a - b), DT_HI];
+  const oBY = [DT_LO, ...[...oldH].sort((a, b) => a - b), DT_HI];
+  const oldKeyAt = (x, y) => {
+    let ci = 0; while(ci < oBX.length - 2 && x >= oBX[ci + 1]) ci++;
+    let cj = 0; while(cj < oBY.length - 2 && y >= oBY[cj + 1]) cj++;
+    return ci + '_' + cj;
+  };
+  const bx = _mlDtBoundsX(), by = _mlDtBoundsY(), nl = {};
+  for(let ci = 0; ci < bx.length - 1; ci++) for(let cj = 0; cj < by.length - 1; cj++){
+    const cx = (bx[ci] + bx[ci + 1]) / 2, cy = (by[cj] + by[cj + 1]) / 2;
+    const ol = ML_DT_REGIONLAB[oldKeyAt(cx, cy)];
+    if(ol) nl[ci + '_' + cj] = ol;
+  }
+  ML_DT_REGIONLAB = nl;
+}
+
+// ── 🌳 결정 트리: 칸막이 드래그 (한 번만 등록) ──
+document.addEventListener('pointerdown', e => {
+  const hit = e.target.closest && e.target.closest('#dt-svg [data-cut]');
+  if(!hit || hit.dataset.action) return;   // × 삭제 버튼은 클릭으로 처리
+  if(ST_TAB !== 'ml' || ML_TAB !== 'dtree') return;
+  e.preventDefault();
+  ML_DT_DRAG = { axis: hit.dataset.cut, idx: parseInt(hit.dataset.idx) };
+});
+
+window.addEventListener('pointermove', e => {
+  if(!ML_DT_DRAG) return;
+  const svg = document.getElementById('dt-svg');
+  if(!svg) return;
+  const rect = svg.getBoundingClientRect();
+  const { axis, idx } = ML_DT_DRAG;
+  let val;
+  if(axis === 'v'){
+    const svgX = (e.clientX - rect.left) / rect.width * DT_SVG_W;
+    val = DT_LO + (svgX - DT_PAD.l) / DT_PW * (DT_HI - DT_LO);
+  } else {
+    const svgY = (e.clientY - rect.top) / rect.height * DT_SVG_H;
+    val = DT_LO + (1 - (svgY - DT_PAD.t) / DT_PH) * (DT_HI - DT_LO);
+  }
+  let snapped = Math.max(-1.5, Math.min(1.5, Math.round(val - 0.5) + 0.5));  // 단계 사이(±0.5,±1.5)
+  const arr = axis === 'v' ? ML_DT_VCUTS : ML_DT_HCUTS;
+  if(arr.some((c, i) => i !== idx && c === snapped)) return;  // 겹침 방지
+  if(arr[idx] !== snapped){ arr[idx] = snapped; render(); }   // 값 바뀔 때만 재렌더
+});
+
+window.addEventListener('pointerup', () => { if(ML_DT_DRAG) ML_DT_DRAG = null; });
 
 // 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
 //   이모지가 색으로 너무 깔끔히 나뉘면 K-Means가 1~2단계에 끝나 과정이 안 보임.
