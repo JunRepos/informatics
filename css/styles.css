@@ -2262,11 +2262,14 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .dt-axis{stroke:var(--text3);stroke-width:1.5}
 .dt-tick{fill:var(--text3);font-size:11px;font-family:inherit}
 .dt-axisname{fill:var(--text2);font-size:12.5px;font-weight:700;font-family:inherit}
-.dt-cell{cursor:pointer;pointer-events:all;transition:fill-opacity .15s}
-.dt-cell:hover{stroke:#6366f1;stroke-width:2;stroke-dasharray:4 3}
+.dt-cell{pointer-events:all;transition:fill-opacity .15s}
+.dt-cell.labelable{cursor:pointer}
+.dt-cell.labelable:hover{stroke:#6366f1;stroke-width:2;stroke-dasharray:4 3}
 .dt-cell-ro{pointer-events:none}
-.dt-cut{stroke:#6366f1;stroke-width:2.5;pointer-events:none}
-.dt-cut-hit{stroke:transparent;stroke-width:18;pointer-events:stroke}
+.dt-cut{stroke:#6366f1;stroke-width:2;pointer-events:none;opacity:.55}
+.dt-cut.on{stroke-width:2.8;opacity:1}
+.dt-cut-grip{fill:#6366f1;stroke:#fff;stroke-width:2;pointer-events:none}
+.dt-cut-hit{stroke:transparent;stroke-width:20;pointer-events:stroke}
 .dt-cut-hit[data-cut="v"]{cursor:ew-resize;touch-action:none}
 .dt-cut-hit[data-cut="h"]{cursor:ns-resize;touch-action:none}
 .dt-cut-rm{fill:var(--surface);stroke:#6366f1;stroke-width:1.5;cursor:pointer;pointer-events:all}
@@ -2315,4 +2318,25 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .dt-tag.no{background:rgba(239,68,68,.12);color:#dc2626}
 .dt-leaf{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 10px;border:1.5px solid;border-radius:8px}
 .dt-model-note{margin-top:8px;padding:10px 13px;background:var(--surface2);border-left:3px solid #6366f1;border-radius:6px;font-size:13px;line-height:1.6}
+
+/* 단계 흐름 — 축 고정 표시 / 칸별 구성 / 2분할 비교 */
+.dt-axis-fixed{font-size:12.5px;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dt-axis-fixed b{color:var(--text)}
+.dt-axis-back{color:#6366f1;font-weight:600;cursor:pointer;font-size:12px}
+.dt-axis-back:hover{text-decoration:underline}
+.dt-counts-title{font-size:12.5px;font-weight:700;color:var(--text2);margin:10px 0 5px}
+.dt-counts{display:flex;flex-wrap:wrap;gap:7px}
+.dt-count-chip{display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--surface);border:1px solid var(--border);border-radius:9px;font-size:12.5px}
+.dt-count-chip.pure{border-color:#22c55e;background:linear-gradient(135deg,rgba(34,197,94,.1),transparent)}
+.dt-count-pos{font-weight:700;color:var(--text2);min-width:52px}
+.dt-count-mix{display:flex;gap:7px;font-weight:700;font-variant-numeric:tabular-nums}
+.dt-count-n{white-space:nowrap}
+.dt-count-empty{color:var(--text3);font-weight:400}
+.dt-pure-badge{font-size:11px;font-weight:700;color:#16a34a;background:var(--ok-bg);border:1px solid var(--ok-bd);padding:1px 7px;border-radius:10px}
+.dt-mix-badge{font-size:11px;font-weight:600;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:1px 7px;border-radius:10px}
+.dt-compare-2{display:flex;gap:10px;flex-wrap:wrap}
+.dt-compare-col{flex:1;min-width:260px}
+.dt-compare-title{font-size:13px;font-weight:700;text-align:center;margin-bottom:4px}
+.dt-compare-col .dt-svg{max-width:100%}
+.dt-tree-cap{font-size:12.5px;font-weight:700;color:var(--text2);margin:12px 0 4px}
 

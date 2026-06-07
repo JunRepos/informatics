@@ -302,9 +302,20 @@ document.addEventListener('click', async e => {
     render();
     return;
   }
-  // 모델 비교 공개 토글
+  // 모델 비교 공개 토글 (구버전 — 단계 흐름에서는 미사용)
   if(act === 'ml-dt-reveal'){
     ML_DT_REVEAL = !ML_DT_REVEAL;
+    render();
+    return;
+  }
+  // 단계 전환 (살펴보기 → 첫 칸막이 → 칸 라벨 → 모델 비교)
+  if(act === 'ml-dt-stage'){
+    const s = el.dataset.s;
+    if(s === 'observe'){ ML_DT_VCUTS = []; ML_DT_HCUTS = []; ML_DT_REGIONLAB = {}; }
+    else if(s === 'cut1'){ if(!ML_DT_VCUTS.length) ML_DT_VCUTS = [0.5]; ML_DT_HCUTS = []; ML_DT_REGIONLAB = {}; }
+    else if(s === 'cut2'){ if(!ML_DT_VCUTS.length) ML_DT_VCUTS = [0.5]; if(!ML_DT_HCUTS.length) ML_DT_HCUTS = [0.5]; }
+    else if(s === 'compare'){ ML_DT_TREE = null; }
+    ML_DT_STAGE = s;
     render();
     return;
   }

@@ -210,6 +210,7 @@ let ML_LR_RESID_FOR = 'opt';      // MSE 단계 잔차 표시 대상 'opt'|'mine
 
 // 🌳 결정 트리 실습 (2D 평면 칸 나누기) — 표정 데이터, 특징으로 영역 분류 후 모델과 비교
 let ML_DT_INIT      = false;      // 기본값 초기화 여부
+let ML_DT_STAGE     = 'observe';  // 'observe'|'cut1'|'cut2'|'compare' (단계별 안내)
 let ML_DT_FX        = 'mouth';    // X축 특징 key
 let ML_DT_FY        = 'brow';     // Y축 특징 key
 let ML_DT_VCUTS     = [];         // 세로 칸막이 x값들 (특징 공간)
