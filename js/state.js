@@ -165,7 +165,9 @@ const AIC_WORKER_URL = 'https://informatics-ai.chlwns1023.workers.dev';
 
 // 🤖 기계학습 체험 (지도/비지도/강화) — 정의는 ml-data.js, 엔진은 ml-engine.js
 let ML_ACTIVE         = {};         // { [classId]: bool } 메뉴 노출 캐시
-let ML_TAB            = 'supervised'; // 'supervised'|'unsupervised'|'reinforce'
+let ML_TAB            = 'supervised'; // 하위 탭: supervised|unsupervised|reinforce|linreg|dtree
+// 상위 그룹(유형/모델)별 마지막으로 본 하위 탭 기억
+let ML_GROUP_LAST     = { type: 'supervised', model: 'linreg' };
 // 지도학습 상태 (학생 주도 흐름)
 let ML_SUP_PHASE      = 'pick';     // 'pick'|'label'|'test'|'done'
 let ML_SUP_DATASET    = null;       // ML_DATASETS의 하나

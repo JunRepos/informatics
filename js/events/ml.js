@@ -8,8 +8,18 @@ document.addEventListener('click', async e => {
   const act = el.dataset.action;
 
   /* ── 공통: 내부 탭 전환 ── */
+  // 상위 그룹(유형/모델) 전환 → 그 그룹에서 마지막으로 본 하위 탭으로
+  if(act === 'ml-group'){
+    const g = el.dataset.g;
+    if(ML_GROUPS[g]) ML_TAB = (ML_GROUP_LAST && ML_GROUP_LAST[g]) || ML_GROUPS[g].tabs[0].t;
+    _mlStopAuto(); _mlLrStopAuto();
+    render();
+    return;
+  }
   if(act === 'ml-tab'){
     ML_TAB = el.dataset.t || 'supervised';
+    const g = _mlGroupOf(ML_TAB);              // 그룹별 마지막 탭 기억
+    if(ML_GROUP_LAST) ML_GROUP_LAST[g] = ML_TAB;
     _mlStopAuto();      // 비지도 K-Means 타이머 정리
     _mlLrStopAuto();    // 선형회귀 학습 타이머 정리
     render();

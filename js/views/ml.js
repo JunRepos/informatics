@@ -9,16 +9,35 @@
    학생 — 🤖 기계학습 체험 탭
 ═══════════════════════════════════════ */
 
+// 상위 그룹(유형/모델) → 하위 탭 정의
+const ML_GROUPS = {
+  type:  { label: '기계학습 유형', tabs: [
+    { t: 'supervised',   label: '📚 지도학습' },
+    { t: 'unsupervised', label: '🔍 비지도학습' },
+    { t: 'reinforce',    label: '🎮 강화학습' },
+  ] },
+  model: { label: '기계학습 모델', tabs: [
+    { t: 'linreg', label: '📈 선형회귀' },
+    { t: 'dtree',  label: '🌳 결정 트리' },
+  ] },
+};
+function _mlGroupOf(tab){
+  for(const g in ML_GROUPS) if(ML_GROUPS[g].tabs.some(x => x.t === tab)) return g;
+  return 'type';
+}
+
 function vStMl(){
   if(!ML_ACTIVE[SEL_CLS?.id]) return emptyBox('🔒', '기계학습 체험이 아직 열리지 않았어요. 선생님 안내를 기다려주세요.');
 
-  const sub = `<div class="ml-subtabs">
-    <button class="ml-subtab ${ML_TAB === 'supervised' ? 'on' : ''}" data-action="ml-tab" data-t="supervised">📚 지도학습</button>
-    <button class="ml-subtab ${ML_TAB === 'linreg' ? 'on' : ''}" data-action="ml-tab" data-t="linreg">📈 선형회귀</button>
-    <button class="ml-subtab ${ML_TAB === 'dtree' ? 'on' : ''}" data-action="ml-tab" data-t="dtree">🌳 결정 트리</button>
-    <button class="ml-subtab ${ML_TAB === 'unsupervised' ? 'on' : ''}" data-action="ml-tab" data-t="unsupervised">🔍 비지도학습</button>
-    <button class="ml-subtab ${ML_TAB === 'reinforce' ? 'on' : ''}" data-action="ml-tab" data-t="reinforce">🎮 강화학습</button>
-  </div>`;
+  const curGroup = _mlGroupOf(ML_TAB);
+  // 상위: 기계학습 유형 / 기계학습 모델
+  const groupBar = `<div class="ml-groupbar">${Object.keys(ML_GROUPS).map(g =>
+    `<button class="ml-group ${g === curGroup ? 'on' : ''}" data-action="ml-group" data-g="${g}">${esc(ML_GROUPS[g].label)}</button>`
+  ).join('')}</div>`;
+  // 하위: 선택된 그룹의 탭만
+  const sub = `<div class="ml-subtabs">${ML_GROUPS[curGroup].tabs.map(x =>
+    `<button class="ml-subtab ${ML_TAB === x.t ? 'on' : ''}" data-action="ml-tab" data-t="${x.t}">${x.label}</button>`
+  ).join('')}</div>`;
 
   let body = '';
   if     (ML_TAB === 'supervised')   body = _vStMlSupervised();
@@ -29,8 +48,8 @@ function vStMl(){
 
   return `<div class="section ml-head">
     <div class="ml-head-title">🤖 기계학습 체험</div>
-    <div class="ml-head-sub">기계학습의 3가지 방식 — 지도·비지도·강화 — 을 직접 해봅시다.</div>
-  </div>` + sub + body;
+    <div class="ml-head-sub">기계학습의 <b>유형</b>(지도·비지도·강화)과 대표 <b>모델</b>(선형회귀·결정 트리)을 직접 해봅시다.</div>
+  </div>` + groupBar + sub + body;
 }
 
 /* ─────────────────── 지도학습 (학생 주도 흐름) ───────────────────
