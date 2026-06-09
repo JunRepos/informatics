@@ -1167,23 +1167,28 @@ function _vStMlKmeans(){
   let changedCount = 0;
   if(lastAction === 'assign' && ML_KM_PREVA) km.assignments.forEach((a, i) => { if(ML_KM_PREVA[i] !== a) changedCount++; });
 
-  // 묶임 연결선(spoke): 각 점 → 자기 중심점
+  // 이동 전 중심점(원래 좌표) — 스르르 글라이드 애니메이션용
+  const prevOrig = (lastAction === 'move' && ML_KM_PREV)
+    ? ML_KM_PREV.map(pv => pv ? [nm.minX + pv[0] * nm.rangeX, nm.minY + pv[1] * nm.rangeY] : null) : null;
+  const anim = (attr, from, to) => `<animate attributeName="${attr}" from="${from.toFixed(1)}" to="${to.toFixed(1)}" dur="0.6s" begin="0s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.22 0.61 0.36 1"/>`;
+
+  // 묶임 연결선(spoke): 각 점 → 자기 중심점 (이동 중엔 중심쪽 끝이 스르르 따라감)
   const spokes = (km && !justPlaced) ? ds.points.map((p, i) => {
     const a = km.assignments[i]; if(a < 0) return '';
-    const co = centOrig[a];
-    return `<line class="ml2-km-spoke" x1="${_ml2sx(b, p.x).toFixed(1)}" y1="${_ml2sy(b, p.y).toFixed(1)}" x2="${_ml2sx(b, co[0]).toFixed(1)}" y2="${_ml2sy(b, co[1]).toFixed(1)}" stroke="${col(a)}"/>`;
+    const x1 = _ml2sx(b, p.x), y1 = _ml2sy(b, p.y), x2 = _ml2sx(b, centOrig[a][0]), y2 = _ml2sy(b, centOrig[a][1]);
+    let an = '';
+    if(prevOrig && prevOrig[a]){ const ox = _ml2sx(b, prevOrig[a][0]), oy = _ml2sy(b, prevOrig[a][1]); an = anim('x2', ox, x2) + anim('y2', oy, y2); }
+    return `<line class="ml2-km-spoke" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col(a)}">${an}</line>`;
   }).join('') : '';
 
-  // 중심점 이동 궤적(화살표 + 흐린 ✕): 방금 이동했을 때만
+  // 중심점 이동 궤적(화살표): 방금 이동했을 때만
   let trail = '';
-  if(lastAction === 'move' && ML_KM_PREV){
+  if(prevOrig){
     trail = km.centroids.map((c, ci) => {
-      const pv = ML_KM_PREV[ci]; if(!pv) return '';
-      const po = [nm.minX + pv[0] * nm.rangeX, nm.minY + pv[1] * nm.rangeY], co = centOrig[ci];
-      const x1 = _ml2sx(b, po[0]), y1 = _ml2sy(b, po[1]), x2 = _ml2sx(b, co[0]), y2 = _ml2sy(b, co[1]);
+      if(!prevOrig[ci]) return '';
+      const x1 = _ml2sx(b, prevOrig[ci][0]), y1 = _ml2sy(b, prevOrig[ci][1]), x2 = _ml2sx(b, centOrig[ci][0]), y2 = _ml2sy(b, centOrig[ci][1]);
       if(Math.hypot(x2 - x1, y2 - y1) < 1.5) return '';
-      return `<text class="ml2-km-ghost" x="${x1.toFixed(1)}" y="${(y1 + 6).toFixed(1)}" text-anchor="middle" style="fill:${col(ci)}">✕</text>
-        <line class="ml2-km-trail" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col(ci)}" marker-end="url(#ml-km-arrow)"/>`;
+      return `<line class="ml2-km-trail" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col(ci)}" marker-end="url(#ml-km-arrow)"/>`;
     }).join('');
   }
 
@@ -1195,8 +1200,13 @@ function _vStMlKmeans(){
     return `<circle class="ml2-dot ${chg ? 'km-changed' : ''}" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="${chg ? 7 : 6}" fill="${fill}" stroke="${chg ? '#111' : '#fff'}" stroke-width="${chg ? 2.5 : 1.2}"/>`;
   }).join('');
 
-  // 중심점 ✕
-  const cents = km ? km.centroids.map((c, ci) => `<text class="ml2-centroid" x="${_ml2sx(b, centOrig[ci][0]).toFixed(1)}" y="${(_ml2sy(b, centOrig[ci][1]) + 7).toFixed(1)}" text-anchor="middle" style="fill:${col(ci)}">✕</text>`).join('') : '';
+  // 중심점 ✕ (이동 시 이전→새 위치로 스르르)
+  const cents = km ? km.centroids.map((c, ci) => {
+    const x = _ml2sx(b, centOrig[ci][0]), y = _ml2sy(b, centOrig[ci][1]) + 7;
+    let an = '';
+    if(prevOrig && prevOrig[ci]){ const ox = _ml2sx(b, prevOrig[ci][0]), oy = _ml2sy(b, prevOrig[ci][1]) + 7; an = anim('x', ox, x) + anim('y', oy, y); }
+    return `<text class="ml2-centroid" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" style="fill:${col(ci)}">✕${an}</text>`;
+  }).join('') : '';
 
   // 군집 카드 (색·개수·중심)
   let cards = '';

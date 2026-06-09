@@ -2389,7 +2389,7 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml2-knn-verdict{margin-top:7px;font-size:15px;font-weight:700;padding:7px 12px;border:2px solid;border-radius:9px;background:var(--surface);display:inline-block}
 
 /* k-평균 */
-.ml2-centroid{font-size:24px;font-weight:900;font-family:inherit;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:4px;transition:x .5s, y .5s}
+.ml2-centroid{font-size:24px;font-weight:900;font-family:inherit;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:4px}
 .lr-mse-steps li.cur{font-weight:700;color:var(--text)}
 .lr-mse-steps li.done{color:var(--text3)}
 .lr-mse-steps li.done::before{content:'✓ '}

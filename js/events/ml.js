@@ -393,7 +393,7 @@ document.addEventListener('click', async e => {
       render();
       const km = ML_KM_STATE;   // 배정해도 안 바뀌면 수렴
       if(km.iter > 0 && km.phase === 'update' && !km.changed){ _mlKmStopAuto(); render(); }
-    }, 900);
+    }, 1100);
     render();
     return;
   }
