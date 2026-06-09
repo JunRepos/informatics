@@ -1362,6 +1362,11 @@ input.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 
 .asmt-score-chip.partial{background:var(--warn-bg);color:var(--warn-txt);border-color:var(--warn-bd)}
 .asmt-score-chip.none{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
 
+/* 미응시 → 백지 제출 채점 */
+.asmt-blank-btn{border-color:#f59e0b !important;color:#b45309 !important;font-weight:700}
+.asmt-blank-chip{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.asmt-blank-banner{background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.35);border-radius:9px;padding:10px 14px;font-size:13px;line-height:1.6;color:var(--text);margin-bottom:14px}
+
 .asmt-tcs-wrap{max-width:1200px;margin:0 auto}
 .asmt-tcs-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 14px;margin-bottom:14px;box-shadow:var(--sh);position:sticky;top:0;z-index:10}
 .asmt-tcs-stu-info{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}

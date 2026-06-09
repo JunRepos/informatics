@@ -278,7 +278,7 @@ function _vTcAsmtManage(){
       <td>${stageLbl}</td>
       <td>${submitted ? fmtDt(sub.submittedAt) : '-'}</td>
       <td>${scoreCell}</td>
-      <td><button class="btn-xs" data-action="asmt-tc-view" data-snum="${esc(st.number)}" ${sub ? '' : 'disabled'}>보기</button></td>
+      <td><button class="btn-xs ${sub ? '' : 'asmt-blank-btn'}" data-action="asmt-tc-view" data-snum="${esc(st.number)}">${sub ? '보기' : '백지 채점'}</button></td>
     </tr>`;
   }).join('');
 
@@ -310,6 +310,7 @@ function _vTcAsmtManage(){
       <ul>
         <li>이 수행평가는 <b>2단계</b>예요. 1단계(분석·자료형 서술) → 2단계(코드 빈칸·테스트). 학생이 2단계로 넘어가면 1단계로 못 돌아가요.</li>
         <li>채점은 <b>선생님이 직접</b> 합니다(A 5 / B 5 / C 12 / D 3 = ${maxT}점). 학생 답·테스트 결과는 "보기"에서 확인하세요.</li>
+        <li><b>미응시(미제출) 학생</b>도 목록의 <b>"백지 채점"</b> 버튼으로 점수를 줄 수 있어요. (수업 참석 · 백지 제출 처리)</li>
         <li>문제를 바꾸려면 <code>js/assessment-data.js</code> 의 정의를 수정하면 됩니다.</li>
       </ul>
     </div>
@@ -340,21 +341,22 @@ function _vTcAsmtManage(){
 function _vTcAsmtStudent(){
   const snum = ASMT_TC_SEL_SNUM;
   const st = STUDENTS.find(s => s.number === snum);
-  const sub = ASMT_ALL_SUBS[snum] || null;
+  const realSub = ASMT_ALL_SUBS[snum] || null;
+  const isBlank = !realSub;            // 미응시(미제출) → 백지 제출로 보고 채점
+  const sub = realSub || {};           // 백지: 빈 제출로 처리
   const sc = ASMT_ALL_SCORES[snum] || null;
   if(!st) return emptyBox('❓', `학번 ${snum} 학생을 찾을 수 없어요.`);
-  const back = `<div class="asmt-tcs-header"><button class="btn-sm" data-action="asmt-tc-back">← 학생 목록</button></div>`;
-  if(!sub) return back + emptyBox('📭', '아직 응시하지 않은 학생이에요.');
 
   const a = ASMT_DEF.stage1.a, b = ASMT_DEF.stage1.b, c = ASMT_DEF.stage2.c;
   const subB = sub.b || {}, subBlanks = sub.blanks || {};
   const subAText = Array.isArray(sub.a) ? sub.a.filter(Boolean).join('\n') : (sub.a || '');
+  const blankPH = isBlank ? '(백지 제출 — 응시 기록 없음)' : '(무응답)';
 
   // A 답 (자유 서술)
-  const aHtml = `<div class="asmt-tcs-ans"><pre>${esc(subAText) || '(무응답)'}</pre></div>`;
+  const aHtml = `<div class="asmt-tcs-ans"><pre>${esc(subAText) || blankPH}</pre></div>`;
   // B 답
   const bHtml = b.fields.map(f =>
-    `<div class="asmt-tcs-ans"><b>${esc(f.label)}</b><pre>${esc(subB[f.id] || '(무응답)')}</pre></div>`).join('');
+    `<div class="asmt-tcs-ans"><b>${esc(f.label)}</b><pre>${esc(subB[f.id] || '') || blankPH}</pre></div>`).join('');
 
   // C 빈칸 — 학생 답 vs 정답
   let cHtml = '';
@@ -375,7 +377,7 @@ function _vTcAsmtStudent(){
         ${_vTcAsmtTestResult()}
       </div>`;
   } else {
-    cHtml = `<div class="asmt-tcs-cnote">아직 2단계(코드)에 진입하지 않았어요.</div>`;
+    cHtml = `<div class="asmt-tcs-cnote">${isBlank ? '백지 제출 — 코드 미작성(응시 기록 없음).' : '아직 2단계(코드)에 진입하지 않았어요.'}</div>`;
   }
 
   // 채점 — 영역별 점수 + 사유 (학생 점수 화면에서 함께 노출됨)
@@ -397,11 +399,13 @@ function _vTcAsmtStudent(){
       <div class="asmt-tcs-stu-info">
         <span class="asmt-tcs-snum">${esc(st.number)}</span>
         <span class="asmt-tcs-name">${esc(st.name)}</span>
-        ${sub.submittedAt ? `<span class="chip chip-green">✓ 제출 ${fmtDt(sub.submittedAt)}</span>` : '<span class="chip">진행 중</span>'}
+        ${isBlank ? '<span class="chip asmt-blank-chip">📭 백지 제출(미응시)</span>' : (sub.submittedAt ? `<span class="chip chip-green">✓ 제출 ${fmtDt(sub.submittedAt)}</span>` : '<span class="chip">진행 중</span>')}
         ${total != null ? `<span class="asmt-score-chip">${_asmtRound(total)}/${_asmtMaxTotal()}</span>` : ''}
       </div>
       <button class="btn-sm" onclick="window.print()" title="브라우저 인쇄 → PDF 저장">🖨️ 인쇄</button>
     </div>
+
+    ${isBlank ? '<div class="asmt-blank-banner">📭 <b>응시 기록이 없는 학생</b>이에요. 수업엔 참석했지만 미제출 → <b>백지 제출</b>로 보고 아래 ⭐채점에서 점수를 입력하세요.</div>' : ''}
 
     <section class="asmt-tcs-sec"><div class="asmt-tcs-sec-head">${esc(a.title)}</div>${aHtml}</section>
     <section class="asmt-tcs-sec"><div class="asmt-tcs-sec-head">${esc(b.title)}</div>${bHtml}</section>
