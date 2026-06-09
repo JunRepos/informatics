@@ -1154,48 +1154,96 @@ function _mlKmNorm(){
   return { minX, rangeX: (maxX - minX) || 1, minY, rangeY: (maxY - minY) || 1 };
 }
 function _vStMlKmeans(){
-  const ds = ML_KM_DATASET, b = _mlKmBounds();
-  const km = ML_KM_STATE;
-  const running = !!ML_KM_AUTO;
-  const converged = km && km.iter > 0 && km.phase === 'assign' && !km.changed;
+  const ds = ML_KM_DATASET, b = _mlKmBounds(), nm = _mlKmNorm();
+  const km = ML_KM_STATE, running = !!ML_KM_AUTO;
+  const col = ci => ML_KM_COLORS[ci % ML_KM_COLORS.length];
 
-  const dots = ds.points.map((p, i) => {
-    const c = km ? km.assignments[i] : -1;
-    const col = c >= 0 ? ML_KM_COLORS[c % ML_KM_COLORS.length] : '#cbd5e1';
-    return `<circle class="ml2-dot" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="6" fill="${col}" stroke="#fff" stroke-width="1.2" style="transition:fill .4s"/>`;
-  }).join('');
-  let cents = '';
-  if(km){
-    const nm = _mlKmNorm();
-    cents = km.centroids.map((cv, ci) => {
-      const ox = nm.minX + cv[0] * nm.rangeX, oy = nm.minY + cv[1] * nm.rangeY;  // 정규화 → 원래 좌표
-      return `<text class="ml2-centroid" x="${_ml2sx(b, ox).toFixed(1)}" y="${(_ml2sy(b, oy) + 7).toFixed(1)}" text-anchor="middle" style="fill:${ML_KM_COLORS[ci % ML_KM_COLORS.length]}">✕</text>`;
+  // 진행 상태
+  const justPlaced = km && km.assignments.every(a => a < 0);
+  const lastAction = !km ? 'none' : (justPlaced ? 'place' : (km.phase === 'update' ? 'assign' : 'move'));
+  const nextAction = km ? (km.phase === 'assign' ? 'assign' : 'move') : null;   // step()이 다음에 할 일
+  const converged = km && km.iter > 0 && km.phase === 'update' && !km.changed;  // 배정이 더 안 바뀜
+  const centOrig = km ? km.centroids.map(c => [nm.minX + c[0] * nm.rangeX, nm.minY + c[1] * nm.rangeY]) : [];
+  let changedCount = 0;
+  if(lastAction === 'assign' && ML_KM_PREVA) km.assignments.forEach((a, i) => { if(ML_KM_PREVA[i] !== a) changedCount++; });
+
+  // 묶임 연결선(spoke): 각 점 → 자기 중심점
+  const spokes = (km && !justPlaced) ? ds.points.map((p, i) => {
+    const a = km.assignments[i]; if(a < 0) return '';
+    const co = centOrig[a];
+    return `<line class="ml2-km-spoke" x1="${_ml2sx(b, p.x).toFixed(1)}" y1="${_ml2sy(b, p.y).toFixed(1)}" x2="${_ml2sx(b, co[0]).toFixed(1)}" y2="${_ml2sy(b, co[1]).toFixed(1)}" stroke="${col(a)}"/>`;
+  }).join('') : '';
+
+  // 중심점 이동 궤적(화살표 + 흐린 ✕): 방금 이동했을 때만
+  let trail = '';
+  if(lastAction === 'move' && ML_KM_PREV){
+    trail = km.centroids.map((c, ci) => {
+      const pv = ML_KM_PREV[ci]; if(!pv) return '';
+      const po = [nm.minX + pv[0] * nm.rangeX, nm.minY + pv[1] * nm.rangeY], co = centOrig[ci];
+      const x1 = _ml2sx(b, po[0]), y1 = _ml2sy(b, po[1]), x2 = _ml2sx(b, co[0]), y2 = _ml2sy(b, co[1]);
+      if(Math.hypot(x2 - x1, y2 - y1) < 1.5) return '';
+      return `<text class="ml2-km-ghost" x="${x1.toFixed(1)}" y="${(y1 + 6).toFixed(1)}" text-anchor="middle" style="fill:${col(ci)}">✕</text>
+        <line class="ml2-km-trail" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col(ci)}" marker-end="url(#ml-km-arrow)"/>`;
     }).join('');
   }
 
-  const phaseLbl = !km ? '시작 전' : (converged ? '완료' : (km.phase === 'assign' ? '다음: 배정' : '다음: 중심 이동'));
-  const steps = `<ol class="dt-mse-steps lr-mse-steps">
-    <li class="${km ? 'done' : 'cur'}"><b>1.</b> 군집 개수 k=${ds.k} 정하고, 중심점(✕) ${ds.k}개를 <b>임의 위치</b>에 놓기</li>
-    <li class="${km && (km.iter > 0 || km.phase === 'update') ? 'done' : (km ? 'cur' : '')}"><b>2~3.</b> 각 데이터를 <b>가장 가까운 중심점</b>의 군집(색)으로 배정</li>
-    <li class="${km && km.iter > 0 ? 'done' : ''}"><b>4.</b> 중심점을 군집의 <b>평균 위치</b>로 이동 → 2~4 반복</li>
+  // 점 (군집 색, 방금 색 바뀐 점 강조)
+  const dots = ds.points.map((p, i) => {
+    const a = km ? km.assignments[i] : -1;
+    const fill = a >= 0 ? col(a) : '#cbd5e1';
+    const chg = lastAction === 'assign' && ML_KM_PREVA && ML_KM_PREVA[i] !== a;
+    return `<circle class="ml2-dot ${chg ? 'km-changed' : ''}" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="${chg ? 7 : 6}" fill="${fill}" stroke="${chg ? '#111' : '#fff'}" stroke-width="${chg ? 2.5 : 1.2}"/>`;
+  }).join('');
+
+  // 중심점 ✕
+  const cents = km ? km.centroids.map((c, ci) => `<text class="ml2-centroid" x="${_ml2sx(b, centOrig[ci][0]).toFixed(1)}" y="${(_ml2sy(b, centOrig[ci][1]) + 7).toFixed(1)}" text-anchor="middle" style="fill:${col(ci)}">✕</text>`).join('') : '';
+
+  // 군집 카드 (색·개수·중심)
+  let cards = '';
+  if(km && !justPlaced){
+    const sizes = {}; km.assignments.forEach(a => { if(a >= 0) sizes[a] = (sizes[a] || 0) + 1; });
+    cards = `<div class="ml2-km-cards">${km.centroids.map((c, ci) => `<div class="ml2-km-card" style="border-color:${col(ci)}">
+      <span class="ml2-km-cdot" style="background:${col(ci)}"></span><b>군집 ${ci + 1}</b> · ${sizes[ci] || 0}개
+      <div class="ml2-km-cctr">중심 (${Math.round(centOrig[ci][0])}${esc(ds.xUnit)}, ${Math.round(centOrig[ci][1])}${esc(ds.yUnit)})</div>
+    </div>`).join('')}</div>`;
+  }
+
+  // 단계 체크리스트
+  const steps = `<ol class="dt-mse-steps lr-mse-steps ml2-km-steps">
+    <li class="${!km ? 'cur' : 'done'}"><b>1.</b> 군집 수 <b>k=${ML_KM_K}</b> 정하고, 중심점(✕) ${ML_KM_K}개를 <b>임의 위치</b>에 놓기</li>
+    <li class="${km && nextAction === 'assign' && !converged ? 'cur' : (km && !justPlaced ? 'done' : '')}"><b>2~3.</b> 각 점을 <b>가장 가까운 중심점</b> 색으로 <b>배정</b></li>
+    <li class="${km && nextAction === 'move' ? 'cur' : (km && km.iter > 0 ? 'done' : '')}"><b>4.</b> 중심점을 군집의 <b>평균 위치</b>로 <b>이동</b> → 2~4 반복</li>
   </ol>`;
 
+  // 방금 한 일 배너
+  let banner = '';
+  if(converged) banner = `<div class="ml2-km-banner done">🎉 <b>완료!</b> 배정해도 더 이상 바뀌지 않고 중심점도 안 움직여요 — 군집화 끝!</div>`;
+  else if(lastAction === 'place') banner = `<div class="ml2-km-banner place">🎲 중심점 <b>${ML_KM_K}개</b>를 <b>임의 위치</b>에 놓았어요. 이제 <b>배정하기</b>를 눌러요.</div>`;
+  else if(lastAction === 'assign') banner = `<div class="ml2-km-banner assign">✅ <b>배정</b> — 각 점을 가장 가까운 중심점 색으로 묶었어요${changedCount ? ` (이번에 <b>${changedCount}개</b>가 군집을 바꿈)` : ''}.</div>`;
+  else if(lastAction === 'move') banner = `<div class="ml2-km-banner move">➡️ <b>중심 이동</b> — 각 ✕를 자기 군집의 <b>평균 위치</b>로 옮겼어요. (화살표 = 이동 경로)</div>`;
+
+  const kBtns = [2, 3, 4, 5].map(kv => `<button class="ml2-kbtn ${kv === ML_KM_K ? 'on' : ''}" data-action="ml-km-k" data-k="${kv}" ${running ? 'disabled' : ''}>k=${kv}</button>`).join('');
+
   return `<div class="section">
-      <div class="ml-intro"><b>🎯 k-평균(k-means) 군집화</b>는 정답(레이블) 없이 데이터를 <u>k개 군집</u>으로 묶는 비지도학습이에요. (예: 키·몸무게로 티셔츠 S·M·L 나누기) 중심점이 안 움직일 때까지 <b>배정 → 이동</b>을 반복해요.</div>
+      <div class="ml-intro"><b>🎯 k-평균(k-means) 군집화</b>는 정답 없이 데이터를 <u>k개 군집</u>으로 묶는 비지도학습이에요. (예: 키·몸무게로 티셔츠 사이즈 나누기) 중심점이 안 움직일 때까지 <b>배정 → 이동</b>을 반복해요.</div>
+      <div class="ml2-knn-bar"><span class="ml2-knn-q"><b>군집 수 k</b>를 정해요:</span><span class="ml2-kbtns">${kBtns}</span></div>
       ${steps}
-      <div class="ml-step-info">단계: <b>${phaseLbl}</b> · 반복 ${km ? km.iter : 0}회 ${converged ? '· <span style="color:var(--ok)">✓ 중심이 안 움직여요 → S·M·L 완성!</span>' : ''}</div>
+      ${banner}
+      <div class="ml-step-info">반복 <b>${km ? km.iter : 0}</b>회 · 다음: <b>${converged ? '완료' : (!km ? '중심점 놓기' : nextAction === 'assign' ? '배정' : '중심 이동')}</b></div>
       <div class="ml-action-bar lr-learn-bar">
         ${!km
-          ? `<button class="btn-p" data-action="ml-km-start">▶ 중심점 ${ds.k}개 놓고 시작</button>`
-          : `<button class="btn-sm" data-action="ml-km-step" ${running || converged ? 'disabled' : ''}>⏭ 한 단계</button>
-             <button class="btn-p btn-sm" data-action="ml-km-run" ${converged ? 'disabled' : ''}>${running ? '⏸ 정지' : '▶ 자동 재생'}</button>
-             <button class="btn-sm" data-action="ml-km-reset" ${running ? 'disabled' : ''}>⟲ 다시(새 중심점)</button>`}
+          ? `<button class="btn-p" data-action="ml-km-start">▶ 중심점 ${ML_KM_K}개 놓기</button>`
+          : `<button class="btn-p btn-sm" data-action="ml-km-step" ${running || converged ? 'disabled' : ''}>⏭ ${nextAction === 'assign' ? '배정하기' : '중심 이동'}</button>
+             <button class="btn-sm" data-action="ml-km-run" ${converged ? 'disabled' : ''}>${running ? '⏸ 정지' : '▶ 자동 재생'}</button>
+             <button class="btn-sm" data-action="ml-km-reset" ${running ? 'disabled' : ''}>⟲ 다시 놓기</button>`}
       </div>
       <div class="lr-plot-wrap"><svg class="lr-svg" viewBox="0 0 ${ML2_W} ${ML2_H}" role="img">
+        <defs><marker id="ml-km-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="context-stroke"/></marker></defs>
         ${_ml2axes(b, ds.xLabel + ' (' + ds.xUnit + ')', ds.yLabel + ' (' + ds.yUnit + ')')}
-        ${dots}${cents}
+        ${spokes}${trail}${dots}${cents}
       </svg></div>
-      <div class="ml-sub-explain">✕ = 군집 중심점. 각 점은 <b>가장 가까운 ✕의 색</b>으로 물들고(배정), ✕는 자기 색 점들의 <b>평균 위치</b>로 이동해요. (거리는 유클리디안) <b>kNN의 k</b>는 '이웃 수', <b>k-평균의 k</b>는 '군집 수' — 의미가 달라요!</div>
+      ${cards}
+      <div class="ml-sub-explain">✕ = 군집 중심점. 점은 <b>가장 가까운 ✕ 색</b>으로 묶이고(연결선), ✕는 자기 색 점들의 <b>평균 위치</b>로 이동해요. (거리=유클리디안) 💡 <b>kNN의 k</b>=이웃 수, <b>k-평균의 k</b>=군집 수 — 의미가 달라요!</div>
     </div>`;
 }
 

@@ -368,31 +368,32 @@ document.addEventListener('click', async e => {
   }
 
   /* ─── 🎯 k-평균 (모델) ─── */
+  if(act === 'ml-km-k'){
+    ML_KM_K = parseInt(el.dataset.k) || 3;
+    _mlKmStopAuto(); ML_KM_STATE = null; ML_KM_PREV = null; ML_KM_PREVA = null;
+    render();
+    return;
+  }
   if(act === 'ml-km-start' || act === 'ml-km-reset'){
-    _mlKmStopAuto();
-    const nm = _mlKmNorm();   // 큰 좌표 Float32 오차로 수렴 안 되는 문제 → [0,1] 정규화
-    const samples = ML_KM_DATASET.points.map(p => ({ vec: [(p.x - nm.minX) / nm.rangeX, (p.y - nm.minY) / nm.rangeY] }));
-    ML_KM_STATE = mlKMeansInit(samples, ML_KM_DATASET.k, { init: 'center' });
-    ML_KM_STATE.assignStep();   // 첫 배정(중심이 가운데라 뒤섞여 보임)
+    _mlKmStopAuto(); _mlKmInit();   // 중심점만 임의로 놓기(배정은 다음 단계)
     render();
     return;
   }
   if(act === 'ml-km-step'){
     if(!ML_KM_STATE) return;
-    _mlKmStopAuto(); ML_KM_STATE.step(); render();
+    _mlKmStopAuto(); _mlKmDoStep(); render();
     return;
   }
   if(act === 'ml-km-run'){
     if(!ML_KM_STATE) return;
     if(ML_KM_AUTO){ _mlKmStopAuto(); render(); return; }
-    let stable = 0;
     ML_KM_AUTO = setInterval(() => {
       if(ST_TAB !== 'ml' || ML_TAB !== 'kmeans' || !ML_KM_STATE){ _mlKmStopAuto(); return; }
-      ML_KM_STATE.step();
-      if(ML_KM_STATE.phase === 'assign' && !ML_KM_STATE.changed) stable++; else stable = 0;
+      _mlKmDoStep();
       render();
-      if(stable >= 1){ _mlKmStopAuto(); render(); }
-    }, 700);
+      const km = ML_KM_STATE;   // 배정해도 안 바뀌면 수렴
+      if(km.iter > 0 && km.phase === 'update' && !km.changed){ _mlKmStopAuto(); render(); }
+    }, 900);
     render();
     return;
   }
@@ -628,6 +629,20 @@ window.addEventListener('pointerup', () => { if(ML_DT_DRAG) ML_DT_DRAG = null; }
 // 로지스틱·k-평균 자동재생 정지
 function _mlLgStopAuto(){ if(ML_LG_AUTO){ clearInterval(ML_LG_AUTO); ML_LG_AUTO = null; } }
 function _mlKmStopAuto(){ if(ML_KM_AUTO){ clearInterval(ML_KM_AUTO); ML_KM_AUTO = null; } }
+
+// k-평균: 중심점만 임의로 놓기(배정 X) — 정규화 좌표 사용
+function _mlKmInit(){
+  const nm = _mlKmNorm();
+  const samples = ML_KM_DATASET.points.map(p => ({ vec: [(p.x - nm.minX) / nm.rangeX, (p.y - nm.minY) / nm.rangeY] }));
+  ML_KM_STATE = mlKMeansInit(samples, ML_KM_K, { init: 'center' });
+  ML_KM_PREV = null; ML_KM_PREVA = null;
+}
+// 한 단계: 배정(직전 배열 저장) 또는 이동(직전 중심 저장)
+function _mlKmDoStep(){
+  const km = ML_KM_STATE; if(!km) return;
+  if(km.phase === 'assign'){ ML_KM_PREVA = km.assignments.slice(); km.assignStep(); }
+  else { ML_KM_PREV = km.centroids.map(c => Array.from(c)); km.updateStep(); }
+}
 
 // ── 👥 kNN: 새 점 ★ 드래그 ──
 document.addEventListener('pointerdown', e => {

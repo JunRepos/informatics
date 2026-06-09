@@ -236,6 +236,9 @@ let ML_KN_DRAG      = false;      // ★ 드래그 중
 // 🎯 k-평균 (모델 버전 — PPT 단계: 임의중심→배정→이동→반복)
 let ML_KM_STATE     = null;       // mlKMeans state
 let ML_KM_AUTO      = null;       // 자동재생 timer
+let ML_KM_K         = 3;          // 군집 수 (학생이 선택)
+let ML_KM_PREV      = null;       // 이동 전 중심점 좌표(정규화) — 궤적 표시
+let ML_KM_PREVA     = null;       // 배정 전 군집 배열 — 새로 바뀐 점 강조
 
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시

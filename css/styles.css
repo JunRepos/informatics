@@ -2392,4 +2392,20 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml2-centroid{font-size:24px;font-weight:900;font-family:inherit;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:4px;transition:x .5s, y .5s}
 .lr-mse-steps li.cur{font-weight:700;color:var(--text)}
 .lr-mse-steps li.done{color:var(--text3)}
+.lr-mse-steps li.done::before{content:'✓ '}
+
+/* k-평균 개선 — 연결선·궤적·강조·배너·카드 */
+.ml2-km-spoke{stroke-width:1.3;opacity:.32;pointer-events:none}
+.ml2-km-trail{stroke-width:2.6;opacity:.95;pointer-events:none}
+.ml2-km-ghost{font-size:22px;font-weight:900;opacity:.4;font-family:inherit;pointer-events:none}
+.ml2-dot.km-changed{filter:drop-shadow(0 0 3px rgba(0,0,0,.45))}
+.ml2-km-banner{margin:9px 0;padding:9px 13px;border-radius:9px;font-size:13.5px;line-height:1.5;border:1px solid var(--border);background:var(--surface2)}
+.ml2-km-banner.place{background:linear-gradient(135deg,rgba(148,163,184,.16),transparent);border-color:#94a3b8}
+.ml2-km-banner.assign{background:linear-gradient(135deg,rgba(59,130,246,.1),transparent);border-color:rgba(59,130,246,.4)}
+.ml2-km-banner.move{background:linear-gradient(135deg,rgba(245,158,11,.13),transparent);border-color:rgba(245,158,11,.45)}
+.ml2-km-banner.done{background:linear-gradient(135deg,rgba(34,197,94,.15),transparent);border-color:#22c55e}
+.ml2-km-cards{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.ml2-km-card{flex:1;min-width:118px;padding:8px 11px;border:1.5px solid;border-radius:9px;background:var(--surface);font-size:12.5px;font-weight:600}
+.ml2-km-cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.ml2-km-cctr{font-size:11.5px;color:var(--text3);margin-top:2px;font-weight:500;font-variant-numeric:tabular-nums}
 
