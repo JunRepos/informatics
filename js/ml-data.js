@@ -258,3 +258,54 @@ const ML_DT_DATASET = (() => {
 
 function mlDtFeature(key){ return ML_DT_DATASET.features.find(f => f.key === key) || null; }
 function mlDtClass(id){ return ML_DT_DATASET.classes.find(c => c.id === id) || null; }
+
+/* ═══════════════════════════════════════
+   📊 로지스틱 회귀 데이터셋 (공부 시간 → 합격/불합격)
+   y = 1(합격) / 0(불합격). 5~6시간 부근이 겹쳐 경계가 생김.
+═══════════════════════════════════════ */
+const ML_LG_DATASET = {
+  xLabel: '하루 공부 시간', xUnit: '시간',
+  posLabel: '합격', negLabel: '불합격', posColor: '#16a34a', negColor: '#ef4444',
+  predictX: 5.5,
+  points: [
+    { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 2.5, y: 0 }, { x: 3, y: 0 },
+    { x: 3.5, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 5.5, y: 0 },
+    { x: 4.5, y: 1 }, { x: 5, y: 1 }, { x: 6, y: 1 }, { x: 6.5, y: 1 },
+    { x: 7, y: 1 }, { x: 8, y: 1 }, { x: 9, y: 1 }, { x: 9.5, y: 1 },
+  ],
+};
+
+/* ═══════════════════════════════════════
+   👥 kNN 데이터셋 (위조지폐 판별 — 위 여백 × 아래 여백)
+   newDefault 위치는 k=3과 k=7에서 결과가 달라지도록 검증해 배치.
+═══════════════════════════════════════ */
+const ML_KN_DATASET = {
+  xLabel: '위 여백', yLabel: '아래 여백', unit: 'mm',
+  classes: [
+    { id: 'real', label: '진짜 지폐', emoji: '🟦', color: '#2563eb' },
+    { id: 'fake', label: '위조지폐', emoji: '🟥', color: '#dc2626' },
+  ],
+  newDefault: { x: 8.8, y: 6.0 },   // k=3 → 위조, k=7 → 진짜 (PPT와 동일한 'k에 따라 결과가 바뀜')
+  points: [
+    // 진짜 지폐 (좌상단 무리)
+    { x: 8, y: 9, cls: 'real' }, { x: 9, y: 10, cls: 'real' }, { x: 7.5, y: 8.5, cls: 'real' },
+    { x: 8.5, y: 9.5, cls: 'real' }, { x: 9.5, y: 9, cls: 'real' }, { x: 7, y: 9.5, cls: 'real' },
+    { x: 9, y: 8.3, cls: 'real' }, { x: 8.2, y: 7.8, cls: 'real' }, { x: 10.5, y: 9.2, cls: 'real' },
+    // 위조지폐 (우하단 무리)
+    { x: 11, y: 7, cls: 'fake' }, { x: 12, y: 6.5, cls: 'fake' }, { x: 11.5, y: 7.5, cls: 'fake' },
+    { x: 12.5, y: 7, cls: 'fake' }, { x: 11, y: 6, cls: 'fake' }, { x: 12, y: 8, cls: 'fake' },
+    { x: 10.6, y: 7.2, cls: 'fake' }, { x: 11.3, y: 8.3, cls: 'fake' },
+  ],
+};
+
+/* ═══════════════════════════════════════
+   🎯 k-평균 데이터셋 (티셔츠 S·M·L — 키 × 몸무게, 정답 없음)
+═══════════════════════════════════════ */
+const ML_KM_DATASET = {
+  xLabel: '키', xUnit: 'cm', yLabel: '몸무게', yUnit: 'kg', k: 3,
+  points: [
+    [158, 50], [162, 54], [160, 51], [159, 53], [163, 55], [157, 49],
+    [168, 63], [172, 67], [170, 64], [171, 66], [169, 62], [173, 68],
+    [178, 78], [182, 82], [180, 79], [179, 81], [183, 84], [177, 76],
+  ].map(([x, y]) => ({ x, y })),
+};

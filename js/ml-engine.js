@@ -391,6 +391,54 @@ function mlKMeansPurity(state, samples){
   };
 }
 
+/* ─────────────────── 로지스틱 회귀 (지도학습 — 분류) ───────────────────
+   data: [{ x:number, y:0|1 }]
+   확률 p = sigmoid(a·x + b), 0.5 기준 분류. 경사하강(교차엔트로피).
+   x를 [0,1]로 정규화해 학습률 안정화. */
+function mlSigmoid(z){ return 1 / (1 + Math.exp(-z)); }
+
+function mlLogisticFit(data, opts){
+  opts = opts || {};
+  const lr = opts.lr != null ? opts.lr : 0.6;
+  const perStep = opts.perStep || 8;
+  const tol = opts.tol != null ? opts.tol : 1e-3;
+  const maxIter = opts.maxIter || 800;
+  const n = data.length;
+  let minX = Infinity, maxX = -Infinity;
+  for(const d of data){ if(d.x < minX) minX = d.x; if(d.x > maxX) maxX = d.x; }
+  const rx = (maxX - minX) || 1;
+  const nx = data.map(d => (d.x - minX) / rx), y = data.map(d => d.y);
+  let a = 0, b = 0;
+  const pN = xn => mlSigmoid(a * xn + b);
+  function loss(){
+    let s = 0;
+    for(let i = 0; i < n; i++){ const p = Math.min(1 - 1e-9, Math.max(1e-9, pN(nx[i]))); s += -(y[i] * Math.log(p) + (1 - y[i]) * Math.log(1 - p)); }
+    return s / n;
+  }
+  const state = {
+    iter: 0, done: false, loss: 0, a: 0, b: 0,
+    prob: x => mlSigmoid(a * ((x - minX) / rx) + b),   // 원래 x에서의 확률
+    boundaryX: () => (a === 0 ? null : minX + (-b / a) * rx),  // p=0.5 되는 x
+    accuracy: () => { let ok = 0; for(let i = 0; i < n; i++){ const pred = pN(nx[i]) >= 0.5 ? 1 : 0; if(pred === y[i]) ok++; } return ok / n; },
+    step,
+  };
+  syncOut();
+  function syncOut(){ state.a = a; state.b = b; state.loss = loss(); }
+  function step(){
+    if(state.done) return;
+    const prev = loss();
+    for(let k = 0; k < perStep; k++){
+      let da = 0, db = 0;
+      for(let i = 0; i < n; i++){ const p = pN(nx[i]); da += (p - y[i]) * nx[i]; db += (p - y[i]); }
+      da /= n; db /= n; a -= lr * da; b -= lr * db; state.iter++;
+    }
+    syncOut();
+    if(state.iter >= maxIter) state.done = true;
+    else if(Math.abs(prev - loss()) < tol && state.iter > 6 * perStep) state.done = true;
+  }
+  return state;
+}
+
 /* ─────────────────── 결정 트리 (지도학습 — 분류) ───────────────────
    samples: [{ [featureKey]: number, cls: classId }, ...]
    학생이 직접 칸을 나눈 것과 비교할 "모델". 그리디 CART(Gini), 축정렬 분할. */

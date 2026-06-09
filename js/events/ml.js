@@ -12,7 +12,7 @@ document.addEventListener('click', async e => {
   if(act === 'ml-group'){
     const g = el.dataset.g;
     if(ML_GROUPS[g]) ML_TAB = (ML_GROUP_LAST && ML_GROUP_LAST[g]) || ML_GROUPS[g].tabs[0].t;
-    _mlStopAuto(); _mlLrStopAuto();
+    _mlStopAuto(); _mlLrStopAuto(); _mlLgStopAuto(); _mlKmStopAuto();
     render();
     return;
   }
@@ -20,8 +20,7 @@ document.addEventListener('click', async e => {
     ML_TAB = el.dataset.t || 'supervised';
     const g = _mlGroupOf(ML_TAB);              // 그룹별 마지막 탭 기억
     if(ML_GROUP_LAST) ML_GROUP_LAST[g] = ML_TAB;
-    _mlStopAuto();      // 비지도 K-Means 타이머 정리
-    _mlLrStopAuto();    // 선형회귀 학습 타이머 정리
+    _mlStopAuto(); _mlLrStopAuto(); _mlLgStopAuto(); _mlKmStopAuto();
     render();
     return;
   }
@@ -330,6 +329,74 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  /* ─── 📊 로지스틱 회귀 ─── */
+  if(act === 'ml-lg-stage'){
+    const s = el.dataset.s;
+    _mlLgStopAuto();
+    if((s === 'curve' || s === 'predict') && !ML_LG_GD) ML_LG_GD = mlLogisticFit(ML_LG_DATASET.points);
+    ML_LG_STAGE = s;
+    render();
+    return;
+  }
+  if(act === 'ml-lg-step'){
+    if(!ML_LG_GD) ML_LG_GD = mlLogisticFit(ML_LG_DATASET.points);
+    _mlLgStopAuto(); ML_LG_GD.step(); render();
+    return;
+  }
+  if(act === 'ml-lg-run'){
+    if(!ML_LG_GD) ML_LG_GD = mlLogisticFit(ML_LG_DATASET.points);
+    if(ML_LG_AUTO){ _mlLgStopAuto(); render(); return; }
+    if(ML_LG_GD.done) ML_LG_GD = mlLogisticFit(ML_LG_DATASET.points);
+    ML_LG_AUTO = setInterval(() => {
+      if(ST_TAB !== 'ml' || ML_TAB !== 'logistic' || ML_LG_STAGE !== 'curve' || !ML_LG_GD){ _mlLgStopAuto(); return; }
+      ML_LG_GD.step(); render();
+      if(ML_LG_GD.done){ _mlLgStopAuto(); render(); }
+    }, 200);
+    render();
+    return;
+  }
+  if(act === 'ml-lg-reset'){
+    _mlLgStopAuto(); ML_LG_GD = mlLogisticFit(ML_LG_DATASET.points); render();
+    return;
+  }
+
+  /* ─── 👥 kNN ─── */
+  if(act === 'ml-kn-k'){
+    ML_KN_K = parseInt(el.dataset.k) || 3;
+    render();
+    return;
+  }
+
+  /* ─── 🎯 k-평균 (모델) ─── */
+  if(act === 'ml-km-start' || act === 'ml-km-reset'){
+    _mlKmStopAuto();
+    const nm = _mlKmNorm();   // 큰 좌표 Float32 오차로 수렴 안 되는 문제 → [0,1] 정규화
+    const samples = ML_KM_DATASET.points.map(p => ({ vec: [(p.x - nm.minX) / nm.rangeX, (p.y - nm.minY) / nm.rangeY] }));
+    ML_KM_STATE = mlKMeansInit(samples, ML_KM_DATASET.k, { init: 'center' });
+    ML_KM_STATE.assignStep();   // 첫 배정(중심이 가운데라 뒤섞여 보임)
+    render();
+    return;
+  }
+  if(act === 'ml-km-step'){
+    if(!ML_KM_STATE) return;
+    _mlKmStopAuto(); ML_KM_STATE.step(); render();
+    return;
+  }
+  if(act === 'ml-km-run'){
+    if(!ML_KM_STATE) return;
+    if(ML_KM_AUTO){ _mlKmStopAuto(); render(); return; }
+    let stable = 0;
+    ML_KM_AUTO = setInterval(() => {
+      if(ST_TAB !== 'ml' || ML_TAB !== 'kmeans' || !ML_KM_STATE){ _mlKmStopAuto(); return; }
+      ML_KM_STATE.step();
+      if(ML_KM_STATE.phase === 'assign' && !ML_KM_STATE.changed) stable++; else stable = 0;
+      render();
+      if(stable >= 1){ _mlKmStopAuto(); render(); }
+    }, 700);
+    render();
+    return;
+  }
+
   /* ── 비지도학습 (2D 점 지도 + K-Means) ── */
   if(act === 'ml-un-pick'){
     const did = el.dataset.did;
@@ -558,6 +625,32 @@ window.addEventListener('pointermove', e => {
 
 window.addEventListener('pointerup', () => { if(ML_DT_DRAG) ML_DT_DRAG = null; });
 
+// 로지스틱·k-평균 자동재생 정지
+function _mlLgStopAuto(){ if(ML_LG_AUTO){ clearInterval(ML_LG_AUTO); ML_LG_AUTO = null; } }
+function _mlKmStopAuto(){ if(ML_KM_AUTO){ clearInterval(ML_KM_AUTO); ML_KM_AUTO = null; } }
+
+// ── 👥 kNN: 새 점 ★ 드래그 ──
+document.addEventListener('pointerdown', e => {
+  const hit = e.target.closest && e.target.closest('#ml-kn-hit');
+  if(!hit) return;
+  if(ST_TAB !== 'ml' || ML_TAB !== 'knn') return;
+  e.preventDefault();
+  ML_KN_DRAG = true;
+});
+window.addEventListener('pointermove', e => {
+  if(!ML_KN_DRAG) return;
+  const svg = document.getElementById('ml-kn-svg');
+  if(!svg) return;
+  const r = svg.getBoundingClientRect();
+  const b = _mlKnBounds();
+  const sx = (e.clientX - r.left) / r.width * ML2_W, sy = (e.clientY - r.top) / r.height * ML2_H;
+  let x = b.xMin + (sx - ML2_PAD.l) / ML2_PW * (b.xMax - b.xMin);
+  let y = b.yMin + (1 - (sy - ML2_PAD.t) / ML2_PH) * (b.yMax - b.yMin);
+  ML_KN_NEW = { x: Math.max(b.xMin, Math.min(b.xMax, x)), y: Math.max(b.yMin, Math.min(b.yMax, y)) };
+  render();
+});
+window.addEventListener('pointerup', () => { if(ML_KN_DRAG) ML_KN_DRAG = false; });
+
 // 비지도: 현재 데이터셋을 2D로 투영하고 K-Means용 샘플/정규화 범위 준비
 //   이모지가 색으로 너무 깔끔히 나뉘면 K-Means가 1~2단계에 끝나 과정이 안 보임.
 //   → PCA 좌표에서 클래스 중심을 서로 당기고(shrink) 점을 퍼뜨려(spread+노이즈)
@@ -653,6 +746,23 @@ document.addEventListener('input', e => {
         out.innerHTML = `${esc(ds.yLabel)} 약 <b>${yv}${esc(ds.yUnit)}</b>`;
       } else {
         out.innerHTML = '다른 값을 넣으면 예측값이 나와요';
+      }
+    }
+    return;
+  }
+  // 로지스틱: 예측 x 입력 → 확률·분류 라이브 갱신
+  const lgp = e.target.closest('#ml-lg-probe');
+  if(lgp){
+    ML_LG_PROBE = lgp.value;
+    const out = document.getElementById('ml-lg-probe-out');
+    const ds = ML_LG_DATASET, gd = ML_LG_GD;
+    if(out && gd){
+      const xv = parseFloat(lgp.value);
+      if(lgp.value.trim() !== '' && !isNaN(xv)){
+        const pv = gd.prob(xv), pass = pv >= 0.5;
+        out.innerHTML = `합격 확률 <b>${(pv * 100).toFixed(0)}%</b> → <b style="color:${pass ? ds.posColor : ds.negColor}">${esc(pass ? ds.posLabel : ds.negLabel)}</b> ${pass ? '(0.5 이상)' : '(0.5 미만)'}`;
+      } else {
+        out.innerHTML = '예측할 공부 시간을 넣어보세요';
       }
     }
     return;

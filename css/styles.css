@@ -2350,3 +2350,46 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .dt-compare-col .dt-svg{max-width:100%}
 .dt-tree-cap{font-size:12.5px;font-weight:700;color:var(--text2);margin:12px 0 4px}
 
+/* ═══════════════════════════════════════
+   📊👥🎯 로지스틱·kNN·k-평균 (공통 2D 플롯)
+═══════════════════════════════════════ */
+.ml2-grid{stroke:var(--border);stroke-width:1;opacity:.5}
+.ml2-axis{stroke:var(--text3);stroke-width:1.5}
+.ml2-tick{fill:var(--text3);font-size:11px;font-family:inherit}
+.ml2-axisname{fill:var(--text2);font-size:12.5px;font-weight:700;font-family:inherit}
+.ml2-dot{transition:fill .35s}
+.ml2-side{fill:var(--text3);font-size:11px;font-weight:600;font-family:inherit}
+
+/* 로지스틱 */
+.ml2-invalid{fill:rgba(236,72,153,.13)}
+.ml2-ref{stroke:var(--border);stroke-width:1.2;stroke-dasharray:3 3}
+.ml2-line-bad{stroke:#db2777;stroke-width:3;stroke-linecap:round}
+.ml2-sig{fill:none;stroke:#6366f1;stroke-width:3.5;stroke-linecap:round}
+.ml2-thresh{stroke:#f59e0b;stroke-width:1.6;stroke-dasharray:5 4}
+.ml2-bound{stroke:#16a34a;stroke-width:1.6;stroke-dasharray:5 4}
+.ml2-probe-l{stroke:#6366f1;stroke-width:1.5;stroke-dasharray:4 4;opacity:.8}
+.ml2-probe-d{fill:#6366f1;stroke:#fff;stroke-width:2}
+.ml2-statline{font-size:13px;color:var(--text2);margin:6px 0;font-variant-numeric:tabular-nums}
+.ml2-statline b{color:var(--text)}
+.ml2-bad{color:#db2777}
+
+/* kNN */
+.ml2-knn-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:13px}
+.ml2-star-inline{color:#6366f1;font-size:16px}
+.ml2-kbtns{display:flex;gap:5px}
+.ml2-kbtn{padding:6px 13px;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.ml2-kbtn.on{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent}
+.ml2-knn-link{stroke:#64748b;stroke-width:1.5;stroke-dasharray:3 3;opacity:.7}
+.ml2-knn-ring{fill:rgba(99,102,241,.05);stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:5 4}
+.ml2-star{font-size:28px;font-weight:900;paint-order:stroke;stroke:#fff;stroke-width:4px;pointer-events:none}
+.ml2-star-hit{fill:transparent;pointer-events:all;cursor:grab;touch-action:none}
+.ml2-knn-result{margin-top:8px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;font-size:13.5px}
+.ml2-tally{font-weight:600;white-space:nowrap}
+.ml2-vs{color:var(--text3);margin:0 8px;font-size:12px}
+.ml2-knn-verdict{margin-top:7px;font-size:15px;font-weight:700;padding:7px 12px;border:2px solid;border-radius:9px;background:var(--surface);display:inline-block}
+
+/* k-평균 */
+.ml2-centroid{font-size:24px;font-weight:900;font-family:inherit;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:4px;transition:x .5s, y .5s}
+.lr-mse-steps li.cur{font-weight:700;color:var(--text)}
+.lr-mse-steps li.done{color:var(--text3)}
+

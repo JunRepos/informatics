@@ -222,6 +222,21 @@ let ML_DT_REVEAL    = false;      // 모델(자동 트리) 비교 공개
 let ML_DT_TREE      = null;       // 모델 결정 트리
 let ML_DT_DRAG      = null;       // 드래그 중 칸막이 { axis:'v'|'h', idx }
 
+// 📊 로지스틱 회귀 (공부시간 → 합격/불합격, 시그모이드)
+let ML_LG_STAGE     = 'line';     // 'line'(직선의 한계) | 'curve'(S자 학습) | 'predict'(예측·분류)
+let ML_LG_GD        = null;       // 로지스틱 경사하강 stepper
+let ML_LG_AUTO      = null;       // 학습 자동재생 timer
+let ML_LG_PROBE     = '';         // 예측용 x 입력(문자열)
+
+// 👥 kNN (위조지폐 — 새 점 + k 이웃 투표)
+let ML_KN_NEW       = null;       // 새 데이터 점 { x, y } (드래그)
+let ML_KN_K         = 3;          // 이웃 수
+let ML_KN_DRAG      = false;      // ★ 드래그 중
+
+// 🎯 k-평균 (모델 버전 — PPT 단계: 임의중심→배정→이동→반복)
+let ML_KM_STATE     = null;       // mlKMeans state
+let ML_KM_AUTO      = null;       // 자동재생 timer
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)

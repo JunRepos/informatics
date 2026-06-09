@@ -17,8 +17,11 @@ const ML_GROUPS = {
     { t: 'reinforce',    label: '🎮 강화학습' },
   ] },
   model: { label: '기계학습 모델', tabs: [
-    { t: 'linreg', label: '📈 선형회귀' },
-    { t: 'dtree',  label: '🌳 결정 트리' },
+    { t: 'linreg',   label: '📈 선형회귀' },
+    { t: 'logistic', label: '📊 로지스틱 회귀' },
+    { t: 'dtree',    label: '🌳 결정 트리' },
+    { t: 'knn',      label: '👥 kNN' },
+    { t: 'kmeans',   label: '🎯 k-평균' },
   ] },
 };
 function _mlGroupOf(tab){
@@ -42,7 +45,10 @@ function vStMl(){
   let body = '';
   if     (ML_TAB === 'supervised')   body = _vStMlSupervised();
   else if(ML_TAB === 'linreg')       body = _vStMlLinreg();
+  else if(ML_TAB === 'logistic')     body = _vStMlLogistic();
   else if(ML_TAB === 'dtree')        body = _vStMlDtree();
+  else if(ML_TAB === 'knn')          body = _vStMlKnn();
+  else if(ML_TAB === 'kmeans')       body = _vStMlKmeans();
   else if(ML_TAB === 'unsupervised') body = _vStMlUnsupervised();
   else if(ML_TAB === 'reinforce')    body = _vStMlReinforce();
 
@@ -956,6 +962,243 @@ function _mlDtModelNote(macc, mine, total){
   return '모델도 이 두 축만으로는 완벽하진 않아요. 다른 특징 조합을 축으로 바꿔보면 더 잘 갈릴 수 있어요!';
 }
 
+/* ═══════════════════════════════════════
+   공통 2D 플롯 헬퍼 (로지스틱·kNN·k-평균)
+═══════════════════════════════════════ */
+const ML2_W = 520, ML2_H = 380, ML2_PAD = { l: 52, r: 18, t: 18, b: 42 };
+const ML2_PW = ML2_W - ML2_PAD.l - ML2_PAD.r, ML2_PH = ML2_H - ML2_PAD.t - ML2_PAD.b;
+function _ml2sx(b, x){ return ML2_PAD.l + (x - b.xMin) / (b.xMax - b.xMin) * ML2_PW; }
+function _ml2sy(b, y){ return ML2_PAD.t + (1 - (y - b.yMin) / (b.yMax - b.yMin)) * ML2_PH; }
+function _ml2BoundsOf(xs, ys, padFrac){
+  const f = padFrac || 0.1;
+  let xmin = Math.min(...xs), xmax = Math.max(...xs), ymin = Math.min(...ys), ymax = Math.max(...ys);
+  const px = (xmax - xmin) * f || 1, py = (ymax - ymin) * f || 1;
+  return { xMin: xmin - px, xMax: xmax + px, yMin: ymin - py, yMax: ymax + py };
+}
+function _ml2axes(b, xLabel, yLabel, yTicks){
+  let g = '';
+  _mlLrTicks(b.xMin, b.xMax, 5).forEach(t => { if(t < b.xMin || t > b.xMax) return; const x = _ml2sx(b, t);
+    g += `<line class="ml2-grid" x1="${x.toFixed(1)}" y1="${ML2_PAD.t}" x2="${x.toFixed(1)}" y2="${ML2_PAD.t + ML2_PH}"/>`;
+    g += `<text class="ml2-tick" x="${x.toFixed(1)}" y="${ML2_PAD.t + ML2_PH + 16}" text-anchor="middle">${_mlLrNum(t, t % 1 === 0 ? 0 : 1)}</text>`; });
+  (yTicks || _mlLrTicks(b.yMin, b.yMax, 5)).forEach(t => { if(t < b.yMin || t > b.yMax) return; const y = _ml2sy(b, t);
+    g += `<line class="ml2-grid" x1="${ML2_PAD.l}" y1="${y.toFixed(1)}" x2="${ML2_PAD.l + ML2_PW}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="ml2-tick" x="${ML2_PAD.l - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end">${_mlLrNum(t, t % 1 === 0 ? 0 : 1)}</text>`; });
+  g += `<line class="ml2-axis" x1="${ML2_PAD.l}" y1="${ML2_PAD.t}" x2="${ML2_PAD.l}" y2="${ML2_PAD.t + ML2_PH}"/>
+    <line class="ml2-axis" x1="${ML2_PAD.l}" y1="${ML2_PAD.t + ML2_PH}" x2="${ML2_PAD.l + ML2_PW}" y2="${ML2_PAD.t + ML2_PH}"/>`;
+  const cy = ML2_PAD.t + ML2_PH / 2;
+  g += `<text class="ml2-axisname" x="${ML2_PAD.l + ML2_PW / 2}" y="${ML2_H - 6}" text-anchor="middle">${esc(xLabel)}</text>
+    <text class="ml2-axisname" x="14" y="${cy}" text-anchor="middle" transform="rotate(-90 14 ${cy})">${esc(yLabel)}</text>`;
+  return g;
+}
+function _mlSteps(labels, cur){
+  return `<div class="ml-stepbar">${labels.map((s, i) => `<div class="ml-step ${i === cur ? 'on' : (i < cur ? 'done' : '')}">${s}</div>`).join('')}</div>`;
+}
+
+/* ═══════════════════════════════════════
+   📊 로지스틱 회귀 — 확률(S자) 분류
+   Stage: line(직선의 한계) → curve(S자 학습) → predict(예측·분류)
+═══════════════════════════════════════ */
+function _mlLgBounds(){ return { xMin: 0, xMax: 10.6, yMin: -0.28, yMax: 1.28 }; }
+function _mlLgSigPath(b, probFn){
+  const N = 64, pts = [];
+  for(let i = 0; i <= N; i++){ const x = b.xMin + (b.xMax - b.xMin) * i / N; const y = Math.max(0, Math.min(1, probFn(x))); pts.push(`${_ml2sx(b, x).toFixed(1)},${_ml2sy(b, y).toFixed(1)}`); }
+  return pts.join(' ');
+}
+function _mlLgDots(ds, b){
+  return ds.points.map(p => `<circle class="ml2-dot" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="5.5" fill="${p.y ? ds.posColor : ds.negColor}" stroke="#fff" stroke-width="1"/>`).join('');
+}
+function _vStMlLogistic(){
+  const ds = ML_LG_DATASET, b = _mlLgBounds();
+  const stage = ML_LG_STAGE;
+  const y0 = _ml2sy(b, 0), y1 = _ml2sy(b, 1), yTop = _ml2sy(b, b.yMax), yBot = _ml2sy(b, b.yMin);
+  const invalid = `<rect class="ml2-invalid" x="${ML2_PAD.l}" y="${yTop.toFixed(1)}" width="${ML2_PW}" height="${(y1 - yTop).toFixed(1)}"/>
+    <rect class="ml2-invalid" x="${ML2_PAD.l}" y="${y0.toFixed(1)}" width="${ML2_PW}" height="${(yBot - y0).toFixed(1)}"/>`;
+  const guideLines = `<line class="ml2-ref" x1="${ML2_PAD.l}" y1="${y1.toFixed(1)}" x2="${ML2_PAD.l + ML2_PW}" y2="${y1.toFixed(1)}"/>
+    <line class="ml2-ref" x1="${ML2_PAD.l}" y1="${y0.toFixed(1)}" x2="${ML2_PAD.l + ML2_PW}" y2="${y0.toFixed(1)}"/>`;
+  const lblPos = `<text class="ml2-side" x="${ML2_PAD.l + 4}" y="${(y1 - 5).toFixed(1)}">${esc(ds.posLabel)}(1)</text>`;
+  const lblNeg = `<text class="ml2-side" x="${ML2_PAD.l + 4}" y="${(y0 + 14).toFixed(1)}">${esc(ds.negLabel)}(0)</text>`;
+
+  let overlay = '', below = '';
+  const step = _mlSteps(['1. 직선의 한계', '2. S자 곡선 학습', '3. 예측·분류'], stage === 'line' ? 0 : stage === 'curve' ? 1 : 2);
+
+  if(stage === 'line'){
+    const lin = mlLinregFit(ds.points.map(p => [p.x, p.y]));
+    const lx1 = b.xMin, lx2 = b.xMax;
+    overlay = `<line class="ml2-line-bad" x1="${_ml2sx(b, lx1).toFixed(1)}" y1="${_ml2sy(b, lin.a * lx1 + lin.b).toFixed(1)}" x2="${_ml2sx(b, lx2).toFixed(1)}" y2="${_ml2sy(b, lin.a * lx2 + lin.b).toFixed(1)}"/>`;
+    below = `<div class="ml-sub-explain">합격(1)/불합격(0)을 <b>직선</b>으로 예측하면, 공부를 아주 많이 하면 확률이 <b>1을 넘고</b> 아주 적게 하면 <b>0보다 작아져요</b>. 확률은 0~1 사이여야 하는데 직선은 그 범위를 못 지켜요 → <b class="ml2-bad">직선은 분류에 부적합!</b> (분홍 영역 = 확률 범위 밖)</div>
+      <div class="ml-action-bar"><button class="btn-p" data-action="ml-lg-stage" data-s="curve">S자 곡선으로 풀어보기 →</button></div>`;
+  } else {
+    if(!ML_LG_GD) ML_LG_GD = mlLogisticFit(ds.points);
+    const gd = ML_LG_GD;
+    overlay = `<polyline class="ml2-sig" points="${_mlLgSigPath(b, x => gd.prob(x))}"/>`;
+    if(stage === 'curve'){
+      const running = !!ML_LG_AUTO, done = gd.done;
+      below = `<div class="ml-sub-explain">직선의 양 끝을 <b>0과 1 사이로 눌러</b> 주면 <b>S자 곡선(시그모이드)</b>이 돼요. <b>▶ 학습</b>을 누르면 곡선이 점들에 맞춰지며 <b>오차가 줄어듭니다</b>.</div>
+        <div class="ml2-statline">학습 횟수 <b>${gd.iter}</b> · 오차 <b>${_mlLrNum(gd.loss, 3)}</b> · 정확도 <b>${Math.round(gd.accuracy() * ds.points.length)}/${ds.points.length}</b>${done ? ' · <span style="color:var(--ok)">✓ 수렴</span>' : ''}</div>
+        <div class="ml-action-bar lr-learn-bar">
+          <button class="btn-sm" data-action="ml-lg-step" ${running ? 'disabled' : ''}>⏭ 한 단계</button>
+          <button class="btn-p btn-sm" data-action="ml-lg-run">${running ? '⏸ 정지' : (gd.iter ? '▶ 이어서' : '▶ 학습 시작')}</button>
+          <button class="btn-sm" data-action="ml-lg-reset" ${running ? 'disabled' : ''}>⟲ 처음부터</button>
+        </div>
+        <div class="ml-action-bar"><button class="btn-p" data-action="ml-lg-stage" data-s="predict">예측·분류 해보기 →</button></div>`;
+    } else {
+      // predict
+      const bx = gd.boundaryX();
+      if(bx != null && bx >= b.xMin && bx <= b.xMax){
+        const px = _ml2sx(b, bx), yb = _ml2sy(b, 0.5);
+        overlay += `<line class="ml2-thresh" x1="${ML2_PAD.l}" y1="${yb.toFixed(1)}" x2="${ML2_PAD.l + ML2_PW}" y2="${yb.toFixed(1)}"/>
+          <line class="ml2-bound" x1="${px.toFixed(1)}" y1="${ML2_PAD.t}" x2="${px.toFixed(1)}" y2="${ML2_PAD.t + ML2_PH}"/>
+          <text class="ml2-side" x="${(px + 4).toFixed(1)}" y="${(ML2_PAD.t + 12)}">경계 ${_mlLrNum(bx, 1)}${esc(ds.xUnit)}</text>`;
+      }
+      const probe = (ML_LG_PROBE || '').trim();
+      let probeOut = '예측할 공부 시간을 넣어보세요';
+      if(probe !== '' && !isNaN(parseFloat(probe))){
+        const pv = gd.prob(parseFloat(probe));
+        const cls = pv >= 0.5 ? ds.posLabel : ds.negLabel;
+        probeOut = `합격 확률 <b>${(pv * 100).toFixed(0)}%</b> → <b style="color:${pv >= 0.5 ? ds.posColor : ds.negColor}">${esc(cls)}</b> ${pv >= 0.5 ? '(0.5 이상)' : '(0.5 미만)'}`;
+        const ppx = _ml2sx(b, parseFloat(probe)), ppy = _ml2sy(b, Math.max(0, Math.min(1, pv)));
+        if(parseFloat(probe) >= b.xMin && parseFloat(probe) <= b.xMax) overlay += `<line class="ml2-probe-l" x1="${ppx.toFixed(1)}" y1="${(ML2_PAD.t + ML2_PH).toFixed(1)}" x2="${ppx.toFixed(1)}" y2="${ppy.toFixed(1)}"/><circle class="ml2-probe-d" cx="${ppx.toFixed(1)}" cy="${ppy.toFixed(1)}" r="6"/>`;
+      }
+      below = `<div class="ml-sub-explain">곡선 높이가 <b>합격 확률</b>이에요. <b>0.5</b>(가로 점선)를 기준으로, 위면 <b style="color:${ds.posColor}">${esc(ds.posLabel)}</b>·아래면 <b style="color:${ds.negColor}">${esc(ds.negLabel)}</b>으로 분류해요.</div>
+        <div class="lr-predict-box confirm">
+          <div class="lr-probe"><span class="lr-probe-eq">${esc(ds.xLabel)} =</span>
+            <input type="number" id="ml-lg-probe" class="lr-num-input sm" placeholder="${ds.predictX}" value="${esc(ML_LG_PROBE)}"/>
+            <span class="lr-unit">${esc(ds.xUnit)}</span><span class="lr-probe-arrow">→</span>
+            <span class="lr-probe-out" id="ml-lg-probe-out">${probeOut}</span>
+          </div>
+        </div>
+        <div class="lr-mse-conclude">📌 <b>로지스틱 회귀</b> = 회귀처럼 점수를 내고(<b>속은 회귀</b>), S자로 확률(0~1)을 만든 뒤 0.5로 잘라 분류(<b>겉은 분류</b>). 이름에 '회귀'가 있어도 하는 일은 <b>분류</b>예요.</div>
+        <div class="ml-action-bar"><button class="btn-sm" data-action="ml-lg-stage" data-s="curve">← 학습 다시</button></div>`;
+    }
+  }
+
+  return `${step}
+    <div class="section">
+      <div class="ml-intro"><b>📊 로지스틱 회귀</b>는 어떤 클래스에 속할 <u>확률(0~1)</u>을 <u>S자 곡선</u>으로 예측하고, <b>0.5</b>를 기준으로 분류하는 모델이에요. (예: 공부 시간 → 합격/불합격)</div>
+      <div class="lr-plot-wrap"><svg class="lr-svg" viewBox="0 0 ${ML2_W} ${ML2_H}" role="img">
+        ${stage === 'line' ? invalid : ''}
+        ${_ml2axes(b, ds.xLabel + ' (' + ds.xUnit + ')', '합격 확률', [0, 0.5, 1])}
+        ${guideLines}${lblPos}${lblNeg}
+        ${overlay}
+        ${_mlLgDots(ds, b)}
+      </svg></div>
+      ${below}
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
+   👥 kNN — 새 점 + k 이웃 투표 (위조지폐)
+═══════════════════════════════════════ */
+function _mlKnBounds(){
+  const ds = ML_KN_DATASET;
+  return _ml2BoundsOf(ds.points.map(p => p.x).concat(ds.newDefault.x), ds.points.map(p => p.y).concat(ds.newDefault.y), 0.12);
+}
+function _vStMlKnn(){
+  const ds = ML_KN_DATASET, b = _mlKnBounds();
+  if(!ML_KN_NEW) ML_KN_NEW = { ...ds.newDefault };
+  const train = ds.points.map(p => ({ vec: [p.x, p.y], classId: p.cls }));
+  const k = ML_KN_K;
+  const pred = mlKnnPredict(train, [ML_KN_NEW.x, ML_KN_NEW.y], k);
+  const counts = {}; ds.classes.forEach(c => counts[c.id] = 0);
+  (pred ? pred.neighbors : []).forEach(s => counts[s.classId]++);
+  const predClass = ds.classes.find(c => c.id === pred.classId);
+  // k번째 이웃까지 거리 → 원
+  const nx = ML_KN_NEW.x, ny = ML_KN_NEW.y;
+  const neigh = pred ? pred.neighbors : [];
+  const maxD = neigh.length ? Math.sqrt(Math.max(...neigh.map(s => (s.vec[0] - nx) ** 2 + (s.vec[1] - ny) ** 2))) : 0;
+  const rPx = Math.abs(_ml2sx(b, nx + maxD) - _ml2sx(b, nx));
+
+  const neighSet = new Set(neigh.map(s => s.vec[0] + ',' + s.vec[1]));
+  const dots = ds.points.map(p => {
+    const c = ds.classes.find(cc => cc.id === p.cls), on = neighSet.has(p.x + ',' + p.y);
+    return `<circle class="ml2-dot ${on ? 'knn-on' : ''}" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="${on ? 7 : 5.5}" fill="${c.color}" stroke="${on ? '#111' : '#fff'}" stroke-width="${on ? 2 : 1}"/>`;
+  }).join('');
+  const links = neigh.map(s => `<line class="ml2-knn-link" x1="${_ml2sx(b, nx).toFixed(1)}" y1="${_ml2sy(b, ny).toFixed(1)}" x2="${_ml2sx(b, s.vec[0]).toFixed(1)}" y2="${_ml2sy(b, s.vec[1]).toFixed(1)}"/>`).join('');
+  const circle = `<circle class="ml2-knn-ring" cx="${_ml2sx(b, nx).toFixed(1)}" cy="${_ml2sy(b, ny).toFixed(1)}" r="${rPx.toFixed(1)}"/>`;
+  const star = `<text id="ml-kn-star" class="ml2-star" x="${_ml2sx(b, nx).toFixed(1)}" y="${(_ml2sy(b, ny) + 7).toFixed(1)}" text-anchor="middle" style="fill:${predClass ? predClass.color : '#111'}">★</text>`;
+
+  const kBtns = [1, 3, 5, 7].map(kv => `<button class="ml2-kbtn ${kv === k ? 'on' : ''}" data-action="ml-kn-k" data-k="${kv}">k=${kv}</button>`).join('');
+  const tally = ds.classes.map(c => `<span class="ml2-tally" style="color:${c.color}">${c.emoji} ${esc(c.label)} <b>${counts[c.id]}표</b></span>`).join('<span class="ml2-vs">vs</span>');
+
+  return `<div class="section">
+      <div class="ml-intro"><b>👥 kNN (k-최근접 이웃)</b>은 새 데이터가 오면 <u>가장 가까운 k개 이웃</u>의 다수 클래스로 분류해요. <i>유유상종</i> — 이웃을 보면 그 데이터가 보인다!</div>
+      <div class="ml2-knn-bar">
+        <span class="ml2-knn-q">새 지폐 <b class="ml2-star-inline">★</b> 를 <b>드래그</b>해 옮기고, k를 바꿔보세요:</span>
+        <span class="ml2-kbtns">${kBtns}</span>
+      </div>
+      <div class="lr-plot-wrap"><svg id="ml-kn-svg" class="lr-svg" viewBox="0 0 ${ML2_W} ${ML2_H}" role="img" data-interactive="1">
+        ${_ml2axes(b, ds.xLabel + ' (' + ds.unit + ')', ds.yLabel + ' (' + ds.unit + ')')}
+        ${circle}${links}${dots}${star}
+        <circle class="ml2-star-hit" id="ml-kn-hit" cx="${_ml2sx(b, nx).toFixed(1)}" cy="${_ml2sy(b, ny).toFixed(1)}" r="20"/>
+      </svg></div>
+      <div class="ml2-knn-result">
+        가장 가까운 <b>${k}개</b> 이웃: ${tally}
+        <div class="ml2-knn-verdict" style="border-color:${predClass ? predClass.color : '#999'}">→ 모델 판정: <b style="color:${predClass ? predClass.color : '#111'}">${predClass ? predClass.emoji + ' ' + esc(predClass.label) : '?'}</b></div>
+      </div>
+      <div class="ml-sub-explain">💡 <b>k에 따라 결과가 바뀌어요!</b> 같은 ★ 위치라도 k=3과 k=7의 판정이 다를 수 있어요(가까운 이웃을 몇 명까지 볼지). 그래서 <b>적절한 k</b>를 정하는 게 중요해요. (거리는 두 점 사이 직선거리 = 유클리디안)</div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
+   🎯 k-평균 (모델) — PPT 단계: 임의중심 → 배정 → 이동 → 반복
+═══════════════════════════════════════ */
+const ML_KM_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7'];
+function _mlKmBounds(){
+  const ds = ML_KM_DATASET;
+  return _ml2BoundsOf(ds.points.map(p => p.x), ds.points.map(p => p.y), 0.12);
+}
+// 엔진은 정규화([0,1]) 좌표로 군집화 → 중심점을 원래 좌표로 되돌릴 때 사용
+function _mlKmNorm(){
+  const ds = ML_KM_DATASET, xs = ds.points.map(p => p.x), ys = ds.points.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  return { minX, rangeX: (maxX - minX) || 1, minY, rangeY: (maxY - minY) || 1 };
+}
+function _vStMlKmeans(){
+  const ds = ML_KM_DATASET, b = _mlKmBounds();
+  const km = ML_KM_STATE;
+  const running = !!ML_KM_AUTO;
+  const converged = km && km.iter > 0 && km.phase === 'assign' && !km.changed;
+
+  const dots = ds.points.map((p, i) => {
+    const c = km ? km.assignments[i] : -1;
+    const col = c >= 0 ? ML_KM_COLORS[c % ML_KM_COLORS.length] : '#cbd5e1';
+    return `<circle class="ml2-dot" cx="${_ml2sx(b, p.x).toFixed(1)}" cy="${_ml2sy(b, p.y).toFixed(1)}" r="6" fill="${col}" stroke="#fff" stroke-width="1.2" style="transition:fill .4s"/>`;
+  }).join('');
+  let cents = '';
+  if(km){
+    const nm = _mlKmNorm();
+    cents = km.centroids.map((cv, ci) => {
+      const ox = nm.minX + cv[0] * nm.rangeX, oy = nm.minY + cv[1] * nm.rangeY;  // 정규화 → 원래 좌표
+      return `<text class="ml2-centroid" x="${_ml2sx(b, ox).toFixed(1)}" y="${(_ml2sy(b, oy) + 7).toFixed(1)}" text-anchor="middle" style="fill:${ML_KM_COLORS[ci % ML_KM_COLORS.length]}">✕</text>`;
+    }).join('');
+  }
+
+  const phaseLbl = !km ? '시작 전' : (converged ? '완료' : (km.phase === 'assign' ? '다음: 배정' : '다음: 중심 이동'));
+  const steps = `<ol class="dt-mse-steps lr-mse-steps">
+    <li class="${km ? 'done' : 'cur'}"><b>1.</b> 군집 개수 k=${ds.k} 정하고, 중심점(✕) ${ds.k}개를 <b>임의 위치</b>에 놓기</li>
+    <li class="${km && (km.iter > 0 || km.phase === 'update') ? 'done' : (km ? 'cur' : '')}"><b>2~3.</b> 각 데이터를 <b>가장 가까운 중심점</b>의 군집(색)으로 배정</li>
+    <li class="${km && km.iter > 0 ? 'done' : ''}"><b>4.</b> 중심점을 군집의 <b>평균 위치</b>로 이동 → 2~4 반복</li>
+  </ol>`;
+
+  return `<div class="section">
+      <div class="ml-intro"><b>🎯 k-평균(k-means) 군집화</b>는 정답(레이블) 없이 데이터를 <u>k개 군집</u>으로 묶는 비지도학습이에요. (예: 키·몸무게로 티셔츠 S·M·L 나누기) 중심점이 안 움직일 때까지 <b>배정 → 이동</b>을 반복해요.</div>
+      ${steps}
+      <div class="ml-step-info">단계: <b>${phaseLbl}</b> · 반복 ${km ? km.iter : 0}회 ${converged ? '· <span style="color:var(--ok)">✓ 중심이 안 움직여요 → S·M·L 완성!</span>' : ''}</div>
+      <div class="ml-action-bar lr-learn-bar">
+        ${!km
+          ? `<button class="btn-p" data-action="ml-km-start">▶ 중심점 ${ds.k}개 놓고 시작</button>`
+          : `<button class="btn-sm" data-action="ml-km-step" ${running || converged ? 'disabled' : ''}>⏭ 한 단계</button>
+             <button class="btn-p btn-sm" data-action="ml-km-run" ${converged ? 'disabled' : ''}>${running ? '⏸ 정지' : '▶ 자동 재생'}</button>
+             <button class="btn-sm" data-action="ml-km-reset" ${running ? 'disabled' : ''}>⟲ 다시(새 중심점)</button>`}
+      </div>
+      <div class="lr-plot-wrap"><svg class="lr-svg" viewBox="0 0 ${ML2_W} ${ML2_H}" role="img">
+        ${_ml2axes(b, ds.xLabel + ' (' + ds.xUnit + ')', ds.yLabel + ' (' + ds.yUnit + ')')}
+        ${dots}${cents}
+      </svg></div>
+      <div class="ml-sub-explain">✕ = 군집 중심점. 각 점은 <b>가장 가까운 ✕의 색</b>으로 물들고(배정), ✕는 자기 색 점들의 <b>평균 위치</b>로 이동해요. (거리는 유클리디안) <b>kNN의 k</b>는 '이웃 수', <b>k-평균의 k</b>는 '군집 수' — 의미가 달라요!</div>
+    </div>`;
+}
+
 /* ─────────────────── 비지도학습 ─────────────────── */
 
 function _vStMlUnsupervised(){
@@ -1148,6 +1391,9 @@ function vTcMl(){
       <div class="ml-tc-flow-card"><b>📚 지도학습</b><br><small>3개 그룹 이름 정하고 사진 끌어담기 → 학습 → 테스트(드래그) 후 👍/👎 판정</small></div>
       <div class="ml-tc-flow-card"><b>📈 선형회귀</b><br><small>산점도에 직접 직선 긋기 → 경사하강법으로 학습 과정 관찰 → 최적선·예측·오차(MSE) 이해</small></div>
       <div class="ml-tc-flow-card"><b>🌳 결정 트리</b><br><small>표정 얼굴을 두 특징 축에 흩뿌리고 칸막이로 영역 분류 → 내 정확도 → 자동 결정 트리(모델)와 비교</small></div>
+      <div class="ml-tc-flow-card"><b>📊 로지스틱 회귀</b><br><small>공부시간→합격/불합격. 직선의 한계 → S자 곡선(시그모이드) 학습 → 0.5 기준 확률 분류 (4차시)</small></div>
+      <div class="ml-tc-flow-card"><b>👥 kNN</b><br><small>위조지폐 판별. 새 점(★)을 드래그하고 k를 바꾸며 가까운 이웃 투표 관찰 (k=3 vs k=7 결과가 바뀜) (4차시)</small></div>
+      <div class="ml-tc-flow-card"><b>🎯 k-평균</b><br><small>키·몸무게로 티셔츠 S·M·L 군집화. 임의 중심점 → 배정 → 이동 반복 (PPT 단계 그대로) (4차시)</small></div>
       <div class="ml-tc-flow-card"><b>🔍 비지도학습</b><br><small>사진을 2D 점 지도로 흩뿌리고 K-Means가 색으로 묶는 과정 관찰 → 정답 공개</small></div>
       <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>Reinforced Duck 게임을 새 탭에서 플레이 (설명은 아래에서 직접 작성)</small></div>
     </div>
