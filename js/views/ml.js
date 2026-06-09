@@ -1225,7 +1225,7 @@ function _vStMlKmeans(){
   const kBtns = [2, 3, 4, 5].map(kv => `<button class="ml2-kbtn ${kv === ML_KM_K ? 'on' : ''}" data-action="ml-km-k" data-k="${kv}" ${running ? 'disabled' : ''}>k=${kv}</button>`).join('');
 
   return `<div class="section">
-      <div class="ml-intro"><b>🎯 k-평균(k-means) 군집화</b>는 정답 없이 데이터를 <u>k개 군집</u>으로 묶는 비지도학습이에요. (예: 키·몸무게로 티셔츠 사이즈 나누기) 중심점이 안 움직일 때까지 <b>배정 → 이동</b>을 반복해요.</div>
+      <div class="ml-intro"><b>🎯 k-평균(k-means) 군집화</b>는 정답 없이 데이터를 <u>k개 군집</u>으로 묶는 비지도학습이에요. (예: 지도 위 <b>손님들 위치</b>를 가까운 것끼리 <b>k개 구역</b>으로 묶어 구역마다 가게 하나) 중심점(✕)이 안 움직일 때까지 <b>배정 → 이동</b>을 반복해요.</div>
       <div class="ml2-knn-bar"><span class="ml2-knn-q"><b>군집 수 k</b>를 정해요:</span><span class="ml2-kbtns">${kBtns}</span></div>
       ${steps}
       ${banner}
@@ -1239,11 +1239,11 @@ function _vStMlKmeans(){
       </div>
       <div class="lr-plot-wrap"><svg class="lr-svg" viewBox="0 0 ${ML2_W} ${ML2_H}" role="img">
         <defs><marker id="ml-km-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="context-stroke"/></marker></defs>
-        ${_ml2axes(b, ds.xLabel + ' (' + ds.xUnit + ')', ds.yLabel + ' (' + ds.yUnit + ')')}
+        ${_ml2axes(b, ds.xLabel + (ds.xUnit ? ' (' + ds.xUnit + ')' : ''), ds.yLabel + (ds.yUnit ? ' (' + ds.yUnit + ')' : ''))}
         ${spokes}${trail}${dots}${cents}
       </svg></div>
       ${cards}
-      <div class="ml-sub-explain">✕ = 군집 중심점. 점은 <b>가장 가까운 ✕ 색</b>으로 묶이고(연결선), ✕는 자기 색 점들의 <b>평균 위치</b>로 이동해요. (거리=유클리디안) 💡 <b>kNN의 k</b>=이웃 수, <b>k-평균의 k</b>=군집 수 — 의미가 달라요!</div>
+      <div class="ml-sub-explain">✕ = 군집 중심점(구역의 가게 위치). 점(손님)은 <b>가장 가까운 ✕ 색 구역</b>으로 묶이고(연결선), ✕는 자기 구역 점들의 <b>평균 위치</b>로 이동해요. (거리=유클리디안) 💡 <b>kNN의 k</b>=이웃 수, <b>k-평균의 k</b>=군집 수 — 의미가 달라요!</div>
     </div>`;
 }
 
@@ -1441,7 +1441,7 @@ function vTcMl(){
       <div class="ml-tc-flow-card"><b>🌳 결정 트리</b><br><small>표정 얼굴을 두 특징 축에 흩뿌리고 칸막이로 영역 분류 → 내 정확도 → 자동 결정 트리(모델)와 비교</small></div>
       <div class="ml-tc-flow-card"><b>📊 로지스틱 회귀</b><br><small>공부시간→합격/불합격. 직선의 한계 → S자 곡선(시그모이드) 학습 → 0.5 기준 확률 분류 (4차시)</small></div>
       <div class="ml-tc-flow-card"><b>👥 kNN</b><br><small>위조지폐 판별. 새 점(★)을 드래그하고 k를 바꾸며 가까운 이웃 투표 관찰 (k=3 vs k=7 결과가 바뀜) (4차시)</small></div>
-      <div class="ml-tc-flow-card"><b>🎯 k-평균</b><br><small>키·몸무게로 티셔츠 S·M·L 군집화. 임의 중심점 → 배정 → 이동 반복 (PPT 단계 그대로) (4차시)</small></div>
+      <div class="ml-tc-flow-card"><b>🎯 k-평균</b><br><small>지도 위 손님 위치를 k(2~5)개 구역으로. 임의 중심 → 배정 → 이동 반복, 연결선·궤적으로 과정 시각화 (4차시)</small></div>
       <div class="ml-tc-flow-card"><b>🔍 비지도학습</b><br><small>사진을 2D 점 지도로 흩뿌리고 K-Means가 색으로 묶는 과정 관찰 → 정답 공개</small></div>
       <div class="ml-tc-flow-card"><b>🎮 강화학습</b><br><small>Reinforced Duck 게임을 새 탭에서 플레이 (설명은 아래에서 직접 작성)</small></div>
     </div>
