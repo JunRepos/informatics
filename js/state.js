@@ -242,18 +242,27 @@ let ML_KM_PREVA     = null;       // 배정 전 군집 배열 — 새로 바뀐 
 
 // 🧩 AI 프로젝트 매니저 (5차시 문제 해결) — 정의는 ml-project-data.js, 저장은 aiactivity 노드 재사용
 let MLP_SEL        = null;   // 선택된 시나리오 (학생 풀이 중)
-let MLP_STEP       = 1;      // 1 문제정의 · 2 데이터 · 3 모델선정·학습 · 4 평가 · 5 성찰
-let MLP_ANSWERS    = {};     // 저장 기록 { need, needWhy, typePick, modelKey, modelWhy, runsLog, finalModelKey, finalAcc, reflect… }
+let MLP_STEP       = 1;      // 1 문제정의 · 2 캔버스(조립·학습·평가) · 5 성찰
+let MLP_ANSWERS    = {};     // 저장 기록 { goalPick, featPick, need, needWhy, modelWhy, runsLog, finalModelKey, finalAcc, reflect… }
 let MLP_SUB        = null;   // 학생 본인 제출 캐시
 let MLP_SAVING     = null;   // null|'save'|'submit'
 let MLP_SAVE_TIMER = null;   // 자동저장 debounce
 let MLP_LOADING    = false;  // 본인 기록 로딩 중
 // 실행(전이) 상태 — 저장 안 함, 재계산. 시드 고정 split 로 모델 비교를 공정하게.
-let MLP_SPLIT      = null;   // { train, test }
+let MLP_SPLIT      = null;   // { train, test, poolSize? }
 let MLP_RESULT     = null;   // 마지막 학습 결과 (분류: { modelType, trainAcc, testAcc, model })
 let MLP_COMPARE    = {};     // { [modelKey]: { trainAcc, testAcc } } 비교표 누적
 let MLP_REG        = null;   // 회귀 결과 (mlRegressionEval)
 let MLP_CLU        = null;   // 군집 결과 (mlClusterEval)
+// ① 문제 정의(브리핑) 진행 — goalTry: 오답 시도 기록(세특 재료)
+let MLP_GOAL_TRIES = [];     // 골랐던 goal 옵션 id들
+// 🧩 캔버스(오렌지3식 조립) 상태
+let MLP_CV         = null;   // { placed:{}, edges:[], hyper:{depth,k}, axes:{x,y} } — placed[id]=true
+let MLP_PANEL      = null;   // 열린 위젯 패널 id ('data'|'split'|'tree'|'logistic'|'knn'|'linreg'|'kmeans'|'score'|'predict'|'groups')
+let MLP_LINK       = null;   // 연결 모드: 출발 위젯 id
+let MLP_ANIM       = null;   // 학습/평가 애니 상태 { mk, timer, ... }
+let MLP_PRED       = null;   // 예측 보기 결과 { model, list:[{row,pred,ok}], wrong:[...], acc }
+let MLP_FIT        = {};     // 학습 완료된 모델 객체 { tree:node, logistic:stepper, knn:{stats,k}, linreg:{a,b,...} }
 // 선생님: 학생 기록 열람
 let MLP_TC_SEL     = null;   // 보고 있는 시나리오
 let MLP_TC_VIEW    = 'list'; // 'list'|'student'

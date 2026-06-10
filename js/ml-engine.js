@@ -616,6 +616,61 @@ function mlLogisticFitMulti(trainRows, featureKeys, targetKey, opts){
   return { weights: w, bias: b, stats, prob, predict, accuracy, featureKeys };
 }
 
+// ── 다특징 이진 로지스틱 — 단계별 stepper (학습 과정 애니메이션용) ──
+//   const st = mlLogisticStepper(train, keys, target, {posValue});
+//   st.step() → perStep 에폭 진행. st.iter / st.done / st.trainAcc / st.weights / st.accuracyOn(rows)
+function mlLogisticStepper(trainRows, featureKeys, targetKey, opts){
+  opts = opts || {};
+  const posValue = opts.posValue;
+  const lr = opts.lr != null ? opts.lr : 0.5;
+  const perStep = opts.perStep || 20;
+  const maxEpochs = opts.maxEpochs || 400;
+  const stats = mlFeatureStats(trainRows, featureKeys);
+  const X = trainRows.map(r => mlRowToVec(r, featureKeys, stats));
+  const y = trainRows.map(r => _mlBin(r[targetKey], posValue));
+  const n = X.length, d = featureKeys.length;
+  const w = new Array(d).fill(0);
+  let b = 0;
+  const probVec = v => { let z = b; for(let j = 0; j < d; j++) z += w[j] * v[j]; return mlSigmoid(z); };
+  const state = {
+    iter: 0, done: false, trainAcc: 0, weights: w, bias: 0, featureKeys,
+    prob: row => probVec(mlRowToVec(row, featureKeys, stats)),
+    predict: row => (probVec(mlRowToVec(row, featureKeys, stats)) >= 0.5 ? 1 : 0),
+    accuracyOn: rows => {
+      if(!rows.length) return 0;
+      let ok = 0;
+      for(const r of rows) if(state.predict(r) === _mlBin(r[targetKey], posValue)) ok++;
+      return ok / rows.length;
+    },
+    step,
+  };
+  function calcTrainAcc(){
+    let ok = 0;
+    for(let i = 0; i < n; i++) if((probVec(X[i]) >= 0.5 ? 1 : 0) === y[i]) ok++;
+    state.trainAcc = ok / n;
+  }
+  calcTrainAcc();
+  function step(){
+    if(state.done) return;
+    for(let ep = 0; ep < perStep; ep++){
+      const gw = new Array(d).fill(0);
+      let gb = 0;
+      for(let i = 0; i < n; i++){
+        const e = probVec(X[i]) - y[i];
+        for(let j = 0; j < d; j++) gw[j] += e * X[i][j];
+        gb += e;
+      }
+      for(let j = 0; j < d; j++) w[j] -= lr * gw[j] / n;
+      b -= lr * gb / n;
+      state.iter++;
+    }
+    state.bias = b;
+    calcTrainAcc();
+    if(state.iter >= maxEpochs) state.done = true;
+  }
+  return state;
+}
+
 // ── kNN 분류 정확도 (훈련행으로 학습, 평가행 채점, 정규화 거리) ──
 function mlKnnEval(trainRows, evalRows, featureKeys, targetKey, k){
   k = k || 5;
@@ -629,6 +684,26 @@ function mlKnnEval(trainRows, evalRows, featureKeys, targetKey, k){
     if(pred && pred.classId === String(r[targetKey])) ok++;
   }
   return ok / evalRows.length;
+}
+
+// ── kNN 단건 예측 + 이웃 인덱스 (시각화용) ──
+//   반환 { pred:classId, neighbors:[trainRows 인덱스...] }
+function mlKnnNeighbors(trainRows, row, featureKeys, targetKey, k, stats){
+  stats = stats || mlFeatureStats(trainRows, featureKeys);
+  const q = mlRowToVec(row, featureKeys, stats);
+  const dists = trainRows.map((r, i) => {
+    const v = mlRowToVec(r, featureKeys, stats);
+    let s = 0;
+    for(let j = 0; j < q.length; j++){ const d = v[j] - q[j]; s += d * d; }
+    return { i, d: s };
+  });
+  dists.sort((a, b) => a.d - b.d);
+  const top = dists.slice(0, Math.min(k, dists.length));
+  const cnt = {};
+  top.forEach(t => { const c = String(trainRows[t.i][targetKey]); cnt[c] = (cnt[c] || 0) + 1; });
+  let pred = null, bn = -1;
+  for(const c in cnt) if(cnt[c] > bn){ bn = cnt[c]; pred = c; }
+  return { pred, neighbors: top.map(t => t.i) };
 }
 
 // row → 결정 트리 sample({ cls, [featureKey] })

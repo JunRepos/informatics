@@ -58,11 +58,40 @@ const MLP_TITANIC_ROWS = (() => {
       const parch = rnd() < 0.22 ? 1 : 0;
       const childBonus = age < 15 ? 0.22 : 0;
       const survived = rnd() < Math.min(0.99, rate + childBonus) ? 1 : 0;
-      rows.push({ sex, pclass, age, sibsp, parch, survived });
+      rows.push({ sex, pclass, age, sibsp, parch, pid: 0, survived });
     }
   });
+  // 미끼(승객 번호): 두 클래스에 같은 분포로 '교차 배정' — 유한 표본의 우연 상관까지 구조적으로 차단.
+  // (각 클래스를 셔플한 뒤 단조 증가 값을 번갈아 부여 → 어떤 분할점에서도 클래스 비율이 균형)
+  mlpAssignDecoy(rows, 'survived', 'pid', 101, 9003);
   return rows;
 })();
+
+// 미끼 특징 배정 헬퍼 (타깃과 무상관 보장)
+function mlpAssignDecoy(rows, targetKey, decoyKey, base, seed){
+  const sh = (arr, s0) => {
+    let s = s0;
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      const j = s % (i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const g1 = sh(rows.filter(r => r[targetKey] === 1 || r[targetKey] === true), seed);
+  const g0 = sh(rows.filter(r => !(r[targetKey] === 1 || r[targetKey] === true)), seed + 1);
+  let v = base;
+  const next = () => { v += 5 + (v % 4); return v; };
+  let s = (seed + 2) >>> 0;
+  for(let i = 0; i < Math.max(g0.length, g1.length); i++){
+    const a = next(), b = next();
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    const flip = (s >>> 16) & 1;   // 쌍 내부 순서 랜덤 — '값 구간 = 클래스' 누설 차단
+    if(i < g0.length) g0[i][decoyKey] = flip ? b : a;
+    if(i < g1.length) g1[i][decoyKey] = flip ? a : b;
+  }
+}
 
 const MLP_LIST = [
   /* ═══════ 메인 (전원 공통) ═══════ */
@@ -74,7 +103,21 @@ const MLP_LIST = [
     subtitle: '생존 분류',
     task: 'classification',
     mlNeeded: true,
-    story: '1912년 침몰한 타이타닉호. 승객 명단에는 <b>성별·나이·객실 등급·동승 가족 수</b>가 적혀 있고, 각 사람이 <b>살았는지(생존) 죽었는지</b>도 기록돼 있어요. 이 데이터로 "어떤 사람이 살아남았는가"의 패턴을 학습해, <b>새로운 승객의 생존 여부를 예측</b>하는 것이 목표예요.',
+    brief: [
+      { who: '🏛️', name: '해양역사박물관 · 김보라 학예사', text: '안녕하세요, AI 프로젝트 팀 맞으시죠? 저희 박물관은 1912년 침몰한 <b>타이타닉호</b>의 기록을 디지털로 복원하는 프로젝트를 진행하고 있어요.' },
+      { who: '🏛️', name: '해양역사박물관 · 김보라 학예사', text: '그런데 문제가 생겼습니다. 일부 승객은 <b>명단 정보(성별, 나이, 객실 등급, 동승 가족 수…)</b>는 남아 있는데, 사고 직후 혼란 속에 <b>구조 기록이 유실</b>되어 살았는지 알 수 없어요. 유족 기록 복원과 추모 전시를 위해 이분들의 <b>생존 여부를 추정</b>하고 싶습니다.' },
+      { who: '🏛️', name: '해양역사박물관 · 김보라 학예사', text: '다행히 <b>생존 여부가 확인된 승객 기록은 충분히</b> 남아 있습니다. 이 기록을 단서로 삼아주실 수 있을까요? 비용과 시간 문제로 전문가를 못 구해서… 여러분이 마지막 희망이에요!' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '접수했습니다! 무작정 시작하면 안 되겠죠. 먼저 <b>무엇을 예측해야 하는 문제인지</b>부터 명확하게 정의해 봅시다.' },
+    ],
+    goalQuiz: {
+      q: '의뢰를 해결하려면 무엇을 예측해야 할까요?',
+      options: [
+        { id: 'survive', label: '각 승객의 생존 여부', good: true,  why: '맞아요! 명단의 정보(특징)로 추정할 수 있고, 정답이 달린 과거 기록도 충분히 있어요.' },
+        { id: 'cause',   label: '배가 침몰한 원인', good: false, why: '중요한 질문이지만, 승객 명단에는 침몰 원인에 대한 정보가 없어요. 지금 가진 데이터로는 답할 수 없는 문제예요.' },
+        { id: 'rescue',  label: '구조선이 도착한 시각', good: false, why: '이미 역사 기록에 남아 있는 사실이고, 승객 한 명 한 명의 명단 정보와는 관계가 없어요.' },
+      ],
+    },
+    featNote: '명단에 있는 항목이에요. 단서가 될 항목만 고르세요 — <b>관계없는 항목을 섞으면 모델이 헷갈릴 수 있어요!</b> (나중에 바꿔서 다시 실험할 수 있어요)',
     define: {
       mlAnswer: 'ml',
       q1: '생존을 정하는 규칙을 우리가 정확히 적을 수 있나요? (예: "나이가 X 미만이면 생존") → 딱 떨어지지 않아요.',
@@ -92,6 +135,7 @@ const MLP_LIST = [
       { key: 'age',    label: '나이',        unit: '세' },
       { key: 'sibsp',  label: '동승 형제/배우자', unit: '명' },
       { key: 'parch',  label: '동승 부모/자녀',   unit: '명' },
+      { key: 'pid',    label: '승객 번호',    decoy: true },
     ],
     rows: MLP_TITANIC_ROWS,
     models: ['logistic', 'tree', 'knn'],
@@ -112,7 +156,20 @@ const MLP_LIST = [
     subtitle: '분류 · 보건/의료',
     task: 'classification',
     mlNeeded: true,
-    story: '보건소에 건강검진 기록이 쌓여 있어요. <b>나이·BMI·수축기 혈압·주당 운동 횟수</b>와 함께, 의사 선생님이 판정한 <b>위험군 여부</b>가 적혀 있죠. 이 데이터로 패턴을 학습해 <b>새로운 검진자가 위험군인지 미리 예측</b>하고, 위험군에게 정밀검사를 먼저 안내하는 것이 목표예요.',
+    brief: [
+      { who: '🏥', name: '보건소 · 박지훈 주무관', text: '안녕하세요! 저희 보건소에는 주민들의 <b>건강검진 기록</b>이 많이 쌓여 있어요. <b>나이, BMI, 수축기 혈압, 주당 운동 횟수</b>… 그리고 의사 선생님이 판정한 <b>위험군 여부</b>까지요.' },
+      { who: '🏥', name: '보건소 · 박지훈 주무관', text: '문제는 의사 선생님이 한 분뿐이라 모든 검진자를 일일이 깊게 못 본다는 거예요. <b>위험해 보이는 분들을 미리 골라서</b> 정밀검사를 먼저 안내할 수 있다면, 큰 병을 일찍 잡을 수 있을 텐데요.' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '과거 검진 기록에 의사 선생님의 판정(정답)이 달려 있으니, 그 패턴을 배울 수 있겠네요. 먼저 문제를 명확하게 정의해 봅시다.' },
+    ],
+    goalQuiz: {
+      q: '주무관님을 도우려면 무엇을 예측해야 할까요?',
+      options: [
+        { id: 'risk',  label: '새 검진자가 위험군인지 아닌지', good: true,  why: '맞아요! 과거 기록(특징+의사 판정)으로 패턴을 배워, 새 검진자를 미리 분류할 수 있어요.' },
+        { id: 'when',  label: '다음 검진 예약 날짜', good: false, why: '예약 날짜는 달력과 규칙으로 정하는 일이에요. 예측할 필요가 없는 문제죠.' },
+        { id: 'where', label: '가장 가까운 병원 위치', good: false, why: '지도에서 찾으면 되는 정보예요. 검진 기록 데이터와는 관계가 없어요.' },
+      ],
+    },
+    featNote: '검진 기록에 있는 항목이에요. 위험군을 가려낼 <b>단서가 되는 항목만</b> 고르세요.',
     define: {
       mlAnswer: 'ml',
       q1: '위험군 판정 규칙을 공식 하나로 정확히 적을 수 있나요? → 나이·혈압·운동량이 얽혀 있어 딱 떨어지지 않아요.',
@@ -129,6 +186,7 @@ const MLP_LIST = [
       { key: 'bmi',      label: 'BMI',          unit: '' },
       { key: 'sbp',      label: '수축기 혈압',  unit: '' },
       { key: 'exercise', label: '주당 운동',    unit: '회' },
+      { key: 'chartNo',  label: '검진 번호',    decoy: true },
     ],
     rows: (() => {
       let s = 20260610;
@@ -137,15 +195,19 @@ const MLP_LIST = [
       for(let i = 0; i < 30; i++){   // 위험군: 나이·BMI·혈압이 대체로 높음 (정상과 일부 겹치게 — 100% 못 맞히도록)
         rows.push({
           age: Math.round(33 + rnd() * 42), bmi: Math.round((23 + rnd() * 10) * 10) / 10,
-          sbp: Math.round(118 + rnd() * 50), exercise: Math.round(rnd() * 4), risk: 1,
+          sbp: Math.round(118 + rnd() * 50), exercise: Math.round(rnd() * 4),
+          chartNo: 0, risk: 1,
         });
       }
       for(let i = 0; i < 30; i++){   // 정상 (경계 구간 겹침 포함)
         rows.push({
           age: Math.round(17 + rnd() * 48), bmi: Math.round((18.5 + rnd() * 9) * 10) / 10,
-          sbp: Math.round(102 + rnd() * 36), exercise: Math.round(rnd() * 6), risk: 0,
+          sbp: Math.round(102 + rnd() * 36), exercise: Math.round(rnd() * 6),
+          chartNo: 0, risk: 0,
         });
       }
+      // 미끼(검진 번호): 위험군/정상에 교차 배정 — 우연 상관 차단
+      mlpAssignDecoy(rows, 'risk', 'chartNo', 1003, 3333);
       return rows;
     })(),
     models: ['logistic', 'tree', 'knn'],
@@ -166,7 +228,19 @@ const MLP_LIST = [
     subtitle: '회귀 · 스포츠',
     task: 'regression',
     mlNeeded: true,
-    story: '육상부 코치가 부원들의 <b>주당 훈련 시간</b>과 <b>100m 기록(초)</b>을 기록해 뒀어요. 이 데이터로 둘 사이의 관계를 학습해서, <b>훈련 계획에 따라 기록이 얼마나 좋아질지 숫자로 예측</b>하는 것이 목표예요.',
+    brief: [
+      { who: '🏃', name: '육상부 · 최강속 코치', text: '매니저님! 우리 육상부 부원들의 <b>주당 훈련 시간</b>과 <b>100m 기록(초)</b>을 1년 동안 꼬박꼬박 기록해 뒀어요.' },
+      { who: '🏃', name: '육상부 · 최강속 코치', text: '다음 달 대회를 앞두고 훈련 계획을 짜는 중인데… <b>훈련을 몇 시간 하면 기록이 얼마나 좋아질지</b> 미리 알 수 있다면 부원별 목표를 정해주기 좋을 것 같아요. 감으로 말고, 데이터로요!' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '훈련 시간과 기록의 짝 데이터가 충분하니 둘 사이의 관계를 배울 수 있겠어요. 먼저 무엇을 예측할지 정의해 봅시다.' },
+    ],
+    goalQuiz: {
+      q: '코치님을 도우려면 무엇을 예측해야 할까요?',
+      options: [
+        { id: 'record', label: '훈련 시간에 따른 100m 기록(초)', good: true,  why: '맞아요! 기록은 연속된 숫자값이고, 훈련 시간↔기록 짝 데이터에서 관계를 배울 수 있어요.' },
+        { id: 'medal',  label: '대회에서 딸 메달의 색', good: false, why: '메달은 다른 선수들에 달린 문제라, 우리 훈련 기록 데이터만으로는 알 수 없어요.' },
+        { id: 'date',   label: '다음 대회 날짜', good: false, why: '대회 날짜는 공지문에 있는 정보예요. 예측이 필요 없는 문제죠.' },
+      ],
+    },
     define: {
       mlAnswer: 'ml',
       q1: '"훈련 1시간당 기록이 몇 초 줄어드는지"를 우리가 미리 알 수 있나요? → 아니요, 데이터를 봐야 알아요.',
@@ -209,7 +283,19 @@ const MLP_LIST = [
     subtitle: '군집 · 경영/마케팅',
     task: 'clustering',
     mlNeeded: true,
-    story: '가게 사장님에게 고객들의 <b>월 방문 횟수</b>와 <b>월 구매액</b> 데이터가 있어요. 그런데 이번엔 <u>정답(고객 유형)이 안 적혀</u> 있어요! <b>비슷한 고객끼리 그룹으로 묶어서</b>, 그룹별로 어울리는 맞춤 이벤트를 만드는 것이 목표예요.',
+    brief: [
+      { who: '🛍️', name: '분식집 · 한가득 사장님', text: '학생 매니저님들~ 우리 가게 멤버십 데이터가 좀 쌓였어요. 고객마다 <b>월 방문 횟수</b>랑 <b>월 구매액</b>이 기록돼 있죠.' },
+      { who: '🛍️', name: '분식집 · 한가득 사장님', text: '고객마다 성향이 다른 것 같은데, 전부 똑같은 쿠폰을 보내니까 효과가 별로예요. <b>비슷한 손님끼리 그룹</b>을 나눠서 그룹마다 어울리는 이벤트를 하고 싶어요. 그런데 누가 어떤 유형인지 <u>정답표는 없어요!</u>' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '정답(라벨)이 없는 데이터네요. 이런 경우엔 데이터가 스스로 그룹을 드러내게 해야 해요. 먼저 문제를 정의해 봅시다.' },
+    ],
+    goalQuiz: {
+      q: '사장님을 도우려면 무엇을 해야 할까요?',
+      options: [
+        { id: 'group', label: '비슷한 고객끼리 그룹으로 묶기', good: true,  why: '맞아요! 정답 라벨이 없으니, 비슷한 것끼리 묶는 군집(비지도학습)이 필요한 문제예요.' },
+        { id: 'sum',   label: '전체 매출 합계 구하기', good: false, why: '그건 덧셈 한 번이면 끝! 기계학습이 필요 없는 단순 계산이에요.' },
+        { id: 'top',   label: '가장 많이 온 손님 찾기', good: false, why: '정렬해서 맨 위를 보면 되는 일이에요. 학습이 필요 없죠.' },
+      ],
+    },
     define: {
       mlAnswer: 'ml',
       q1: '"단골" 기준을 사람이 임의로 정할 수도 있지만(방문 10회 이상?), 그 기준이 데이터의 진짜 모양과 맞는지는 알 수 없어요.',
@@ -258,7 +344,11 @@ const MLP_LIST = [
     subtitle: 'ML이 필요할까?',
     task: 'none',
     mlNeeded: false,
-    story: '보건 선생님이 학생들의 <b>키와 몸무게</b>로 비만도(BMI)를 자동 판정하는 프로그램을 원해요. 공식은 <b>BMI = 몸무게(kg) ÷ 키(m)²</b> 이고, 결과를 <b>저체중 / 정상 / 과체중 / 비만</b> 으로 정해진 기준에 따라 나눕니다.',
+    brief: [
+      { who: '🏫', name: '보건실 · 정다정 선생님', text: '저도 의뢰 하나 할게요! 학생들 <b>키와 몸무게</b>로 비만도(BMI)를 자동 판정해 주는 프로그램이 필요해요.' },
+      { who: '🏫', name: '보건실 · 정다정 선생님', text: '공식은 정해져 있어요. <b>BMI = 몸무게(kg) ÷ 키(m)²</b>, 그리고 결과는 <b>저체중 / 정상 / 과체중 / 비만</b> — 기준표도 보건 지침에 그대로 나와 있고요.' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '잠깐, 이번 의뢰는 뭔가 다르지 않나요? 공식과 기준이 이미 <b>완벽하게 정해져</b> 있는데… 이것도 기계학습으로 풀어야 할까요?' },
+    ],
     define: {
       mlAnswer: 'rule',
       q1: '판정 규칙을 우리가 정확히 적을 수 있나요? → 네! 공식과 기준이 이미 명확해요.',
