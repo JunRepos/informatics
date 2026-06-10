@@ -1948,6 +1948,77 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 
 /* 액션 바 */
 .ml-action-bar{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px;flex-wrap:wrap}
+
+/* ═══ 🧩 AI 프로젝트 매니저 (5차시 문제 해결) — PPT 녹색 #2E9E68 / 강조 주황 #E8740C ═══ */
+.mlp-pick-list{display:flex;flex-direction:column;gap:10px}
+.mlp-pick-card{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.mlp-pick-card:hover{border-color:#2E9E68;transform:translateY(-1px);background:linear-gradient(135deg,rgba(46,158,104,.05),var(--surface))}
+.mlp-pick-icon{font-size:30px;line-height:1}
+.mlp-pick-body{flex:1;min-width:0}
+.mlp-pick-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:999px;margin-bottom:3px}
+.mlp-pick-tag.main{background:#2E9E68;color:#fff}
+.mlp-pick-tag.ext{background:var(--accent-lt);color:var(--accent)}
+.mlp-pick-tag.trap{background:#FEF3C7;color:#92400E}
+.mlp-pick-title{font-size:15px;font-weight:700;color:var(--text)}
+.mlp-pick-sub{font-size:12px;color:var(--text3)}
+.mlp-pick-arrow{font-size:18px;color:#2E9E68;font-weight:700}
+.mlp-stepbar .ml-step.on{background:#E8740C;border-color:#E8740C;color:#fff}
+.mlp-stepbar .ml-step.done{background:#2E9E68;border-color:#2E9E68;color:#fff}
+.mlp-story-card{display:flex;gap:12px;align-items:flex-start;background:#ECF4DC;border:1px solid #cfe3b0;border-radius:10px;padding:14px 16px;margin-bottom:14px}
+[data-theme="dark"] .mlp-story-card{background:#1d2a1a;border-color:#2f4a26}
+.mlp-story-icon{font-size:30px;line-height:1}
+.mlp-story-text{font-size:13.5px;line-height:1.7;color:var(--text)}
+.mlp-choice-row{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+.mlp-choice{flex:1;min-width:160px;padding:14px;border:2px solid var(--border);border-radius:10px;background:var(--surface);font-size:14px;font-weight:700;cursor:pointer;transition:all .12s;color:var(--text)}
+.mlp-choice:hover{border-color:#2E9E68}
+.mlp-choice.on{border-color:#2E9E68;background:rgba(46,158,104,.1)}
+.mlp-feedback{margin:10px 0;padding:11px 14px;border-radius:8px;font-size:13px;line-height:1.6}
+.mlp-feedback.ok{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok-txt)}
+.mlp-feedback.rethink{background:#FEF3C7;border:1px solid #FDE68A;color:#92400E}
+[data-theme="dark"] .mlp-feedback.rethink{background:#3a2e12;border-color:#5a4a1e;color:#fde68a}
+.mlp-why{margin:12px 0 4px}
+.mlp-why-label{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+.mlp-balance{font-size:12.5px;color:var(--text2);margin-bottom:8px}
+.mlp-data-table{font-size:12.5px}
+.mlp-data-table th.mlp-th-target,.mlp-data-table td.mlp-td-target{background:rgba(46,158,104,.08);font-weight:600}
+.mlp-auto-note{margin-top:10px;font-size:12px;color:var(--text2);background:var(--surface2);padding:9px 12px;border-radius:7px;border-left:3px solid #2E9E68;line-height:1.6}
+.mlp-predict-what{font-size:14px;font-weight:700;color:#2E9E68;margin:4px 0 8px}
+.mlp-type-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.mlp-type{flex:1;min-width:130px;display:flex;flex-direction:column;gap:3px;padding:11px;border:2px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;transition:all .12s;text-align:left;color:var(--text)}
+.mlp-type:hover{border-color:#2E9E68}
+.mlp-type.on{border-color:#2E9E68;background:rgba(46,158,104,.1)}
+.mlp-type-h{font-size:13.5px;font-weight:700}
+.mlp-type small{font-size:11px;color:var(--text3)}
+.mlp-model-list{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.mlp-model-card{padding:12px 14px;border:2px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;transition:all .12s}
+.mlp-model-card:hover{border-color:#2E9E68}
+.mlp-model-card.on{border-color:#2E9E68;background:rgba(46,158,104,.08)}
+.mlp-model-h{font-size:14px;font-weight:700;color:var(--text)}
+.mlp-model-desc{font-size:12.5px;color:var(--text2);margin:3px 0 6px;line-height:1.5}
+.mlp-model-gb{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px}
+.mlp-good{color:#16803c}
+.mlp-bad{color:#b45309}
+[data-theme="dark"] .mlp-good{color:#86efac}
+[data-theme="dark"] .mlp-bad{color:#fcd34d}
+.mlp-eval-big{display:flex;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,#2E9E68,#23824f);color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:6px}
+.mlp-eval-model{font-size:16px;font-weight:700}
+.mlp-eval-acc{display:flex;flex-direction:column;align-items:flex-end}
+.mlp-eval-num{font-size:34px;font-weight:800;line-height:1}
+.mlp-eval-num small{font-size:18px}
+.mlp-eval-cap{font-size:11px;opacity:.92}
+.mlp-tree-note{background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:10px 13px;font-size:12.5px;line-height:1.6;color:#92400E;margin:8px 0}
+[data-theme="dark"] .mlp-tree-note{background:#3a2e12;border-color:#5a4a1e;color:#fde68a}
+.mlp-comp{width:100%;border-collapse:collapse;font-size:13px}
+.mlp-comp td{padding:6px 4px;border-bottom:1px solid var(--border);color:var(--text)}
+.mlp-comp tr.cur{font-weight:700}
+.mlp-acc-bar{position:relative;background:var(--surface2);border-radius:6px;height:22px;overflow:hidden;min-width:120px}
+.mlp-acc-fill{position:absolute;left:0;top:0;bottom:0;background:#2E9E68;border-radius:6px;transition:width .3s}
+.mlp-acc-bar span{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:11.5px;font-weight:700;color:var(--text)}
+.mlp-retry-hint{font-size:12px;color:var(--text2);margin:8px 0}
+.mlp-eval-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.mlp-summary{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 4px}
+.mlp-summary th{text-align:left;width:130px;padding:7px 10px;background:var(--surface2);color:var(--text2);font-weight:600;border:1px solid var(--border);white-space:nowrap}
+.mlp-summary td{padding:7px 10px;border:1px solid var(--border);color:var(--text)}
 .ml-trained-msg{flex:1;font-size:13px;color:var(--ok,#16a34a);font-weight:600}
 
 /* 테스트 화면 */

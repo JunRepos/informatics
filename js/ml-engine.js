@@ -509,3 +509,182 @@ function mlTreeRegions(node, fx, fy, x0, x1, y0, y1){
   return mlTreeRegions(node.left, fx, fy, x0, x1, y0, y1)
     .concat(mlTreeRegions(node.right, fx, fy, x0, x1, y0, y1));
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   📦 데이터셋 학습 래퍼 — 🧩 AI 프로젝트 매니저(5차시 문제 해결)
+
+   미리 탑재한 tabular 데이터를 훈련/테스트로 나눠 실제 모델을 학습 →
+   진짜 정확도/오차로 평가하는 범용 도구. row = { [featureKey]:number, [targetKey]:값 }
+   - 분류: 모델 'logistic'(이진) | 'tree' | 'knn'
+   - 회귀: 모델 'linreg' (여기선 1특징)
+   - 군집: 'kmeans' (정답 target 은 평가(순도)에만 사용)
+   비교가 공정하도록 같은 split(훈련/테스트)을 모든 모델에 동일하게 적용한다.
+═══════════════════════════════════════════════════════════════════ */
+
+// 시드 기반 셔플 (재현 가능 — 같은 시드면 같은 결과 → 정확도가 매번 흔들리지 않음)
+function mlSeededShuffle(arr, seed){
+  const a = arr.slice();
+  let s = (seed || 12345) >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; };
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 훈련/테스트 분할. ratio=훈련 비율(기본 0.7). targetKey 주면 클래스별 층화(작은 표본 쏠림 방지).
+function mlTrainTestSplit(rows, ratio, seed, targetKey){
+  ratio = ratio == null ? 0.7 : ratio;
+  if(targetKey){
+    const byCls = {};
+    rows.forEach(r => { const c = String(r[targetKey]); (byCls[c] = byCls[c] || []).push(r); });
+    const train = [], test = [];
+    let k = 0;
+    for(const c in byCls){
+      const sh = mlSeededShuffle(byCls[c], (seed || 1) + (k++ * 101));
+      const nTrain = Math.max(1, Math.round(sh.length * ratio));
+      train.push(...sh.slice(0, nTrain));
+      test.push(...sh.slice(nTrain));
+    }
+    return { train, test };
+  }
+  const sh = mlSeededShuffle(rows, seed);
+  const nTrain = Math.round(sh.length * ratio);
+  return { train: sh.slice(0, nTrain), test: sh.slice(nTrain) };
+}
+
+// 특징 정규화 통계(min-max)를 훈련행에서 계산 (kNN 거리·로지스틱 GD 안정화)
+function mlFeatureStats(rows, featureKeys){
+  const stats = {};
+  featureKeys.forEach(k => {
+    let mn = Infinity, mx = -Infinity;
+    for(const r of rows){ const v = +r[k]; if(v < mn) mn = v; if(v > mx) mx = v; }
+    stats[k] = { min: mn, max: mx, range: (mx - mn) || 1 };
+  });
+  return stats;
+}
+function mlRowToVec(row, featureKeys, stats){
+  return featureKeys.map(k => ((+row[k]) - stats[k].min) / stats[k].range);
+}
+
+// target 값을 0/1 로. posValue 주면 그 값이 1, 아니면 (1/'1'/true) 가 1.
+function _mlBin(v, posValue){
+  if(posValue != null) return String(v) === String(posValue) ? 1 : 0;
+  return (v === 1 || v === '1' || v === true) ? 1 : 0;
+}
+
+// ── 다특징 이진 로지스틱 회귀 (경사하강) ──
+//   반환 { weights, bias, stats, prob(row), predict(row), accuracy(rows), featureKeys }
+function mlLogisticFitMulti(trainRows, featureKeys, targetKey, opts){
+  opts = opts || {};
+  const posValue = opts.posValue;
+  const lr = opts.lr != null ? opts.lr : 0.5;
+  const epochs = opts.epochs || 700;
+  const stats = mlFeatureStats(trainRows, featureKeys);
+  const X = trainRows.map(r => mlRowToVec(r, featureKeys, stats));
+  const y = trainRows.map(r => _mlBin(r[targetKey], posValue));
+  const n = X.length, d = featureKeys.length;
+  const w = new Array(d).fill(0);
+  let b = 0;
+  for(let ep = 0; ep < epochs; ep++){
+    const gw = new Array(d).fill(0);
+    let gb = 0;
+    for(let i = 0; i < n; i++){
+      let z = b;
+      for(let j = 0; j < d; j++) z += w[j] * X[i][j];
+      const e = mlSigmoid(z) - y[i];
+      for(let j = 0; j < d; j++) gw[j] += e * X[i][j];
+      gb += e;
+    }
+    for(let j = 0; j < d; j++) w[j] -= lr * gw[j] / n;
+    b -= lr * gb / n;
+  }
+  const prob = row => {
+    const v = mlRowToVec(row, featureKeys, stats);
+    let z = b;
+    for(let j = 0; j < d; j++) z += w[j] * v[j];
+    return mlSigmoid(z);
+  };
+  const predict = row => (prob(row) >= 0.5 ? 1 : 0);
+  const accuracy = rows => {
+    if(!rows.length) return 0;
+    let ok = 0;
+    for(const r of rows) if(predict(r) === _mlBin(r[targetKey], posValue)) ok++;
+    return ok / rows.length;
+  };
+  return { weights: w, bias: b, stats, prob, predict, accuracy, featureKeys };
+}
+
+// ── kNN 분류 정확도 (훈련행으로 학습, 평가행 채점, 정규화 거리) ──
+function mlKnnEval(trainRows, evalRows, featureKeys, targetKey, k){
+  k = k || 5;
+  const stats = mlFeatureStats(trainRows, featureKeys);
+  const train = trainRows.map(r => ({ vec: mlRowToVec(r, featureKeys, stats), classId: String(r[targetKey]) }));
+  if(!train.length || !evalRows.length) return 0;
+  let ok = 0;
+  for(const r of evalRows){
+    const q = mlRowToVec(r, featureKeys, stats);
+    const pred = mlKnnPredict(train, q, Math.min(k, train.length));
+    if(pred && pred.classId === String(r[targetKey])) ok++;
+  }
+  return ok / evalRows.length;
+}
+
+// row → 결정 트리 sample({ cls, [featureKey] })
+function _mlRowToTreeSample(r, featureKeys, targetKey){
+  const o = { cls: String(r[targetKey]) };
+  featureKeys.forEach(k => o[k] = +r[k]);
+  return o;
+}
+
+// ── 분류: 한 split 에서 지정 모델 학습 → 훈련/테스트 정확도 + 모델 객체 ──
+function mlClassifyEval(split, featureKeys, targetKey, modelType, opts){
+  opts = opts || {};
+  const { train, test } = split;
+  if(modelType === 'logistic'){
+    const m = mlLogisticFitMulti(train, featureKeys, targetKey, opts);
+    return { modelType, trainAcc: m.accuracy(train), testAcc: m.accuracy(test), model: m };
+  }
+  if(modelType === 'knn'){
+    const k = opts.k || 5;
+    return { modelType, trainAcc: mlKnnEval(train, train, featureKeys, targetKey, k), testAcc: mlKnnEval(train, test, featureKeys, targetKey, k), k };
+  }
+  // tree (기본)
+  const trS = train.map(r => _mlRowToTreeSample(r, featureKeys, targetKey));
+  const teS = test.map(r => _mlRowToTreeSample(r, featureKeys, targetKey));
+  const node = mlBuildTree(trS, featureKeys, { maxDepth: opts.maxDepth != null ? opts.maxDepth : 4, minLeaf: opts.minLeaf || 2 });
+  return { modelType, trainAcc: mlTreeAccuracy(node, trS), testAcc: mlTreeAccuracy(node, teS), model: node };
+}
+
+// ── 회귀(1특징): R²·MAE 평가 ──
+function mlR2(pairs, a, b){
+  if(!pairs.length) return 0;
+  const mean = pairs.reduce((s, p) => s + p[1], 0) / pairs.length;
+  let ssRes = 0, ssTot = 0;
+  for(const [x, y] of pairs){ const yhat = a * x + b; ssRes += (y - yhat) * (y - yhat); ssTot += (y - mean) * (y - mean); }
+  return ssTot === 0 ? 0 : 1 - ssRes / ssTot;
+}
+function mlRegressionEval(split, fx, ty){
+  const toPairs = rows => rows.map(r => [+r[fx], +r[ty]]);
+  const trainPairs = toPairs(split.train), testPairs = toPairs(split.test);
+  const fit = mlLinregFit(trainPairs);
+  let mae = 0;
+  for(const [x, y] of testPairs) mae += Math.abs(y - (fit.a * x + fit.b));
+  mae = testPairs.length ? mae / testPairs.length : 0;
+  return { a: fit.a, b: fit.b, r2: mlR2(testPairs, fit.a, fit.b), mae, fit, trainPairs, testPairs };
+}
+
+// ── 군집: 정규화 → K-Means 수렴 → 순도 + 2D 투영 좌표 ──
+function mlClusterEval(rows, featureKeys, k, labelKey, opts){
+  opts = opts || {};
+  const stats = mlFeatureStats(rows, featureKeys);
+  const samples = rows.map(r => ({ vec: mlRowToVec(r, featureKeys, stats), classId: labelKey != null ? String(r[labelKey]) : null }));
+  const km = mlKMeansInit(samples, k, { seed: opts.seed || 7 });
+  km.assignStep();
+  let guard = 0;
+  while(guard++ < 60){ km.updateStep(); if(!km.assignStep()) break; }
+  const purity = labelKey != null ? mlKMeansPurity(km, samples).purity : null;
+  const pts = mlProject2D(samples);   // 산점도 시각화용 (특징 수와 무관하게 2D)
+  return { assignments: km.assignments.slice(), centroids: km.centroids.map(c => Array.from(c)), purity, pts, samples, iters: km.iter, k };
+}

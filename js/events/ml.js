@@ -40,6 +40,163 @@ document.addEventListener('click', async e => {
     return;
   }
 
+  /* ─── 🧩 AI 프로젝트 매니저 (학생) ─── */
+  if(act === 'mlp-pick'){
+    const scn = mlpById(el.dataset.id);
+    if(!scn || !SEL_CLS || !ST_USER) return;
+    MLP_SEL = scn;
+    MLP_STEP = 1;
+    MLP_ANSWERS = {};
+    MLP_SUB = null;
+    MLP_SPLIT = null; MLP_RESULT = null; MLP_COMPARE = {}; MLP_REG = null; MLP_CLU = null;
+    _mlpAug = false;
+    MLP_SAVING = false;
+    if(MLP_SAVE_TIMER){ clearTimeout(MLP_SAVE_TIMER); MLP_SAVE_TIMER = null; }
+    MLP_LOADING = true;
+    render();
+    try {
+      const sub = await loadAiaSubmission(SEL_CLS.id, 'mlproj-' + scn.id, ST_USER.number);
+      MLP_SUB = sub;
+      if(sub && sub.answers) MLP_ANSWERS = { ...sub.answers };
+    } catch(err){ console.warn('[MLP] 기록 로드 실패:', err.message || err); }
+    MLP_LOADING = false;
+    render();
+    return;
+  }
+
+  if(act === 'mlp-back'){
+    MLP_SEL = null; MLP_ANSWERS = {}; MLP_SUB = null;
+    MLP_SPLIT = null; MLP_RESULT = null; MLP_COMPARE = {}; MLP_REG = null; MLP_CLU = null;
+    if(MLP_SAVE_TIMER){ clearTimeout(MLP_SAVE_TIMER); MLP_SAVE_TIMER = null; }
+    render();
+    return;
+  }
+
+  if(act === 'mlp-need'){
+    if(!MLP_SEL) return;
+    MLP_ANSWERS.need = el.dataset.need;
+    _mlpQueueSave();
+    render();
+    return;
+  }
+
+  if(act === 'mlp-step'){
+    if(!MLP_SEL) return;
+    const s = parseInt(el.dataset.s);
+    if(!isNaN(s)) MLP_STEP = s;
+    render();
+    return;
+  }
+
+  if(act === 'mlp-type'){
+    if(!MLP_SEL) return;
+    MLP_ANSWERS.typePick = el.dataset.type;
+    _mlpQueueSave();
+    render();
+    return;
+  }
+
+  if(act === 'mlp-model'){
+    if(!MLP_SEL) return;
+    MLP_ANSWERS.modelKey = el.dataset.model;
+    _mlpQueueSave();
+    render();
+    return;
+  }
+
+  if(act === 'mlp-train'){
+    if(!MLP_SEL || !MLP_ANSWERS.modelKey) return;
+    const mk = MLP_ANSWERS.modelKey;
+    toast('🧠 학습 중...', 'info');
+    setTimeout(() => {
+      try { _mlpRunModel(mk); MLP_STEP = 4; _mlpQueueSave(); }
+      catch(err){ console.error(err); toast('학습 실패: ' + (err.message || err), 'err'); }
+      render();
+    }, 500);
+    return;
+  }
+
+  if(act === 'mlp-augment'){
+    if(!MLP_SEL || !MLP_RESULT || MLP_SEL.task !== 'classification') return;
+    const cur = MLP_RESULT.modelType;
+    const before = MLP_SPLIT ? MLP_SPLIT.train.length : 0;
+    _mlpAug = !_mlpAug;                                         // 토글: 보강 ↔ 원복
+    _mlpBuildSplit();
+    Object.keys(MLP_COMPARE).forEach(mk => _mlpRunModel(mk));   // 시도한 모델 모두 재평가
+    _mlpRunModel(cur);                                          // 현재 모델을 마지막에 → MLP_RESULT 유지
+    const after = MLP_SPLIT.train.length;
+    toast(_mlpAug
+      ? `💧 훈련 데이터 ${before}명 → ${after}명! 같은 테스트로 다시 채점했어요`
+      : `훈련 데이터를 원래(${after}명)대로 되돌렸어요`, 'info');
+    render();
+    return;
+  }
+
+  if(act === 'mlp-finalize'){
+    const scn = MLP_SEL;
+    if(!scn) return;
+    if(scn.task === 'classification'){
+      if(!MLP_RESULT) return;
+      MLP_ANSWERS.finalModelKey = MLP_RESULT.modelType;
+      MLP_ANSWERS.finalAcc = MLP_RESULT.testAcc;
+      MLP_ANSWERS.runsLog = Object.keys(MLP_COMPARE).map(mk => ({ model: mk, testAcc: MLP_COMPARE[mk].testAcc }));
+    } else if(scn.task === 'regression'){
+      if(!MLP_REG) return;
+      MLP_ANSWERS.finalModelKey = 'linreg';
+      MLP_ANSWERS.finalAcc = Math.max(0, Math.min(1, MLP_REG.r2));
+    } else {
+      if(!MLP_CLU) return;
+      MLP_ANSWERS.finalModelKey = 'kmeans';
+      MLP_ANSWERS.finalAcc = MLP_CLU.purity;
+    }
+    MLP_STEP = 5;
+    _mlpQueueSave();
+    render();
+    return;
+  }
+
+  if(act === 'mlp-save'){ await _mlpSaveNow(false); return; }
+
+  if(act === 'mlp-submit'){
+    if(!SEL_CLS || !ST_USER || !MLP_SEL) return;
+    if(MLP_SAVING) return;
+    const scn = MLP_SEL;
+    const textKeys = ['needWhy', 'modelWhy', ...(scn.reflectPrompts || []).map(p => p.id)];
+    const hasAny = MLP_ANSWERS.need || textKeys.some(k => (MLP_ANSWERS[k] || '').trim());
+    if(!hasAny){ toast('아직 작성한 내용이 없어요. 판단·근거를 채운 뒤 제출해주세요.', 'err'); return; }
+    const already = !!MLP_SUB?.submittedAt;
+    if(!confirm(already ? '이미 제출했어요. 다시 제출할까요? (현재 내용으로 갱신됩니다)' : '지금까지 작성한 내용으로 제출할까요? (제출 후에도 수정 가능합니다)')) return;
+    MLP_SAVING = 'submit';
+    if(MLP_SAVE_TIMER){ clearTimeout(MLP_SAVE_TIMER); MLP_SAVE_TIMER = null; }
+    render();
+    try {
+      const saved = await saveAiaSubmission(SEL_CLS.id, 'mlproj-' + scn.id, ST_USER.number, MLP_ANSWERS, { submit: true });
+      MLP_SUB = saved;
+      toast('📤 제출했어요!', 'ok');
+    } catch(err){ console.error(err); toast('제출 실패: ' + (err.message || err), 'err'); }
+    finally { MLP_SAVING = false; render(); }
+    return;
+  }
+
+  /* ─── 🧩 AI 프로젝트 매니저 (선생님 기록 열람) ─── */
+  if(act === 'mlp-tc-pick'){
+    const scn = mlpById(el.dataset.id);
+    if(!scn || !TC_CLS) return;
+    MLP_TC_SEL = scn;
+    MLP_TC_VIEW = 'list';
+    MLP_TC_SNUM = null;
+    MLP_ALL_SUBS = {};
+    render();
+    try { MLP_ALL_SUBS = await loadAllAiaSubmissions(TC_CLS.id, 'mlproj-' + scn.id); }
+    catch(err){ console.warn('[MLP] 전체 기록 로드 실패:', err.message || err); }
+    render();
+    return;
+  }
+  if(act === 'mlp-tc-back'){ MLP_TC_SEL = null; MLP_TC_SNUM = null; MLP_ALL_SUBS = {}; render(); return; }
+  if(act === 'mlp-tc-view'){ MLP_TC_SNUM = el.dataset.snum; MLP_TC_VIEW = 'student'; render(); return; }
+  if(act === 'mlp-tc-back-list'){ MLP_TC_VIEW = 'list'; MLP_TC_SNUM = null; render(); return; }
+  if(act === 'mlp-tc-export'){ _mlpExportCSV(); return; }
+
   /* ─── 지도학습 (학생 주도 흐름) ─── */
   // Phase 1: 데이터셋 선택 → 곧장 Phase 2(라벨링 화면)
   if(act === 'ml-sup-pick'){
@@ -933,4 +1090,148 @@ function afterRenderMl(){
     ctx.lineTo(pts[n - 1][0], pts[n - 1][1]);
     ctx.stroke();
   });
+}
+
+/* ═══════════════════════════════════════
+   🧩 AI 프로젝트 매니저 — 저장/학습 헬퍼
+═══════════════════════════════════════ */
+
+let _mlpAug = false;   // 데이터 보강 여부 — 분류는 평소 훈련풀의 60%만 쓰고, 보강 시 100%
+
+function _mlpActId(){ return MLP_SEL ? 'mlproj-' + MLP_SEL.id : null; }
+
+// 시드(시나리오 id 해시) — 같은 시나리오는 항상 같은 분할 → 정확도가 흔들리지 않음
+function _mlpSeedOf(id){
+  let h = 0;
+  for(let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h || 12345;
+}
+
+// 테스트는 항상 동일(30%) — '데이터 보강'은 훈련 데이터 양만 60%→100%로 늘려
+// 같은 시험지로 공정하게 비교한다.
+function _mlpBuildSplit(){
+  const scn = MLP_SEL;
+  if(!scn || !scn.rows) return;
+  const sp = mlTrainTestSplit(scn.rows, 0.7, _mlpSeedOf(scn.id), scn.target ? scn.target.key : null);
+  if(scn.task === 'classification'){
+    const pool = mlSeededShuffle(sp.train, _mlpSeedOf(scn.id) + 999);  // 층화 블록 순서 섞기
+    const train = _mlpAug ? pool : pool.slice(0, Math.ceil(pool.length * 0.6));
+    MLP_SPLIT = { train, test: sp.test, poolSize: pool.length };
+  } else {
+    MLP_SPLIT = { train: sp.train, test: sp.test };
+  }
+}
+
+// 선택한 모델을 학습 → MLP_RESULT / MLP_COMPARE / MLP_REG / MLP_CLU 갱신
+function _mlpRunModel(modelKey){
+  const scn = MLP_SEL;
+  if(!scn) return;
+  const featureKeys = scn.features.map(f => f.key);
+  if(scn.task === 'classification'){
+    if(!MLP_SPLIT) _mlpBuildSplit();
+    const res = mlClassifyEval(MLP_SPLIT, featureKeys, scn.target.key, modelKey, { posValue: scn.target.posValue, k: 5 });
+    MLP_RESULT = res;
+    MLP_COMPARE[modelKey] = { trainAcc: res.trainAcc, testAcc: res.testAcc };
+    return;
+  }
+  if(scn.task === 'regression'){
+    if(!MLP_SPLIT) _mlpBuildSplit();
+    MLP_REG = mlRegressionEval(MLP_SPLIT, scn.regression.x, scn.regression.y);
+    MLP_RESULT = { modelType: 'linreg' };
+    return;
+  }
+  if(scn.task === 'clustering'){
+    // 군집은 분할 없이 전체 데이터로. 그룹별 평균(해석용)도 함께 계산.
+    const k = scn.cluster.k || 3;
+    const res = mlClusterEval(scn.rows, featureKeys, k, scn.cluster.labelKey, { seed: _mlpSeedOf(scn.id) });
+    const stats = Array.from({ length: k }, () => ({ n: 0, sums: featureKeys.map(() => 0) }));
+    scn.rows.forEach((r, i) => {
+      const g = res.assignments[i];
+      if(g < 0 || g >= k) return;
+      stats[g].n++;
+      featureKeys.forEach((fk, j) => stats[g].sums[j] += +r[fk]);
+    });
+    res.groupStats = stats.map(s => ({ n: s.n, means: s.sums.map(v => s.n ? v / s.n : 0) }));
+    MLP_CLU = res;
+    MLP_RESULT = { modelType: 'kmeans' };
+  }
+}
+
+async function _mlpSaveNow(silent){
+  if(!SEL_CLS || !ST_USER || !MLP_SEL) return;
+  if(MLP_SAVING) return;
+  MLP_SAVING = 'save';
+  if(!silent) render();
+  try {
+    const saved = await saveAiaSubmission(SEL_CLS.id, _mlpActId(), ST_USER.number, MLP_ANSWERS);
+    MLP_SUB = saved;
+    if(!silent) toast('💾 저장됐어요', 'ok');
+  } catch(err){
+    console.error(err);
+    if(!silent) toast('저장 실패: ' + (err.message || err), 'err');
+  } finally {
+    MLP_SAVING = false;
+    if(!silent) render();
+  }
+}
+
+function _mlpQueueSave(){
+  if(MLP_SAVE_TIMER) clearTimeout(MLP_SAVE_TIMER);
+  MLP_SAVE_TIMER = setTimeout(() => { _mlpSaveNow(true); }, 1500);
+}
+
+// 학생: 근거·성찰 textarea 입력 (debounce 자동 저장, 렌더 X → 포커스 유지)
+document.addEventListener('input', e => {
+  const el = e.target.closest('[data-action="mlp-input"]');
+  if(!el) return;
+  const fid = el.dataset.fid;
+  if(!fid || !MLP_SEL) return;
+  MLP_ANSWERS[fid] = el.value;
+  _mlpQueueSave();
+});
+
+// 선생님: 학생 기록 CSV 내보내기
+function _mlpExportCSV(){
+  if(!TC_CLS || !MLP_TC_SEL) return;
+  const scn = MLP_TC_SEL;
+  const cols = [['need', 'ML필요판단'], ['needWhy', 'ML판단근거']];
+  if(scn.mlNeeded){
+    cols.push(['typePick', '예측유형'], ['modelKey', '고른모델'], ['modelWhy', '모델선택근거'],
+      ['finalModelKey', '최종모델'], ['finalAcc', _mlpMetricLabel(scn)], ['runsLog', '시도한모델']);
+  }
+  (scn.reflectPrompts || []).forEach(p => cols.push([p.id, p.label]));
+  const header = ['학번', '이름', ...cols.map(c => c[1]), '제출시각', '마지막수정'];
+  const rows = [header];
+  for(const st of STUDENTS){
+    const sub = MLP_ALL_SUBS[st.number];
+    const a = sub?.answers || {};
+    const row = [st.number, st.name];
+    for(const [key] of cols){
+      let v = a[key];
+      if(key === 'need') v = v === 'ml' ? '기계학습' : (v === 'rule' ? '그냥프로그래밍' : '');
+      else if(key === 'typePick') v = MLP_TYPES[v] ? MLP_TYPES[v].label : '';
+      else if(key === 'modelKey' || key === 'finalModelKey') v = MLP_MODELS[v] ? MLP_MODELS[v].label : '';
+      else if(key === 'finalAcc') v = (v != null ? Math.round(v * 100) + '%' : '');
+      else if(key === 'runsLog') v = Array.isArray(v) ? v.map(r => `${MLP_MODELS[r.model]?.label || r.model} ${Math.round(r.testAcc * 100)}%`).join(' / ') : '';
+      else v = v || '';
+      row.push(v);
+    }
+    row.push(sub?.submittedAt ? fmtDt(sub.submittedAt) : '');
+    row.push(sub?.updatedAt ? fmtDt(sub.updatedAt) : '');
+    rows.push(row);
+  }
+  const csv = '﻿' + rows.map(r => r.map(cell => {
+    const s = String(cell ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a2 = document.createElement('a');
+  a2.href = url;
+  a2.download = `AI프로젝트_${scn.id}_${TC_CLS.id}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a2);
+  a2.click();
+  document.body.removeChild(a2);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('CSV 내보내기 완료', 'ok');
 }

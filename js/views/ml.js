@@ -9,8 +9,11 @@
    학생 — 🤖 기계학습 체험 탭
 ═══════════════════════════════════════ */
 
-// 상위 그룹(유형/모델) → 하위 탭 정의
+// 상위 그룹(문제 해결/유형/모델) → 하위 탭 정의
 const ML_GROUPS = {
+  project: { label: '🧩 문제 해결', tabs: [
+    { t: 'project', label: '🧩 AI 프로젝트 매니저' },
+  ] },
   type:  { label: '기계학습 유형', tabs: [
     { t: 'supervised',   label: '📚 지도학습' },
     { t: 'unsupervised', label: '🔍 비지도학습' },
@@ -43,7 +46,8 @@ function vStMl(){
   ).join('')}</div>`;
 
   let body = '';
-  if     (ML_TAB === 'supervised')   body = _vStMlSupervised();
+  if     (ML_TAB === 'project')      body = _vStMlProject();
+  else if(ML_TAB === 'supervised')   body = _vStMlSupervised();
   else if(ML_TAB === 'linreg')       body = _vStMlLinreg();
   else if(ML_TAB === 'logistic')     body = _vStMlLogistic();
   else if(ML_TAB === 'dtree')        body = _vStMlDtree();
@@ -1405,11 +1409,398 @@ function _vStMlReinforce(){
 }
 
 /* ═══════════════════════════════════════
+   🧩 AI 프로젝트 매니저 (5차시: 기계학습으로 문제 해결)
+   문제 정의 → 데이터 → 모델 선정·학습 → 평가 → 성찰. ③④는 진짜 모델 실행.
+   정의는 ml-project-data.js (MLP_LIST), 저장은 aiactivity 노드 재사용.
+═══════════════════════════════════════ */
+
+function _vStMlProject(){
+  if(!MLP_SEL) return _vStMlpPick();
+  const scn = MLP_SEL;
+  if(MLP_LOADING){
+    return `<div class="back-btn" data-action="mlp-back">← 문제 목록으로</div>
+      <div class="section"><div class="ml-sub-explain">⏳ 내 기록을 불러오는 중…</div></div>`;
+  }
+  const bar = _mlpStepBar(MLP_STEP, scn);
+  let body;
+  if(scn.task === 'none'){                       // 함정: 정의 → 마무리
+    body = MLP_STEP <= 1 ? _vStMlpDefine() : _vStMlpReflect();
+  } else if(MLP_STEP === 1) body = _vStMlpDefine();
+  else if(MLP_STEP === 2) body = _vStMlpData();
+  else if(MLP_STEP === 3) body = _vStMlpModel();
+  else if(MLP_STEP === 4) body = _vStMlpEval();
+  else body = _vStMlpReflect();
+  return `<div class="back-btn" data-action="mlp-back">← 문제 목록으로</div>${bar}${body}`;
+}
+
+/* 문제 선택 */
+function _vStMlpPick(){
+  const cards = MLP_LIST.map(m => {
+    const tagCls = m.tag === '메인' ? 'main' : (m.tag === '함정' ? 'trap' : 'ext');
+    return `<div class="mlp-pick-card click" data-action="mlp-pick" data-id="${esc(m.id)}">
+      <div class="mlp-pick-icon">${m.icon}</div>
+      <div class="mlp-pick-body">
+        <span class="mlp-pick-tag ${tagCls}">${esc(m.tag)}</span>
+        <div class="mlp-pick-title">${esc(m.title)}</div>
+        <div class="mlp-pick-sub">${esc(m.subtitle || '')}</div>
+      </div>
+      <div class="mlp-pick-arrow">→</div>
+    </div>`;
+  }).join('');
+  return `<div class="section">
+    <div class="ml-intro">
+      여러분이 <b>🧩 AI 프로젝트 매니저</b>가 되어 문제를 <u>기계학습으로 해결</u>해봐요!
+      <b>① 문제 정의 → ② 데이터 → ③ 모델 선정·학습 → ④ 평가</b> 4단계를 직접 결정하고,
+      진짜 데이터로 모델을 돌려 <b>진짜 정확도</b>를 확인합니다.
+    </div>
+    <div class="sec-title">어떤 문제에 도전할까요?</div>
+    <div class="mlp-pick-list">${cards}</div>
+  </div>`;
+}
+
+function _mlpStepBar(cur, scn){
+  const steps = (scn && !scn.mlNeeded)
+    ? ['1. 문제 정의', '2. 마무리']
+    : ['1. 문제 정의', '2. 데이터', '3. 모델 선정·학습', '4. 평가', '5. 성찰'];
+  const idx = cur - 1;
+  return `<div class="ml-stepbar mlp-stepbar">${steps.map((s, i) => {
+    const c = i === idx ? 'on' : (i < idx ? 'done' : '');
+    return `<div class="ml-step ${c}">${s}</div>`;
+  }).join('')}</div>`;
+}
+
+function _mlpFeatLabel(scn, key){
+  const f = (scn.features || []).find(f => f.key === key);
+  return f ? f.label : key;
+}
+
+/* ① 문제 정의 — ML이 필요한 문제인가? */
+function _vStMlpDefine(){
+  const scn = MLP_SEL, d = scn.define;
+  const chosen = MLP_ANSWERS.need;
+  let feedback = '';
+  if(chosen){
+    const correct = chosen === d.mlAnswer;
+    const msg = chosen === 'ml' ? d.feedbackMl : d.feedbackRule;
+    feedback = `<div class="mlp-feedback ${correct ? 'ok' : 'rethink'}">${correct ? '✅' : '🤔'} ${msg}</div>`;
+  }
+  const canNext = chosen === d.mlAnswer;
+  const nextLabel = scn.mlNeeded ? '데이터 살펴보기' : '마무리하기';
+  return `<div class="section">
+    <div class="mlp-story-card">
+      <div class="mlp-story-icon">${scn.icon}</div>
+      <div class="mlp-story-text">${scn.story}</div>
+    </div>
+    <div class="sec-title">① 이 문제, 기계학습이 필요할까요?</div>
+    <div class="ml-sub-explain">💡 판단 힌트<br>· ${d.q1}<br>· ${d.q2}</div>
+    <div class="mlp-choice-row">
+      <button class="mlp-choice ${chosen === 'ml' ? 'on' : ''}" data-action="mlp-need" data-need="ml">🤖 기계학습으로 풀기</button>
+      <button class="mlp-choice ${chosen === 'rule' ? 'on' : ''}" data-action="mlp-need" data-need="rule">⌨️ 그냥 프로그래밍으로 풀기</button>
+    </div>
+    ${feedback}
+    <div class="mlp-why">
+      <div class="mlp-why-label">📝 왜 그렇게 판단했나요? (근거)</div>
+      <textarea class="aia-field-area" data-action="mlp-input" data-fid="needWhy" rows="3" placeholder="내 생각을 적어보세요.">${esc(MLP_ANSWERS.needWhy || '')}</textarea>
+    </div>
+  </div>
+  <div class="ml-action-bar">
+    ${canNext
+      ? `<button class="btn-p" data-action="mlp-step" data-s="2">다음: ${nextLabel} →</button>`
+      : '<div class="ml-train-hint">문제에 맞는 판단을 골라보세요.</div>'}
+  </div>`;
+}
+
+/* ② 데이터 살펴보기 (전처리는 자동) — 분류/회귀/군집 공용 */
+function _vStMlpData(){
+  const scn = MLP_SEL;
+  const feats = scn.features || [];
+  // 마지막 열: 분류=정답 라벨 / 회귀=예측할 숫자 / 군집=없음
+  let lastHead = '', explain, balance;
+  if(scn.task === 'classification'){
+    lastHead = `<th class="mlp-th-target">${esc(scn.target.posLabel)}?</th>`;
+    explain = '한 줄이 <b>한 사람(샘플)</b>, 각 칸이 <b>특징</b>, 맨 오른쪽이 <b>정답</b>이에요.';
+    const pos = scn.rows.filter(r => _mlBin(r[scn.target.key], scn.target.posValue)).length;
+    balance = `전체 <b>${scn.rows.length}</b>명 · ${esc(scn.target.posLabel)} ${pos}명 · ${esc(scn.target.negLabel)} ${scn.rows.length - pos}명`;
+  } else if(scn.task === 'regression'){
+    const rg = scn.regression;
+    lastHead = `<th class="mlp-th-target">${esc(rg.yLabel)}(${esc(rg.yUnit)})</th>`;
+    explain = '한 줄이 <b>한 사람(샘플)</b>, 맨 오른쪽이 <b>예측할 숫자(정답)</b>예요.';
+    balance = `전체 <b>${scn.rows.length}</b>명`;
+  } else {
+    explain = '한 줄이 <b>한 명의 고객(샘플)</b>이에요. 이번엔 <b>정답(라벨) 열이 없어요!</b> 비슷한 것끼리 스스로 묶어야 해요.';
+    balance = `전체 <b>${scn.rows.length}</b>명 · <b style="color:#E8740C">정답 없음</b>`;
+  }
+  const head = feats.map(f => `<th>${esc(f.label)}</th>`).join('') + lastHead;
+  const sample = (scn.rows || []).slice(0, 8).map(r => {
+    const tds = feats.map(f => `<td>${esc(mlpFmtFeat(f, r[f.key]))}</td>`).join('');
+    let tail = '';
+    if(scn.task === 'classification'){
+      tail = `<td class="mlp-td-target">${_mlBin(r[scn.target.key], scn.target.posValue)
+        ? '<b style="color:var(--ok)">' + esc(scn.target.posLabel) + '</b>'
+        : esc(scn.target.negLabel)}</td>`;
+    } else if(scn.task === 'regression'){
+      tail = `<td class="mlp-td-target"><b>${esc(String(r[scn.regression.y]))}</b></td>`;
+    }
+    return `<tr>${tds}${tail}</tr>`;
+  }).join('');
+  return `<div class="section">
+    <div class="sec-title">② 데이터 살펴보기</div>
+    <div class="ml-sub-explain">모델이 학습할 데이터예요. ${explain}</div>
+    <div class="mlp-balance">${balance}</div>
+    <div style="overflow-x:auto"><table class="tbl mlp-data-table"><thead><tr>${head}</tr></thead><tbody>${sample}</tbody></table></div>
+    <div class="mlp-auto-note">🧹 결측치 보정·숫자 변환 같은 <b>전처리는 자동</b>으로 해뒀어요. 데이터 모습만 확인하면 됩니다. (앞 8줄만 표시)</div>
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-sm" data-action="mlp-step" data-s="1">← 문제 정의</button>
+    <button class="btn-p" data-action="mlp-step" data-s="3">다음: 모델 선정·학습 →</button>
+  </div>`;
+}
+
+/* ③ 모델 선정·학습 — 유형 맞히기 → 모델 카드 → 학습 */
+function _vStMlpModel(){
+  const scn = MLP_SEL;
+  const typePick = MLP_ANSWERS.typePick;
+  const typeButtons = Object.keys(MLP_TYPES).map(t => {
+    const ty = MLP_TYPES[t];
+    return `<button class="mlp-type ${typePick === t ? 'on' : ''}" data-action="mlp-type" data-type="${t}">
+      <span class="mlp-type-h">${ty.icon} ${ty.label}</span><small>${esc(ty.hint)}</small></button>`;
+  }).join('');
+
+  let typeFeedback = '', modelArea = '';
+  if(typePick){
+    if(typePick === scn.typeAnswer){
+      typeFeedback = `<div class="mlp-feedback ok">✅ ${scn.typeWhy}</div>`;
+      const cards = scn.models.map(mk => {
+        const m = MLP_MODELS[mk], sel = MLP_ANSWERS.modelKey === mk;
+        return `<div class="mlp-model-card ${sel ? 'on' : ''}" data-action="mlp-model" data-model="${mk}">
+          <div class="mlp-model-h">${m.icon} ${esc(m.label)}</div>
+          <div class="mlp-model-desc">${esc(m.desc)}</div>
+          <div class="mlp-model-gb"><span class="mlp-good">👍 ${esc(m.good)}</span><span class="mlp-bad">⚠️ ${esc(m.bad)}</span></div>
+        </div>`;
+      }).join('');
+      modelArea = `<div class="sec-title" style="margin-top:14px">어떤 모델로 시작할까요?</div>
+        <div class="ml-sub-explain">여러 모델을 <b>직접 학습시켜 정확도를 비교</b>해볼 거예요. 먼저 하나 골라보세요.</div>
+        <div class="mlp-model-list">${cards}</div>
+        <div class="mlp-why">
+          <div class="mlp-why-label">📝 왜 이 모델을 골랐나요? (근거)</div>
+          <textarea class="aia-field-area" data-action="mlp-input" data-fid="modelWhy" rows="2" placeholder="이 모델을 고른 이유를 적어보세요.">${esc(MLP_ANSWERS.modelWhy || '')}</textarea>
+        </div>
+        <div class="ml-action-bar">
+          ${MLP_ANSWERS.modelKey
+            ? '<button class="btn-p" data-action="mlp-train">🧠 이 모델 학습시키기 →</button>'
+            : '<div class="ml-train-hint">모델을 하나 골라보세요.</div>'}
+        </div>`;
+    } else {
+      typeFeedback = `<div class="mlp-feedback rethink">🤔 다시 생각해볼까요? "${scn.predictWhat}"는 어떤 종류의 답인가요?</div>`;
+    }
+  }
+
+  return `<div class="section">
+    <div class="sec-title">③ 무엇을 예측하나요?</div>
+    <div class="mlp-predict-what">예측 대상 → ${scn.predictWhat}</div>
+    <div class="ml-sub-explain">이 예측은 어떤 <b>유형</b>일까요?</div>
+    <div class="mlp-type-row">${typeButtons}</div>
+    ${typeFeedback}
+    ${modelArea}
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-sm" data-action="mlp-step" data-s="2">← 데이터</button>
+  </div>`;
+}
+
+/* ④ 모델 평가 — 과제 유형별 분기 */
+function _vStMlpEval(){
+  const scn = MLP_SEL;
+  if(scn.task === 'regression') return _vStMlpEvalReg();
+  if(scn.task === 'clustering') return _vStMlpEvalClu();
+  return _vStMlpEvalCls();
+}
+
+// 평가 지표 이름 (요약표·교사 화면 공용)
+function _mlpMetricLabel(scn){
+  if(scn.task === 'regression') return 'R²(설명력)';
+  if(scn.task === 'clustering') return '군집 순도';
+  return '테스트 정확도';
+}
+
+/* ④-회귀: 직선 식 + R² + 평균 오차 */
+function _vStMlpEvalReg(){
+  const scn = MLP_SEL, R = MLP_REG;
+  if(!R){
+    return `<div class="section"><div class="ml-sub-explain">아직 학습 결과가 없어요.</div>
+      <div class="ml-action-bar"><button class="btn-p" data-action="mlp-step" data-s="3">← 모델 학습으로</button></div></div>`;
+  }
+  const cfg = scn.regression;
+  const r2Pct = (Math.max(0, R.r2) * 100).toFixed(0);
+  const eq = `${cfg.yLabel} ≈ ${R.a.toFixed(2)} × ${cfg.xLabel} ${R.b >= 0 ? '+' : '−'} ${Math.abs(R.b).toFixed(2)}`;
+  const slopeNote = R.a < 0
+    ? `${cfg.xLabel}이(가) 1${cfg.xUnit} 늘 때 ${cfg.yLabel}이(가) 약 <b>${Math.abs(R.a).toFixed(2)}${cfg.yUnit} 줄어드는</b> 관계를 학습했어요.`
+    : `${cfg.xLabel}이(가) 1${cfg.xUnit} 늘 때 ${cfg.yLabel}이(가) 약 <b>${R.a.toFixed(2)}${cfg.yUnit} 늘어나는</b> 관계를 학습했어요.`;
+  return `<div class="section">
+    <div class="sec-title">④ 모델 평가 — 진짜 성능</div>
+    <div class="mlp-eval-big">
+      <div class="mlp-eval-model">📈 선형회귀<div style="font-size:12.5px;font-weight:600;opacity:.95;margin-top:4px">${esc(eq)}</div></div>
+      <div class="mlp-eval-acc"><span class="mlp-eval-num">${r2Pct}<small>%</small></span><span class="mlp-eval-cap">테스트 데이터 설명력 (R²)</span></div>
+    </div>
+    <div class="ml-sub-explain">
+      훈련에 안 쓴 <b>테스트 데이터</b>에서, 직선이 변화를 얼마나 잘 설명하는지(R²) 본 점수예요.<br>
+      평균 오차(MAE): 예측이 실제 기록에서 평균 <b>±${R.mae.toFixed(2)}${esc(cfg.yUnit)}</b> 벗어나요.<br>
+      💡 ${slopeNote}
+    </div>
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-sm" data-action="mlp-step" data-s="3">← 모델 선정으로</button>
+    <button class="btn-p" data-action="mlp-finalize">✅ 이 모델로 결정하고 성찰하기 →</button>
+  </div>`;
+}
+
+/* ④-군집: 그룹별 평균 + 순도 */
+function _vStMlpEvalClu(){
+  const scn = MLP_SEL, C = MLP_CLU;
+  if(!C){
+    return `<div class="section"><div class="ml-sub-explain">아직 학습 결과가 없어요.</div>
+      <div class="ml-action-bar"><button class="btn-p" data-action="mlp-step" data-s="3">← 모델 학습으로</button></div></div>`;
+  }
+  const feats = scn.features;
+  const purityPct = (C.purity * 100).toFixed(0);
+  const rows = (C.groupStats || []).map((g, i) => `<tr>
+    <td><b>그룹 ${i + 1}</b></td><td>${g.n}명</td>
+    ${g.means.map((m, j) => `<td>${m.toFixed(1)}${esc(feats[j].unit || '')}</td>`).join('')}
+  </tr>`).join('');
+  return `<div class="section">
+    <div class="sec-title">④ 모델 평가 — 묶인 결과</div>
+    <div class="mlp-eval-big">
+      <div class="mlp-eval-model">🎯 k-평균 (k=${C.k})</div>
+      <div class="mlp-eval-acc"><span class="mlp-eval-num">${purityPct}<small>%</small></span><span class="mlp-eval-cap">숨겨둔 실제 유형과의 일치율(순도)</span></div>
+    </div>
+    <div class="ml-sub-explain">모델은 <b>정답 없이</b> 비슷한 고객끼리 묶었어요. 검증을 위해 데이터에 숨겨둔 실제 유형과 비교해보니 ${purityPct}% 일치했네요. (${C.iters}회 반복 만에 수렴)</div>
+    <div class="sec-title" style="margin-top:12px">그룹별 평균 — 어떤 손님들일까요?</div>
+    <table class="mlp-summary"><thead><tr><th></th><th>인원</th>${feats.map(f => `<th>평균 ${esc(f.label)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
+    <div class="mlp-retry-hint">💡 각 그룹의 평균을 보고 "이 그룹은 어떤 손님들일까?" 생각해보세요 — 성찰 단계에서 이름을 붙여볼 거예요.</div>
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-sm" data-action="mlp-step" data-s="3">← 모델 선정으로</button>
+    <button class="btn-p" data-action="mlp-finalize">✅ 결과를 확인했어요 — 성찰하기 →</button>
+  </div>`;
+}
+
+/* ④-분류: 진짜 정확도 + 모델 비교 + 시행착오 */
+function _vStMlpEvalCls(){
+  const scn = MLP_SEL, res = MLP_RESULT;
+  if(!res){
+    return `<div class="section"><div class="ml-sub-explain">아직 학습 결과가 없어요.</div>
+      <div class="ml-action-bar"><button class="btn-p" data-action="mlp-step" data-s="3">← 모델 학습으로</button></div></div>`;
+  }
+  const accPct = (res.testAcc * 100).toFixed(0);
+  const trainPct = (res.trainAcc * 100).toFixed(0);
+  const overfit = res.trainAcc - res.testAcc > 0.18;
+  const curModel = MLP_MODELS[res.modelType];
+
+  const compRows = scn.models.filter(mk => MLP_COMPARE[mk]).map(mk => {
+    const c = MLP_COMPARE[mk], m = MLP_MODELS[mk], cur = mk === res.modelType;
+    return `<tr class="${cur ? 'cur' : ''}">
+      <td>${m.icon} ${esc(m.label)}${cur ? ' ◀' : ''}</td>
+      <td><div class="mlp-acc-bar"><div class="mlp-acc-fill" style="width:${(c.testAcc * 100).toFixed(0)}%"></div><span>${(c.testAcc * 100).toFixed(0)}%</span></div></td>
+    </tr>`;
+  }).join('');
+  const untried = scn.models.filter(mk => !MLP_COMPARE[mk]);
+
+  let treeNote = '';
+  if(res.modelType === 'tree' && res.model && res.model.feature){
+    treeNote = `<div class="mlp-tree-note">🌳 이 트리가 <b>가장 먼저 본 특징</b>은 <b>"${esc(_mlpFeatLabel(scn, res.model.feature))}"</b> — 모델이 예측에 가장 중요하게 여긴 특징이에요. <i>왜 하필 이 특징일까요?</i></div>`;
+  }
+
+  return `<div class="section">
+    <div class="sec-title">④ 모델 평가 — 진짜 정확도</div>
+    <div class="mlp-eval-big">
+      <div class="mlp-eval-model">${curModel.icon} ${esc(curModel.label)}</div>
+      <div class="mlp-eval-acc"><span class="mlp-eval-num">${accPct}<small>%</small></span><span class="mlp-eval-cap">처음 보는 테스트 데이터 정확도</span></div>
+    </div>
+    <div class="ml-sub-explain">훈련에 안 쓴 <b>테스트 데이터</b>로 채점한 진짜 점수예요.
+      (훈련 ${MLP_SPLIT ? MLP_SPLIT.train.length : '?'}명으로 배우고 → 테스트 ${MLP_SPLIT ? MLP_SPLIT.test.length : '?'}명으로 채점 · 훈련 데이터 정확도 ${trainPct}%)
+      ${overfit ? '<br>⚠️ 훈련 점수가 테스트보다 많이 높아요 — 훈련 데이터에 너무 맞춘 <b>과적합</b> 신호!' : ''}</div>
+    ${treeNote}
+    <div class="sec-title" style="margin-top:14px">모델 비교 (테스트 정확도)</div>
+    <table class="mlp-comp"><tbody>${compRows}</tbody></table>
+    <div class="mlp-retry-hint">${untried.length
+      ? '아직 안 써본 모델: ' + untried.map(mk => MLP_MODELS[mk].icon + ' ' + MLP_MODELS[mk].label).join(', ') + ' — 다른 모델도 학습해 비교해보세요!'
+      : '세 모델을 모두 비교했어요! 👏 어떤 모델이 가장 좋았나요?'}</div>
+    <div class="mlp-eval-actions">
+      <button class="btn-sm" data-action="mlp-step" data-s="3">🔁 다른 모델 학습하기</button>
+      <button class="btn-sm" data-action="mlp-augment">${typeof _mlpAug !== 'undefined' && _mlpAug ? '↩ 훈련 데이터 원래대로' : '💧 훈련 데이터 더 늘려보기'}</button>
+    </div>
+  </div>
+  <div class="ml-action-bar">
+    <button class="btn-p" data-action="mlp-finalize">✅ 이 모델로 결정하고 성찰하기 →</button>
+  </div>`;
+}
+
+/* ⑤ 정리 & 성찰 (함정은 마무리 성찰) */
+function _vStMlpReflect(){
+  const scn = MLP_SEL, A = MLP_ANSWERS;
+  if(!scn.mlNeeded){
+    const p = scn.reflectPrompts[0];
+    return `<div class="section">
+      <div class="mlp-feedback ok" style="font-size:14px">🎯 ${scn.trapWhy}</div>
+      <div class="mlp-why">
+        <div class="mlp-why-label">${p.icon} ${esc(p.label)}</div>
+        <textarea class="aia-field-area" data-action="mlp-input" data-fid="${esc(p.id)}" rows="${p.rows}" placeholder="${esc(p.placeholder)}">${esc(A[p.id] || '')}</textarea>
+      </div>
+      ${_mlpSubmitBar()}
+    </div>`;
+  }
+  const fm = MLP_MODELS[A.finalModelKey || A.modelKey];
+  const ty = MLP_TYPES[A.typePick];
+  const summary = `<table class="mlp-summary"><tbody>
+    <tr><th>문제</th><td>${esc(scn.title)}</td></tr>
+    <tr><th>ML 필요?</th><td>${A.need === 'ml' ? '✅ 필요 (데이터로 학습)' : '규칙으로 충분'}</td></tr>
+    <tr><th>예측 유형</th><td>${ty ? ty.icon + ' ' + ty.label : '–'}</td></tr>
+    <tr><th>고른 모델</th><td>${fm ? fm.icon + ' ' + esc(fm.label) : '–'}</td></tr>
+    <tr><th>${_mlpMetricLabel(scn)}</th><td><b>${A.finalAcc != null ? (A.finalAcc * 100).toFixed(0) + '%' : '–'}</b></td></tr>
+  </tbody></table>`;
+  const fields = scn.reflectPrompts.map(p => `<div class="mlp-why">
+      <div class="mlp-why-label">${p.icon} ${esc(p.label)}</div>
+      <textarea class="aia-field-area" data-action="mlp-input" data-fid="${esc(p.id)}" rows="${p.rows}" placeholder="${esc(p.placeholder)}">${esc(A[p.id] || '')}</textarea>
+    </div>`).join('');
+  return `<div class="section">
+    <div class="sec-title">⑤ 정리 & 성찰</div>
+    ${summary}
+    <div class="ml-sub-explain">아래 질문에 자유롭게 답해보세요. 같은 문제라도 <b>여러분의 근거와 성찰</b>은 저마다 달라요. (자동 저장됩니다)</div>
+    ${fields}
+    ${_mlpSubmitBar()}
+  </div>`;
+}
+
+function _mlpSubmitBar(){
+  const submitted = !!MLP_SUB?.submittedAt;
+  const updated = MLP_SUB?.updatedAt
+    ? `<span class="aia-meta">마지막 저장: ${fmtDt(MLP_SUB.updatedAt)}</span>`
+    : '<span class="aia-meta">아직 저장된 기록이 없어요</span>';
+  const saving = MLP_SAVING === 'save' ? '<span class="aia-meta saving">💾 저장 중...</span>'
+               : MLP_SAVING === 'submit' ? '<span class="aia-meta saving">📤 제출 중...</span>' : '';
+  const chip = submitted
+    ? `<span class="aia-submit-chip done">✓ 제출 완료 · ${fmtDt(MLP_SUB.submittedAt)}</span>`
+    : '<span class="aia-submit-chip pending">⏳ 아직 제출하지 않음</span>';
+  return `<div class="aia-do-statusbar" style="margin-top:6px">${chip}</div>
+    <div class="aia-do-foot">
+      ${updated}${saving}
+      <button class="btn-sm" data-action="mlp-save" ${MLP_SAVING ? 'disabled' : ''}>💾 임시 저장</button>
+      <button class="btn-p btn-sm" data-action="mlp-submit" ${MLP_SAVING ? 'disabled' : ''}>${submitted ? '🔁 다시 제출하기' : '📤 제출하기'}</button>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════
    선생님 — 🤖 기계학습 체험 관리
 ═══════════════════════════════════════ */
 
 function vTcMl(){
   if(!TC_CLS) return emptyBox('👆', '관리할 반을 먼저 선택하세요.');
+
+  // 🧩 AI 프로젝트 매니저 학생 기록 열람 모드
+  if(MLP_TC_SEL){
+    if(MLP_TC_VIEW === 'student' && MLP_TC_SNUM) return _vTcMlpStudent();
+    return _vTcMlpStudentList();
+  }
 
   const active = !!ML_ACTIVE[TC_CLS.id];
   const toggle = `<div class="asmt-phase-seg">
@@ -1465,5 +1856,108 @@ function vTcMl(){
 
     <div class="sec-title" style="margin-top:14px">제공되는 데이터셋 (각 3종)</div>
     <div class="ml-tc-ds-list">${datasets}</div>
+  </div>` + _vTcMlpRecordsSection();
+}
+
+/* ─── 선생님: 🧩 AI 프로젝트 매니저 학생 기록 ─── */
+function _vTcMlpRecordsSection(){
+  const cards = MLP_LIST.map(m => {
+    const tagCls = m.tag === '메인' ? 'main' : (m.tag === '함정' ? 'trap' : 'ext');
+    return `<div class="aia-card click" data-action="mlp-tc-pick" data-id="${esc(m.id)}">
+      <div class="aia-card-icon">${m.icon}</div>
+      <div class="aia-card-body">
+        <div class="aia-card-sub"><span class="mlp-pick-tag ${tagCls}">${esc(m.tag)}</span> ${esc(m.subtitle || '')}</div>
+        <div class="aia-card-title">${esc(m.title)}</div>
+      </div>
+      <div class="aia-card-arrow">→</div>
+    </div>`;
+  }).join('');
+  return `<div class="section">
+    <div class="sec-title">🧩 AI 프로젝트 매니저 — 학생 기록</div>
+    <div class="ml-sub-explain">5차시 "기계학습으로 문제 해결" 활동. 학생들의 <b>판단·근거·성찰</b>을 시나리오별로 확인하고 CSV로 내보내요. (세특 작성 재료)<br>※ 학생에게 보이려면 위 <b>🤖 기계학습 체험 탭</b>을 <b>열기</b>로 켜야 합니다.</div>
+    <div class="aia-list">${cards}</div>
   </div>`;
+}
+
+function _vTcMlpStudentList(){
+  const scn = MLP_TC_SEL;
+  const subs = MLP_ALL_SUBS || {};
+  const rows = STUDENTS.map(st => {
+    const sub = subs[st.number];
+    const a = sub?.answers || {};
+    const submitted = !!sub?.submittedAt;
+    let result = '<span style="color:var(--text3)">–</span>';
+    if(sub){
+      if(!scn.mlNeeded) result = a.need === 'rule' ? '✅ ML 불필요로 판단' : (a.need ? '🤔 ML 선택' : '진행 중');
+      else if(a.finalModelKey) result = `${MLP_MODELS[a.finalModelKey]?.icon || ''} ${MLP_MODELS[a.finalModelKey]?.label || a.finalModelKey} · <b>${(a.finalAcc * 100 || 0).toFixed(0)}%</b>`;
+      else result = '진행 중';
+    }
+    return `<tr>
+      <td>${esc(st.number)}</td><td>${esc(st.name)}</td>
+      <td>${result}</td>
+      <td>${submitted
+        ? `<span class="aia-submit-chip done">✓ 제출</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${fmtDt(sub.submittedAt)}</div>`
+        : (sub ? '<span class="aia-submit-chip pending">⏳ 미제출</span>' : '<span style="color:var(--text3)">–</span>')}</td>
+      <td>${sub?.updatedAt ? fmtDt(sub.updatedAt) : '<span style="color:var(--text3)">미작성</span>'}</td>
+      <td><button class="btn-xs" data-action="mlp-tc-view" data-snum="${esc(st.number)}" ${sub ? '' : 'disabled'}>보기</button></td>
+    </tr>`;
+  }).join('');
+  const writtenCount = STUDENTS.filter(st => subs[st.number]?.updatedAt).length;
+  const submittedCount = STUDENTS.filter(st => subs[st.number]?.submittedAt).length;
+  return `<div class="aia-tc-head">
+    <button class="btn-sm" data-action="mlp-tc-back">← 시나리오 선택</button>
+    <div class="aia-tc-head-title">${scn.icon} ${esc(scn.title)}</div>
+    <button class="btn-sm" data-action="mlp-tc-export">📤 기록 CSV</button>
+  </div>
+  <div class="asmt-stat-grid">
+    <div class="stat-card"><div class="stat-num">${STUDENTS.length}</div><div class="stat-label">전체 학생</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#3b82f6">${writtenCount}</div><div class="stat-label">작성</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${submittedCount}</div><div class="stat-label">제출</div></div>
+  </div>
+  ${STUDENTS.length === 0
+    ? emptyBox('👥', '먼저 학생을 등록하세요.')
+    : `<div style="overflow-x:auto"><table class="tbl aia-tc-table">
+        <thead><tr><th>학번</th><th>이름</th><th>결과</th><th>제출</th><th>마지막 저장</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`}`;
+}
+
+function _vTcMlpStudent(){
+  const scn = MLP_TC_SEL, snum = MLP_TC_SNUM;
+  const st = STUDENTS.find(s => s.number === snum);
+  const sub = MLP_ALL_SUBS[snum] || null;
+  if(!st) return emptyBox('❓', `학번 ${snum} 학생을 찾을 수 없어요.`);
+  const back = `<div class="aia-tcs-header">
+    <button class="btn-sm" data-action="mlp-tc-back-list">← 학생 목록</button>
+    <div class="aia-tcs-info">
+      <span class="aia-tcs-snum">${esc(st.number)}</span>
+      <span class="aia-tcs-name">${esc(st.name)}</span>
+      ${sub?.submittedAt
+        ? `<span class="chip chip-green">✓ 제출 ${fmtDt(sub.submittedAt)}</span>`
+        : (sub ? '<span class="chip" style="background:#f59e0b;color:#fff">⏳ 미제출(작성 중)</span>' : '<span class="chip">미작성</span>')}
+    </div>
+  </div>`;
+  if(!sub) return back + emptyBox('📭', '아직 작성된 기록이 없어요.');
+  const a = sub.answers || {};
+
+  let decisions = `<tr><th>ML 필요?</th><td>${a.need === 'ml' ? '🤖 기계학습' : (a.need === 'rule' ? '⌨️ 그냥 프로그래밍' : '–')}</td></tr>`;
+  if(scn.mlNeeded){
+    decisions += `<tr><th>예측 유형</th><td>${MLP_TYPES[a.typePick] ? MLP_TYPES[a.typePick].icon + ' ' + MLP_TYPES[a.typePick].label : '–'}</td></tr>`;
+    decisions += `<tr><th>고른 모델</th><td>${MLP_MODELS[a.modelKey] ? MLP_MODELS[a.modelKey].icon + ' ' + esc(MLP_MODELS[a.modelKey].label) : '–'}</td></tr>`;
+    decisions += `<tr><th>최종 모델·정확도</th><td>${a.finalModelKey ? esc(MLP_MODELS[a.finalModelKey]?.label || a.finalModelKey) + ' · <b>' + (a.finalAcc * 100 || 0).toFixed(0) + '%</b>' : '–'}</td></tr>`;
+    if(Array.isArray(a.runsLog) && a.runsLog.length){
+      decisions += `<tr><th>시도한 모델</th><td>${a.runsLog.map(r => esc(MLP_MODELS[r.model]?.label || r.model) + ' ' + (r.testAcc * 100).toFixed(0) + '%').join(' · ')}</td></tr>`;
+    }
+  }
+
+  const textFields = [['needWhy', '📝 ML 필요 판단 근거']];
+  if(scn.mlNeeded) textFields.push(['modelWhy', '📝 모델 선택 근거']);
+  (scn.reflectPrompts || []).forEach(p => textFields.push([p.id, `${p.icon} ${p.label}`]));
+  const texts = textFields.map(([fid, label]) => {
+    const v = (a[fid] || '').trim();
+    return `<div class="aia-tcs-field"><div class="aia-tcs-label">${esc(label)}</div><pre class="aia-tcs-val${v ? '' : ' empty'}">${v ? esc(v) : '(무응답)'}</pre></div>`;
+  }).join('');
+
+  return back
+    + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">판단 · 선택</div><table class="mlp-summary"><tbody>${decisions}</tbody></table></div>`
+    + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">근거 · 성찰</div><div class="aia-tcs-fields">${texts}</div></div>`;
 }

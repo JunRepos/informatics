@@ -240,6 +240,26 @@ let ML_KM_K         = 3;          // 군집 수 (학생이 선택)
 let ML_KM_PREV      = null;       // 이동 전 중심점 좌표(정규화) — 궤적 표시
 let ML_KM_PREVA     = null;       // 배정 전 군집 배열 — 새로 바뀐 점 강조
 
+// 🧩 AI 프로젝트 매니저 (5차시 문제 해결) — 정의는 ml-project-data.js, 저장은 aiactivity 노드 재사용
+let MLP_SEL        = null;   // 선택된 시나리오 (학생 풀이 중)
+let MLP_STEP       = 1;      // 1 문제정의 · 2 데이터 · 3 모델선정·학습 · 4 평가 · 5 성찰
+let MLP_ANSWERS    = {};     // 저장 기록 { need, needWhy, typePick, modelKey, modelWhy, runsLog, finalModelKey, finalAcc, reflect… }
+let MLP_SUB        = null;   // 학생 본인 제출 캐시
+let MLP_SAVING     = null;   // null|'save'|'submit'
+let MLP_SAVE_TIMER = null;   // 자동저장 debounce
+let MLP_LOADING    = false;  // 본인 기록 로딩 중
+// 실행(전이) 상태 — 저장 안 함, 재계산. 시드 고정 split 로 모델 비교를 공정하게.
+let MLP_SPLIT      = null;   // { train, test }
+let MLP_RESULT     = null;   // 마지막 학습 결과 (분류: { modelType, trainAcc, testAcc, model })
+let MLP_COMPARE    = {};     // { [modelKey]: { trainAcc, testAcc } } 비교표 누적
+let MLP_REG        = null;   // 회귀 결과 (mlRegressionEval)
+let MLP_CLU        = null;   // 군집 결과 (mlClusterEval)
+// 선생님: 학생 기록 열람
+let MLP_TC_SEL     = null;   // 보고 있는 시나리오
+let MLP_TC_VIEW    = 'list'; // 'list'|'student'
+let MLP_TC_SNUM    = null;   // 보고 있는 학번
+let MLP_ALL_SUBS   = {};     // { [학번]: submission }
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)
