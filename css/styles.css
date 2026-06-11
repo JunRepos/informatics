@@ -2021,6 +2021,35 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .mlp-summary td{padding:7px 10px;border:1px solid var(--border);color:var(--text)}
 
 /* ── 🧩 ① 의뢰 브리핑(채팅) + 목표/단서 ── */
+/* 의뢰서 (사건 파일) */
+.mlp-dossier{border:1px solid var(--border);border-left:4px solid #2E9E68;border-radius:10px;background:var(--surface2);padding:14px 16px;margin:10px 0 14px}
+.mlp-dossier-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;color:#2E9E68;background:rgba(46,158,104,.12);border-radius:6px;padding:3px 9px;margin-bottom:9px}
+.mlp-dossier-org{font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px}
+.mlp-dossier-scene{font-size:13.5px;line-height:1.75;color:var(--text);margin-bottom:12px}
+.mlp-dossier-scene b{color:#1f6b47}
+[data-theme="dark"] .mlp-dossier-scene b{color:#8fd3b0}
+.mlp-dossier-grid{display:flex;flex-direction:column;gap:7px;border-top:1px dashed var(--border);padding-top:11px}
+.mlp-dossier-row{display:flex;gap:10px;align-items:baseline}
+.mlp-dk{flex-shrink:0;width:96px;font-size:12px;font-weight:800;color:var(--text3)}
+.mlp-dv{font-size:13px;line-height:1.6;color:var(--text)}
+.mlp-dv b{color:#E8740C}
+.mlp-chat-label{font-size:11.5px;font-weight:700;color:var(--text3);margin:2px 0 7px}
+/* 유형 고르는 길잡이 */
+.mlp-guide{border:1px solid #cfe6da;background:linear-gradient(180deg,rgba(46,158,104,.06),rgba(46,158,104,.02));border-radius:10px;padding:13px 15px;margin:4px 0 12px}
+[data-theme="dark"] .mlp-guide{border-color:#2f5a44;background:rgba(46,158,104,.07)}
+.mlp-guide-title{font-size:13.5px;font-weight:800;color:#1f6b47;margin-bottom:11px}
+[data-theme="dark"] .mlp-guide-title{color:#8fd3b0}
+.mlp-guide-step{margin-bottom:11px}
+.mlp-guide-step:last-child{margin-bottom:0}
+.mlp-guide-q{font-size:13px;font-weight:700;color:var(--text);margin-bottom:7px}
+.mlp-guide-num{display:inline-block;font-size:11px;font-weight:800;color:#fff;background:#2E9E68;border-radius:5px;padding:1px 7px;margin-right:6px}
+.mlp-guide-opt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;line-height:1.5;color:var(--text);padding:7px 11px;margin-left:8px;margin-bottom:6px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+.mlp-guide-opt:last-child{margin-bottom:0}
+.mlp-guide-arr{color:var(--text3);font-weight:800}
+.mlp-guide-ex{font-size:11px;color:var(--text3)}
+.mlp-guide-opt .t-clu{color:#7c3aed}
+.mlp-guide-opt .t-reg{color:#2563eb}
+.mlp-guide-opt .t-cls{color:#E8740C}
 .mlp-chat{display:flex;flex-direction:column;gap:10px;margin:8px 0 16px}
 .mlp-msg{display:flex;gap:9px;align-items:flex-start;max-width:92%}
 .mlp-msg.me{flex-direction:row-reverse;align-self:flex-end}

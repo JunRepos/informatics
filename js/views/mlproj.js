@@ -155,6 +155,17 @@ function _mlpStepBar(scn){
 function _vStMlpDefine(){
   const scn = MLP_SEL, A = MLP_ANSWERS, d = scn.define;
 
+  // 의뢰서 (사건 파일 — 상황을 전부 정해서 제시)
+  const dossier = scn.dossier ? `<div class="mlp-dossier">
+      <div class="mlp-dossier-tag">📋 의뢰서</div>
+      <div class="mlp-dossier-org">${scn.dossier.org}</div>
+      <div class="mlp-dossier-scene">${scn.dossier.scene}</div>
+      <div class="mlp-dossier-grid">
+        <div class="mlp-dossier-row"><span class="mlp-dk">📂 가진 데이터</span><span class="mlp-dv">${scn.dossier.data}</span></div>
+        <div class="mlp-dossier-row"><span class="mlp-dk">🎯 의뢰 내용</span><span class="mlp-dv">${scn.dossier.ask}</span></div>
+      </div>
+    </div>` : '';
+
   // 의뢰 브리핑 (채팅 카드)
   const chat = (scn.brief || []).map(m => `<div class="mlp-msg ${m.who === '🙋' ? 'me' : ''}">
       <span class="mlp-msg-ava">${m.who}</span>
@@ -184,10 +195,12 @@ function _vStMlpDefine(){
       <textarea class="aia-field-area" data-action="mlp-input" data-fid="needWhy" rows="2" placeholder="내 생각을 적어보세요.">${esc(A.needWhy || '')}</textarea>
     </div>`;
 
-  // 함정(BMI): 브리핑 + ML판단만
+  // 함정: 브리핑 + ML판단만
   if(!scn.mlNeeded){
     return `<div class="section">
       <div class="sec-title">📨 의뢰가 도착했어요</div>
+      ${dossier}
+      <div class="mlp-chat-label">💬 의뢰인과의 대화</div>
       <div class="mlp-chat">${chat}</div>
       ${needBlock}
     </div>
@@ -239,7 +252,8 @@ function _vStMlpDefine(){
       </button>`;
     }).join('');
     typeBlock = `<div class="mlp-q-head">🔬 이 문제는 어떤 <b>기계학습 유형</b>일까요? — 가설 세우기</div>
-      <div class="ml-sub-explain">${scn.predictWhat ? '우리가 하려는 것: ' + scn.predictWhat + '<br>' : ''}정답은 알려주지 않아요 — <b>가설을 세우고, 캔버스에서 직접 실험해 확인</b>합니다. (실험하다 생각이 바뀌면 돌아와서 바꿔도 돼요!)</div>
+      <div class="ml-sub-explain">${scn.predictWhat ? '우리가 하려는 것: <b>' + scn.predictWhat + '</b><br>' : ''}정답은 알려주지 않아요 — 아래 <b>길잡이</b>로 생각을 정리하고, 가설을 세운 뒤 <b>캔버스에서 직접 실험해 확인</b>합니다. (실험하다 생각이 바뀌면 돌아와서 바꿔도 돼요!)</div>
+      ${_mlpTypeGuide()}
       <div class="mlp-goal-list">${cards}</div>
       ${tPick ? `<div class="mlp-feedback ok">🧪 <b>${MLP_TYPES[tPick].label}</b> 가설을 세웠어요! 캔버스에서 ${MLP_TYPES[tPick].icon} ${MLP_TYPES[tPick].label} 모델을 학습시켜 검증해 보세요.</div>` : ''}`;
   }
@@ -248,6 +262,8 @@ function _vStMlpDefine(){
 
   return `<div class="section">
     <div class="sec-title">📨 의뢰가 도착했어요</div>
+    ${dossier}
+    <div class="mlp-chat-label">💬 의뢰인과의 대화</div>
     <div class="mlp-chat">${chat}</div>
 
     <div class="mlp-q-head">🎯 ${esc(gq.q)}</div>
@@ -263,6 +279,23 @@ function _vStMlpDefine(){
       : `<div class="ml-train-hint">${!goalDone ? '먼저 해결 목표를 골라보세요.'
         : (!featOk ? `단서를 ${featMin}개 이상 골라보세요.`
         : (chosen !== d.mlAnswer ? 'ML 필요 여부를 판단해 보세요.' : '유형 가설을 세워보세요.'))}</div>`}
+  </div>`;
+}
+
+/* 유형 고르는 길잡이 — 두 질문 의사결정 (모든 시나리오 공통) */
+function _mlpTypeGuide(){
+  return `<div class="mlp-guide">
+    <div class="mlp-guide-title">🧭 유형 고르는 길잡이 — 딱 두 가지만 물어보세요</div>
+    <div class="mlp-guide-step">
+      <div class="mlp-guide-q"><span class="mlp-guide-num">Q1</span> 맞히려는 <b>'정답'</b>이 데이터에 이미 달려 있나요?</div>
+      <div class="mlp-guide-opt no"><b>❌ 없다</b> — 정답표 없이 <b>비슷한 것끼리 묶기만</b> 한다 <span class="mlp-guide-arr">➜</span> <b class="t-clu">🧩 군집</b></div>
+      <div class="mlp-guide-opt yes"><b>✅ 있다</b> — 정답이 달린 예시 데이터가 있다 <span class="mlp-guide-arr">➜</span> 아래 <b>Q2</b>로</div>
+    </div>
+    <div class="mlp-guide-step">
+      <div class="mlp-guide-q"><span class="mlp-guide-num">Q2</span> 그 <b>정답</b>은 어떤 <b>모양</b>인가요?</div>
+      <div class="mlp-guide-opt num">🔢 끝없이 이어지는 <b>숫자</b> <span class="mlp-guide-ex">기록 13.2초 · 가격 5,000원 · 점수</span> <span class="mlp-guide-arr">➜</span> <b class="t-reg">📈 회귀</b></div>
+      <div class="mlp-guide-opt cat">🏷️ 정해진 <b>종류 중 하나</b> <span class="mlp-guide-ex">생존/사망 · 합격/불합격 · 위험군/정상</span> <span class="mlp-guide-arr">➜</span> <b class="t-cls">🏷️ 분류</b></div>
+    </div>
   </div>`;
 }
 
