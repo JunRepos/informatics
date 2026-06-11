@@ -671,6 +671,71 @@ function mlLogisticStepper(trainRows, featureKeys, targetKey, opts){
   return state;
 }
 
+// ── 다특성 선형회귀 stepper (GD, 시각화용) ──
+//   특징·타깃을 [0,1] 정규화해 학습. weights는 정규화 공간 값(상대 비교용).
+//   const st = mlLinregStepperMulti(rows, keys, 'record', {perStep:20});
+//   st.step() / st.done / st.iter / st.weights / st.trainR2 / st.predict(row) / st.r2On(rows) / st.maeOn(rows)
+function mlLinregStepperMulti(trainRows, featureKeys, targetKey, opts){
+  opts = opts || {};
+  const lr = opts.lr != null ? opts.lr : 0.4;
+  const perStep = opts.perStep || 20;
+  const maxEpochs = opts.maxEpochs || 500;
+  const stats = mlFeatureStats(trainRows, featureKeys);
+  const X = trainRows.map(r => mlRowToVec(r, featureKeys, stats));
+  let mnY = Infinity, mxY = -Infinity;
+  trainRows.forEach(r => { const v = +r[targetKey]; if(v < mnY) mnY = v; if(v > mxY) mxY = v; });
+  const ry = (mxY - mnY) || 1;
+  const y = trainRows.map(r => (+r[targetKey] - mnY) / ry);
+  const n = X.length, d = featureKeys.length;
+  const w = new Array(d).fill(0);
+  let b = y.reduce((s, v) => s + v, 0) / (n || 1);   // 평균에서 출발
+  const predNorm = v => { let z = b; for(let j = 0; j < d; j++) z += w[j] * v[j]; return z; };
+  const state = {
+    iter: 0, done: false, trainR2: 0, weights: w, featureKeys,
+    predict: row => mnY + predNorm(mlRowToVec(row, featureKeys, stats)) * ry,
+    r2On: rows => {
+      if(!rows.length) return 0;
+      const ys = rows.map(r => +r[targetKey]);
+      const my = ys.reduce((s, v) => s + v, 0) / ys.length;
+      let ssr = 0, sst = 0;
+      rows.forEach((r, i) => { const e = state.predict(r) - ys[i]; ssr += e * e; sst += (ys[i] - my) * (ys[i] - my); });
+      return sst ? 1 - ssr / sst : 0;
+    },
+    maeOn: rows => {
+      if(!rows.length) return 0;
+      let s = 0;
+      rows.forEach(r => { s += Math.abs(state.predict(r) - (+r[targetKey])); });
+      return s / rows.length;
+    },
+    step,
+  };
+  function calcTrainR2(){
+    const my = y.reduce((s, v) => s + v, 0) / (n || 1);
+    let ssr = 0, sst = 0;
+    for(let i = 0; i < n; i++){ const e = predNorm(X[i]) - y[i]; ssr += e * e; sst += (y[i] - my) * (y[i] - my); }
+    state.trainR2 = sst ? Math.max(0, 1 - ssr / sst) : 0;
+  }
+  calcTrainR2();
+  function step(){
+    if(state.done) return;
+    for(let ep = 0; ep < perStep; ep++){
+      const gw = new Array(d).fill(0);
+      let gb = 0;
+      for(let i = 0; i < n; i++){
+        const e = predNorm(X[i]) - y[i];
+        for(let j = 0; j < d; j++) gw[j] += e * X[i][j];
+        gb += e;
+      }
+      for(let j = 0; j < d; j++) w[j] -= lr * (2 / n) * gw[j];
+      b -= lr * (2 / n) * gb;
+      state.iter++;
+    }
+    calcTrainR2();
+    if(state.iter >= maxEpochs) state.done = true;
+  }
+  return state;
+}
+
 // ── kNN 분류 정확도 (훈련행으로 학습, 평가행 채점, 정규화 거리) ──
 function mlKnnEval(trainRows, evalRows, featureKeys, targetKey, k){
   k = k || 5;

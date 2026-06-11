@@ -36,6 +36,7 @@ function _mlpCvInit(){
 // 학습 결과 초기화 (단서/보강 변경 시)
 function _mlpResetTrained(){
   MLP_COMPARE = {}; MLP_REG = null; MLP_CLU = null; MLP_PRED = null; MLP_FIT = {};
+  MLP_MISMATCH = null;
   _mlpAnimStop();
 }
 
@@ -44,23 +45,25 @@ function _mlpAnimStop(){
   MLP_ANIM = null;
 }
 
-// 연결 규칙 — {ok, msg}
+// 연결 규칙 — {ok, msg}. 모델은 유형이 안 맞아도 연결·실험 가능 (실패 체험)
 function _mlpTryLink(from, to){
-  const scn = MLP_SEL, models = _mlpModelIds(scn.task);
+  const scn = MLP_SEL, allModels = _mlpAllModelIds();
   const key = from + '>' + to;
   if(MLP_CV.edges.includes(key)) return { ok: false, msg: '이미 연결돼 있어요!' };
   if(from === 'data'){
     if(to === 'split') return { ok: true };
-    if(scn.task === 'clustering' && to === 'kmeans') return { ok: true };
-    if(models.includes(to)) return { ok: false, msg: '모델은 ✂️ 나누기에서 나온 훈련 데이터를 받아야 해요 — 시험지(테스트)를 미리 보면 안 되니까요!' };
+    if(to === 'kmeans') return { ok: true };   // k-평균은 정답이 없어 나누기 불필요 — 어디서든 데이터 직결
+    if(scn.task === 'clustering' && allModels.includes(to)) return { ok: true };
+    if(allModels.includes(to)) return { ok: false, msg: '모델은 ✂️ 나누기에서 나온 훈련 데이터를 받아야 해요 — 시험지(테스트)를 미리 보면 안 되니까요!' };
     return { ok: false, msg: '데이터는 ✂️ 나누기로 연결해요.' };
   }
   if(from === 'split'){
-    if(models.includes(to)) return { ok: true };
+    if(to === 'kmeans') return { ok: false, msg: '🎯 k-평균은 정답 없이 묶는 모델이라 훈련/테스트를 나눌 필요가 없어요 — 📁 데이터에서 바로 연결해 보세요!' };
+    if(allModels.includes(to)) return { ok: true };
     if(to === 'predict') return { ok: false, msg: '테스트 데이터는 예측 보기에 자동으로 흘러가요(점선). 모델을 연결해 주세요!' };
     return { ok: false, msg: '나누기는 훈련 데이터를 모델로 보내요.' };
   }
-  if(models.includes(from)){
+  if(allModels.includes(from)){
     if(to === 'score' || to === 'predict') return { ok: true, replace: to === 'predict' };
     if(from === 'kmeans' && to === 'groups') return { ok: true };
     return { ok: false, msg: '모델의 결과는 🧪 성적표나 🔍 예측 보기로 보내요.' };
@@ -164,19 +167,41 @@ function _mlpTrainKnn(){
   _mlpAnimRepaint();
 }
 
-// 선형회귀: 경사하강 직선 애니
+// 선형회귀: 단서 1개=경사하강 직선 애니 / 여러 개=다특성 GD(R² 곡선+가중치)
 function _mlpTrainLinreg(){
-  const scn = MLP_SEL, cfg = scn.regression;
-  const pairs = MLP_SPLIT.train.map(r => [+r[cfg.x], +r[cfg.y]]);
+  const scn = MLP_SEL, cfg = scn.regression, keys = _mlpFeatKeys();
+  if(keys.length > 1){
+    const st = mlLinregStepperMulti(MLP_SPLIT.train, keys, cfg.y, { perStep: 20, maxEpochs: 400 });
+    MLP_ANIM = { mk: 'linreg', st, pts: [[0, Math.max(0, st.trainR2)]], timer: null };
+    MLP_ANIM.timer = setInterval(() => {
+      if(_mlpGuardLeave()) return;
+      st.step();
+      MLP_ANIM.pts.push([st.iter, Math.max(0, st.trainR2)]);
+      if(st.done){
+        const pts = MLP_ANIM.pts;
+        _mlpAnimStop();
+        MLP_FIT.linreg = st; MLP_FIT.linregPts = pts;
+        MLP_REG = { multi: true, keys: st.featureKeys.slice(), r2: st.r2On(MLP_SPLIT.test), mae: st.maeOn(MLP_SPLIT.test), st };
+        render();
+        return;
+      }
+      _mlpAnimRepaint();
+    }, 200);
+    _mlpAnimRepaint();
+    return;
+  }
+  const xKey = keys[0] || cfg.x;
+  const pairs = MLP_SPLIT.train.map(r => [+r[xKey], +r[cfg.y]]);
   const gd = mlLinregGD(pairs, { perStep: 6 });
-  MLP_ANIM = { mk: 'linreg', gd, timer: null };
+  MLP_ANIM = { mk: 'linreg', gd, xKey, timer: null };
   MLP_ANIM.timer = setInterval(() => {
     if(_mlpGuardLeave()) return;
     gd.step();
     if(gd.done){
       _mlpAnimStop();
       MLP_FIT.linreg = gd;
-      MLP_REG = mlRegressionEval(MLP_SPLIT, cfg.x, cfg.y);
+      MLP_FIT.linregXKey = xKey;
+      MLP_REG = mlRegressionEval(MLP_SPLIT, xKey, cfg.y);
       render();
       return;
     }
@@ -185,9 +210,9 @@ function _mlpTrainLinreg(){
   _mlpAnimRepaint();
 }
 
-// k-평균: 중심 이동 애니
+// k-평균: 중심 이동 애니 — 학생이 고른 단서만 사용
 function _mlpTrainKmeans(){
-  const scn = MLP_SEL, keys = scn.features.map(f => f.key);
+  const scn = MLP_SEL, keys = _mlpFeatKeys();
   const stats = mlFeatureStats(scn.rows, keys);
   const samples = scn.rows.map(r => ({ vec: mlRowToVec(r, keys, stats), classId: scn.cluster.labelKey ? String(r[scn.cluster.labelKey]) : null }));
   const km = mlKMeansInit(samples, scn.cluster.k || 3, { seed: _mlpSeedOf(scn.id), init: 'center' });
@@ -221,7 +246,7 @@ function _mlpFinishKmeans(km, samples, keys){
     keys.forEach((fk, j) => stats[g].sums[j] += +r[fk]);
   });
   MLP_CLU = {
-    assignments: km.assignments.slice(), purity, k, iters: km.iter,
+    assignments: km.assignments.slice(), purity, k, iters: km.iter, keys: keys.slice(),
     groupStats: stats.map(s => ({ n: s.n, means: s.sums.map(v => s.n ? v / s.n : 0) })),
   };
   MLP_FIT.kmeans = { assignments: MLP_CLU.assignments, centroids: km.centroids.map(c => Array.from(c)) };
@@ -257,19 +282,28 @@ function _mlpAnimFinish(){
     MLP_FIT.knn = { stats, k, okN, ngN: MLP_SPLIT.test.length - okN, i: MLP_SPLIT.test.length };
     MLP_COMPARE.knn = { trainAcc: mlKnnEval(MLP_SPLIT.train, MLP_SPLIT.train, keys, scn.target.key, k), testAcc: okN / MLP_SPLIT.test.length };
   } else if(mk === 'linreg'){
-    const gd = MLP_ANIM.gd;
-    while(!gd.done) gd.step();
-    _mlpAnimStop();
-    MLP_FIT.linreg = gd;
-    MLP_REG = mlRegressionEval(MLP_SPLIT, scn.regression.x, scn.regression.y);
+    if(MLP_ANIM.st){
+      const st = MLP_ANIM.st, pts = MLP_ANIM.pts;
+      while(!st.done){ st.step(); pts.push([st.iter, Math.max(0, st.trainR2)]); }
+      _mlpAnimStop();
+      MLP_FIT.linreg = st; MLP_FIT.linregPts = pts;
+      MLP_REG = { multi: true, keys: st.featureKeys.slice(), r2: st.r2On(MLP_SPLIT.test), mae: st.maeOn(MLP_SPLIT.test), st };
+    } else {
+      const gd = MLP_ANIM.gd, xKey = MLP_ANIM.xKey || scn.regression.x;
+      while(!gd.done) gd.step();
+      _mlpAnimStop();
+      MLP_FIT.linreg = gd;
+      MLP_FIT.linregXKey = xKey;
+      MLP_REG = mlRegressionEval(MLP_SPLIT, xKey, scn.regression.y);
+    }
   } else if(mk === 'kmeans'){
     const km = MLP_ANIM.km;
     let guard = 0;
     while(guard++ < 60){ km.updateStep(); if(!km.assignStep()) break; }
-    const stats = mlFeatureStats(scn.rows, scn.features.map(f => f.key));
-    const samples = scn.rows.map(r => ({ vec: mlRowToVec(r, scn.features.map(f => f.key), stats), classId: scn.cluster.labelKey ? String(r[scn.cluster.labelKey]) : null }));
+    const stats = mlFeatureStats(scn.rows, keys);
+    const samples = scn.rows.map(r => ({ vec: mlRowToVec(r, keys, stats), classId: scn.cluster.labelKey ? String(r[scn.cluster.labelKey]) : null }));
     _mlpAnimStop();
-    _mlpFinishKmeans(km, samples, scn.features.map(f => f.key));
+    _mlpFinishKmeans(km, samples, keys);
   }
   render();
 }
@@ -301,8 +335,11 @@ function _mlpPredictRun(mk){
   if(scn.task === 'regression'){
     if(!MLP_REG) return false;
     const cfg = scn.regression;
+    const predFn = MLP_REG.multi
+      ? (row => MLP_REG.st.predict(row))
+      : (row => MLP_REG.a * (+row[MLP_FIT.linregXKey || cfg.x]) + MLP_REG.b);
     const list = MLP_SPLIT.test.map(row => {
-      const pred = MLP_REG.a * (+row[cfg.x]) + MLP_REG.b;
+      const pred = predFn(row);
       return { row, pred, err: pred - (+row[cfg.y]) };
     });
     const maeAvg = list.reduce((s, c) => s + Math.abs(c.err), 0) / (list.length || 1);
@@ -321,6 +358,60 @@ function _mlpPredictRun(mk){
   const wrong = list.filter(c => !c.ok).slice(0, 3);
   MLP_PRED = { model: mk, list, wrong, acc: list.filter(c => c.ok).length / (list.length || 1) };
   return true;
+}
+
+/* ─────────────────── 유형 불일치 실험 ───────────────────
+   안 맞는 유형의 모델을 학습시키면, 실데이터 미니 실험으로 "왜 안 되는지"를 보여준다 */
+function _mlpRunMismatch(mk){
+  const scn = MLP_SEL, m = MLP_MODELS[mk];
+  const keys = _mlpFeatKeys();
+  let info = null;
+  if(scn.task === 'classification' && m.task === 'regression'){
+    if(!MLP_SPLIT) _mlpBuildSplit();
+    const numKey = keys.find(k => { const f = scn.features.find(x => x.key === k); return f && !f.cats; }) || keys[0];
+    const f = scn.features.find(x => x.key === numKey);
+    const pairs = MLP_SPLIT.train.map(r => [+r[numKey], _mlBin(r[scn.target.key], scn.target.posValue)]);
+    const fit = mlLinregFit(pairs);
+    const samples = MLP_SPLIT.test.slice(0, 3).map(r => ({
+      feat: (f ? f.label : numKey) + ' ' + mlpFmtFeat(f || {}, r[numKey]),
+      pred: Math.max(-0.2, Math.min(1.2, fit.a * (+r[numKey]) + fit.b)).toFixed(2),
+    }));
+    info = { kind: 'cls-reg', featLabel: f ? f.label : numKey, samples };
+  } else if(scn.task === 'classification' && m.task === 'clustering'){
+    if(!MLP_SPLIT) _mlpBuildSplit();
+    const stats = mlFeatureStats(scn.rows, keys);
+    const samples = scn.rows.map(r => ({ vec: mlRowToVec(r, keys, stats), classId: null }));
+    const km = mlKMeansInit(samples, 2, { seed: _mlpSeedOf(scn.id), init: 'center' });
+    km.assignStep();
+    let guard = 0;
+    while(guard++ < 40){ km.updateStep(); if(!km.assignStep()) break; }
+    const groups = [{ n: 0, pos: 0, neg: 0 }, { n: 0, pos: 0, neg: 0 }];
+    scn.rows.forEach((r, i) => {
+      const g = km.assignments[i];
+      if(g < 0 || g > 1) return;
+      groups[g].n++;
+      if(_mlBin(r[scn.target.key], scn.target.posValue)) groups[g].pos++; else groups[g].neg++;
+    });
+    info = { kind: 'cls-clu', k: 2, groups };
+  } else if(scn.task === 'regression' && m.task === 'classification'){
+    const seen = [];
+    for(const r of scn.rows){
+      const v = r[scn.regression.y] + scn.regression.yUnit;
+      if(!seen.includes(v)) seen.push(v);
+      if(seen.length >= 5) break;
+    }
+    info = { kind: 'reg-cls', vals: seen };
+  } else if(scn.task === 'regression' && m.task === 'clustering'){
+    info = { kind: 'reg-clu' };
+  } else if(scn.task === 'clustering'){
+    info = { kind: 'clu-sup', cols: scn.features.map(f => f.label) };
+  }
+  MLP_MISMATCH = { mk, info };
+  const tries = Array.isArray(MLP_ANSWERS.misTries) ? MLP_ANSWERS.misTries.slice() : [];
+  tries.push(mk);
+  MLP_ANSWERS.misTries = tries.slice(0, 12);
+  _mlpQueueSave();
+  render();
 }
 
 /* ─────────────────── 저장 ─────────────────── */
@@ -362,7 +453,7 @@ document.addEventListener('click', async e => {
     MLP_STEP = 1;
     MLP_ANSWERS = {}; MLP_SUB = null; MLP_GOAL_TRIES = [];
     MLP_SPLIT = null; MLP_COMPARE = {}; MLP_REG = null; MLP_CLU = null; MLP_PRED = null; MLP_FIT = {};
-    MLP_CV = null; MLP_PANEL = null; MLP_LINK = null;
+    MLP_CV = null; MLP_PANEL = null; MLP_LINK = null; MLP_MISMATCH = null;
     _mlpAug = false;
     _mlpAnimStop();
     MLP_SAVING = false;
@@ -383,7 +474,7 @@ document.addEventListener('click', async e => {
     _mlpAnimStop();
     MLP_SEL = null; MLP_ANSWERS = {}; MLP_SUB = null; MLP_GOAL_TRIES = [];
     MLP_SPLIT = null; MLP_COMPARE = {}; MLP_REG = null; MLP_CLU = null; MLP_PRED = null; MLP_FIT = {};
-    MLP_CV = null; MLP_PANEL = null; MLP_LINK = null;
+    MLP_CV = null; MLP_PANEL = null; MLP_LINK = null; MLP_MISMATCH = null;
     if(MLP_SAVE_TIMER){ clearTimeout(MLP_SAVE_TIMER); MLP_SAVE_TIMER = null; }
     render();
     return;
@@ -408,7 +499,7 @@ document.addEventListener('click', async e => {
     if(arr.includes(k)) arr = arr.filter(x => x !== k);
     else arr.push(k);
     MLP_ANSWERS.featPick = arr;
-    if(_mlpTrainedCount() || MLP_REG){ _mlpResetTrained(); toast('단서가 바뀌어 학습 결과를 비웠어요 — 다시 학습해 보세요!', 'info'); }
+    if(_mlpTrainedCount() || MLP_REG || MLP_CLU){ _mlpResetTrained(); toast('단서가 바뀌어 학습 결과를 비웠어요 — 다시 학습해 보세요!', 'info'); }
     _mlpQueueSave();
     render();
     return;
@@ -417,6 +508,14 @@ document.addEventListener('click', async e => {
   if(act === 'mlp-need'){
     if(!MLP_SEL) return;
     MLP_ANSWERS.need = el.dataset.need;
+    _mlpQueueSave();
+    render();
+    return;
+  }
+
+  if(act === 'mlp-type'){
+    if(!MLP_SEL) return;
+    MLP_ANSWERS.typePick = el.dataset.t;
     _mlpQueueSave();
     render();
     return;
@@ -433,8 +532,9 @@ document.addEventListener('click', async e => {
       return;
     }
     const okGoal = !!MLP_ANSWERS.goalPick;
-    const okFeat = Array.isArray(MLP_ANSWERS.featPick) && MLP_ANSWERS.featPick.length > 0;
-    if(!okGoal || !okFeat || MLP_ANSWERS.need !== scn.define.mlAnswer) return;
+    const featMin = scn.task === 'clustering' ? 2 : 1;
+    const okFeat = Array.isArray(MLP_ANSWERS.featPick) && MLP_ANSWERS.featPick.length >= featMin;
+    if(!okGoal || !okFeat || MLP_ANSWERS.need !== scn.define.mlAnswer || !MLP_ANSWERS.typePick) return;
     MLP_STEP = 2;
     if(!MLP_CV) _mlpCvInit();
     _mlpBuildSplit();
@@ -522,8 +622,10 @@ document.addEventListener('click', async e => {
     const scn = MLP_SEL;
     if(!scn || !MLP_CV || MLP_ANIM) return;
     const mk = el.dataset.mk;
-    const connected = scn.task === 'clustering' ? _mlpHasEdge('data', mk) : _mlpHasEdge('split', mk);
+    const connected = _mlpHasEdge('split', mk) || _mlpHasEdge('data', mk);
     if(!connected){ toast('먼저 데이터를 연결해 주세요', 'err'); return; }
+    // 유형 불일치 모델 → 실패 체험 실험
+    if(MLP_MODELS[mk] && MLP_MODELS[mk].task !== scn.task){ _mlpRunMismatch(mk); return; }
     if(!MLP_SPLIT) _mlpBuildSplit();
     if(mk === 'tree'){ delete MLP_COMPARE.tree; _mlpTrainTree(); }
     else if(mk === 'logistic'){ delete MLP_COMPARE.logistic; _mlpTrainLogistic(); }
@@ -667,10 +769,11 @@ function _mlpExportCSV(){
   const scn = MLP_TC_SEL;
   const cols = [];
   if(scn.goalQuiz) cols.push(['goalPick', '해결목표']);
-  if(scn.task === 'classification') cols.push(['featPick', '고른단서']);
+  cols.push(['featPick', '고른단서']);
   cols.push(['need', 'ML필요판단'], ['needWhy', 'ML판단근거']);
   if(scn.mlNeeded){
-    cols.push(['modelWhy', '모델선택근거'], ['finalModelKey', '최종모델'],
+    cols.push(['typePick', '유형가설'], ['misTries', '불일치실험'],
+      ['modelWhy', '모델선택근거'], ['finalModelKey', '최종모델'],
       ['finalAcc', _mlpMetricLabel(scn)], ['runsLog', '시도한모델']);
   }
   (scn.reflectPrompts || []).forEach(p => cols.push([p.id, p.label]));
@@ -683,7 +786,9 @@ function _mlpExportCSV(){
     for(const [key] of cols){
       let v = a[key];
       if(key === 'goalPick') v = scn.goalQuiz ? (scn.goalQuiz.options.find(o => o.id === v)?.label || '') : '';
-      else if(key === 'featPick') v = Array.isArray(v) ? v.map(k => _mlpFeatLabel(scn, k)).join('/') : '';
+      else if(key === 'featPick') v = Array.isArray(v) ? v.map(k => _mlpFeatLabel(scn, k)).join('/') + (v.some(k => scn.features.find(f => f.key === k && f.decoy)) ? ' (미끼포함!)' : '') : '';
+      else if(key === 'typePick') v = v ? (MLP_TYPES[v]?.label || v) + (v === scn.typeAnswer ? '(O)' : '(X)') : '';
+      else if(key === 'misTries') v = Array.isArray(v) ? v.map(k => MLP_MODELS[k]?.label || k).join('/') : '';
       else if(key === 'need') v = v === 'ml' ? '기계학습' : (v === 'rule' ? '그냥프로그래밍' : '');
       else if(key === 'finalModelKey') v = MLP_MODELS[v] ? MLP_MODELS[v].label : '';
       else if(key === 'finalAcc') v = (v != null ? Math.round(v * 100) + '%' : '');

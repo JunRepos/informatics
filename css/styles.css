@@ -2054,6 +2054,11 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .mlp-pal-item{display:flex;align-items:center;gap:7px;width:100%;padding:7px 8px;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;transition:all .12s}
 .mlp-pal-item:hover:not(:disabled){border-color:#2E9E68;transform:translateY(-1px)}
 .mlp-pal-item.placed{opacity:.4;cursor:default}
+.mlp-pal-grp{font-size:10px;color:var(--text3);font-weight:700;margin:8px 0 5px;padding-top:7px;border-top:1px dashed var(--border)}
+.mlp-pal-grp b{color:#E8740C}
+.mlp-mm-samples{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.mlp-mm-chip{display:inline-block;padding:5px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);font-size:12px}
+[data-theme="dark"] .mlp-mm-chip{background:var(--surface)}
 .mlp-cvwrap{flex:1;overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
 .mlp-cv{position:relative;background:
   linear-gradient(var(--border) 1px, transparent 1px),

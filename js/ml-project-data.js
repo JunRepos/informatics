@@ -224,52 +224,73 @@ const MLP_LIST = [
     id: 'sprint',
     icon: '🏃',
     tag: '확장',
-    title: '훈련 시간으로 100m 기록 예측',
+    title: '우리 부원의 100m 기록 예측',
     subtitle: '회귀 · 스포츠',
     task: 'regression',
     mlNeeded: true,
     brief: [
-      { who: '🏃', name: '육상부 · 최강속 코치', text: '매니저님! 우리 육상부 부원들의 <b>주당 훈련 시간</b>과 <b>100m 기록(초)</b>을 1년 동안 꼬박꼬박 기록해 뒀어요.' },
-      { who: '🏃', name: '육상부 · 최강속 코치', text: '다음 달 대회를 앞두고 훈련 계획을 짜는 중인데… <b>훈련을 몇 시간 하면 기록이 얼마나 좋아질지</b> 미리 알 수 있다면 부원별 목표를 정해주기 좋을 것 같아요. 감으로 말고, 데이터로요!' },
-      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '훈련 시간과 기록의 짝 데이터가 충분하니 둘 사이의 관계를 배울 수 있겠어요. 먼저 무엇을 예측할지 정의해 봅시다.' },
+      { who: '🏃', name: '육상부 · 최강속 코치', text: '매니저님! 우리 육상부의 <b>부원 기록부</b>를 1년 동안 꼬박꼬박 써 뒀어요. 부원마다 <b>주당 훈련 시간, 하루 평균 수면, 체지방률, 부원 번호</b>… 그리고 <b>100m 기록(초)</b>까지요.' },
+      { who: '🏃', name: '육상부 · 최강속 코치', text: '다음 달 대회를 앞두고 훈련 계획을 짜는 중인데… <b>어떤 조건이면 기록이 얼마나 나올지</b> 미리 알 수 있다면 부원별 목표를 정해주기 좋을 것 같아요. 감으로 말고, 데이터로요!' },
+      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '기록부의 조건들과 기록의 짝 데이터가 충분하니 관계를 배울 수 있겠어요. 다만 <b>모든 항목이 기록과 관계있진 않을지도</b> 몰라요 — 먼저 무엇을 예측할지 정의해 봅시다.' },
     ],
     goalQuiz: {
       q: '코치님을 도우려면 무엇을 예측해야 할까요?',
       options: [
-        { id: 'record', label: '훈련 시간에 따른 100m 기록(초)', good: true,  why: '맞아요! 기록은 연속된 숫자값이고, 훈련 시간↔기록 짝 데이터에서 관계를 배울 수 있어요.' },
+        { id: 'record', label: '부원의 조건에 따른 100m 기록(초)', good: true,  why: '맞아요! 기록은 연속된 숫자값이고, 기록부의 조건↔기록 짝 데이터에서 관계를 배울 수 있어요.' },
         { id: 'medal',  label: '대회에서 딸 메달의 색', good: false, why: '메달은 다른 선수들에 달린 문제라, 우리 훈련 기록 데이터만으로는 알 수 없어요.' },
         { id: 'date',   label: '다음 대회 날짜', good: false, why: '대회 날짜는 공지문에 있는 정보예요. 예측이 필요 없는 문제죠.' },
       ],
     },
+    featNote: '기록부의 항목이에요. 기록과 관계있을 단서만 고르세요 — 단서를 더하거나 빼면서 <b>설명력(R²)이 어떻게 변하는지</b> 실험해 보세요! (부원 번호도 기록과 관계있을까요?)',
     define: {
       mlAnswer: 'ml',
       q1: '"훈련 1시간당 기록이 몇 초 줄어드는지"를 우리가 미리 알 수 있나요? → 아니요, 데이터를 봐야 알아요.',
-      q2: '훈련 시간 ↔ 기록 짝이 적힌 <b>데이터가 충분히</b> 있나요? → 네!',
-      feedbackMl: '맞아요! 관계(기울기)를 미리 알 수 없으니 <b>데이터에서 직선을 학습</b>하는 기계학습(회귀)이 적절해요.',
+      q2: '조건 ↔ 기록 짝이 적힌 <b>데이터가 충분히</b> 있나요? → 네!',
+      feedbackMl: '맞아요! 관계(기울기)를 미리 알 수 없으니 <b>데이터에서 관계를 학습</b>하는 기계학습(회귀)이 적절해요.',
       feedbackRule: '음, 훈련과 기록의 관계는 공식으로 미리 정해져 있지 않아요. 데이터에서 배워야 하니 <b>기계학습</b>이 적절해요. (다시 생각해볼까요?)',
     },
-    predictWhat: '훈련 시간에 따른 <b>100m 기록(초)</b> — 연속된 숫자',
+    predictWhat: '부원의 조건에 따른 <b>100m 기록(초)</b> — 연속된 숫자',
     typeAnswer: 'regression',
     typeWhy: '기록(13.2초, 15.8초…)은 정해진 보기가 아니라 <b>연속된 숫자값</b>이죠? 숫자를 예측하는 건 <b>회귀</b>예요.',
     regression: { x: 'train', y: 'record', xLabel: '주당 훈련 시간', xUnit: '시간', yLabel: '100m 기록', yUnit: '초' },
     features: [
       { key: 'train', label: '주당 훈련 시간', unit: '시간' },
+      { key: 'sleep', label: '하루 평균 수면', unit: '시간' },
+      { key: 'fat',   label: '체지방률',       unit: '%' },
+      { key: 'num',   label: '부원 번호',      decoy: true },
     ],
-    rows: (() => {
-      let s = 20260611;
-      const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
-      const rows = [];
-      for(let i = 0; i < 24; i++){
-        const train = Math.round((1 + rnd() * 11) * 2) / 2;             // 1~12시간 (0.5 단위)
-        const record = Math.round((17.4 - 0.33 * train + (rnd() - 0.5) * 0.9) * 100) / 100;
-        rows.push({ train, record });
-      }
-      return rows;
-    })(),
+    rows: [
+      { train: 10.5, sleep: 7.5, fat: 15.4, num: 13, record: 13.57 },
+      { train: 10.5, sleep: 6, fat: 23.3, num: 14, record: 14.6 },
+      { train: 8, sleep: 6, fat: 12.4, num: 19, record: 15.13 },
+      { train: 12, sleep: 7.5, fat: 17.9, num: 22, record: 13.66 },
+      { train: 10, sleep: 8, fat: 15.5, num: 2, record: 13.74 },
+      { train: 5, sleep: 6, fat: 18.4, num: 4, record: 16.23 },
+      { train: 7, sleep: 6.5, fat: 16.9, num: 18, record: 15.35 },
+      { train: 10.5, sleep: 5.5, fat: 13.7, num: 8, record: 14.21 },
+      { train: 7.5, sleep: 7.5, fat: 14.5, num: 16, record: 14.59 },
+      { train: 4, sleep: 5.5, fat: 14.7, num: 7, record: 16.6 },
+      { train: 9, sleep: 6, fat: 20.7, num: 25, record: 15.17 },
+      { train: 3.5, sleep: 8, fat: 23.7, num: 24, record: 16.43 },
+      { train: 6, sleep: 6.5, fat: 14.8, num: 10, record: 15.59 },
+      { train: 9.5, sleep: 8.5, fat: 19.7, num: 23, record: 14.05 },
+      { train: 3, sleep: 7.5, fat: 18, num: 21, record: 16.14 },
+      { train: 11.5, sleep: 6.5, fat: 21.5, num: 3, record: 14.18 },
+      { train: 3, sleep: 8, fat: 18.1, num: 26, record: 15.88 },
+      { train: 11, sleep: 5.5, fat: 17.7, num: 17, record: 14.4 },
+      { train: 5, sleep: 7, fat: 23, num: 11, record: 15.67 },
+      { train: 9, sleep: 7.5, fat: 20.5, num: 1, record: 14.57 },
+      { train: 8.5, sleep: 5.5, fat: 18.9, num: 6, record: 15.31 },
+      { train: 2.5, sleep: 6.5, fat: 18.5, num: 5, record: 16.65 },
+      { train: 8, sleep: 6, fat: 15.9, num: 9, record: 15.05 },
+      { train: 6.5, sleep: 6, fat: 14.9, num: 12, record: 15.6 },
+      { train: 10.5, sleep: 8, fat: 23.2, num: 20, record: 14.27 },
+      { train: 6, sleep: 6, fat: 22.2, num: 15, record: 15.77 },
+    ],
     models: ['linreg'],
     reflectPrompts: [
       { id: 'reflectLimit',  icon: '📉', label: '직선 예측의 한계',        rows: 3, placeholder: '훈련을 주 50시간 하면 기록이 0초가 될까요? 직선 예측을 어디까지 믿을 수 있을까요?' },
-      { id: 'reflectVar',    icon: '🎯', label: '직선이 못 담는 것',       rows: 3, placeholder: '훈련 시간이 같은데도 기록이 다른 이유는 뭘까요? 어떤 특징을 추가하면 좋을까요?' },
+      { id: 'reflectVar',    icon: '🎯', label: '단서 실험에서 발견한 것', rows: 3, placeholder: '단서를 더하거나 뺐을 때 설명력(R²)이 어떻게 변했나요? 도움이 된 단서와 아닌 단서는 무엇이었나요?' },
       { id: 'reflectCareer', icon: '🧭', label: '내 관심·진로와의 연결',   rows: 3, placeholder: '내 분야에서 "숫자를 예측하는 회귀"를 쓴다면 무엇을 예측하고 싶나요?' },
     ],
   },
@@ -284,7 +305,7 @@ const MLP_LIST = [
     task: 'clustering',
     mlNeeded: true,
     brief: [
-      { who: '🛍️', name: '분식집 · 한가득 사장님', text: '학생 매니저님들~ 우리 가게 멤버십 데이터가 좀 쌓였어요. 고객마다 <b>월 방문 횟수</b>랑 <b>월 구매액</b>이 기록돼 있죠.' },
+      { who: '🛍️', name: '분식집 · 한가득 사장님', text: '학생 매니저님들~ 우리 가게 멤버십 데이터가 좀 쌓였어요. 고객마다 <b>월 방문 횟수, 월 구매액, 마지막 방문 후 며칠 지났는지</b>, 그리고 <b>멤버십 번호</b>가 기록돼 있죠.' },
       { who: '🛍️', name: '분식집 · 한가득 사장님', text: '고객마다 성향이 다른 것 같은데, 전부 똑같은 쿠폰을 보내니까 효과가 별로예요. <b>비슷한 손님끼리 그룹</b>을 나눠서 그룹마다 어울리는 이벤트를 하고 싶어요. 그런데 누가 어떤 유형인지 <u>정답표는 없어요!</u>' },
       { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '정답(라벨)이 없는 데이터네요. 이런 경우엔 데이터가 스스로 그룹을 드러내게 해야 해요. 먼저 문제를 정의해 봅시다.' },
     ],
@@ -306,61 +327,60 @@ const MLP_LIST = [
     predictWhat: '정답 없이, <b>비슷한 고객끼리 그룹</b>으로 묶기',
     typeAnswer: 'clustering',
     typeWhy: '정답(라벨) 없이 비슷한 것끼리 묶는 문제 — <b>군집</b>이에요. 정답을 보고 배우는 지도학습(분류·회귀)과 다른 점이죠!',
+    featNote: '멤버십에 기록된 항목이에요. <b>어떤 단서로 묶느냐에 따라 그룹이 달라져요</b> — 멤버십 번호처럼 성향과 관계없는 항목을 섞으면 그룹이 지저분해질지도? (군집은 단서 2개 이상!)',
     cluster: { k: 3, labelKey: 'seg' },
     features: [
-      { key: 'visits', label: '월 방문 횟수', unit: '회' },
-      { key: 'spend',  label: '월 구매액',   unit: '만원' },
+      { key: 'visits',   label: '월 방문 횟수',        unit: '회' },
+      { key: 'spend',    label: '월 구매액',          unit: '만원' },
+      { key: 'recency',  label: '마지막 방문 후 경과', unit: '일' },
+      { key: 'memberNo', label: '멤버십 번호',         decoy: true },
     ],
-    rows: (() => {
-      let s = 20260612;
-      const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
-      const rows = [];
-      const mk = (n, v0, vr, p0, pr, seg) => {
-        for(let i = 0; i < n; i++) rows.push({
-          visits: Math.round(v0 + rnd() * vr),
-          spend: Math.round((p0 + rnd() * pr) * 10) / 10,
-          seg,
-        });
-      };
-      mk(12, 1, 6, 1.5, 5.5, 'a');   // 가끔 들르고 적게 구매
-      mk(12, 7, 9, 4, 8, 'b');       // 자주 오고 중간 구매 (a와 경계 겹침)
-      mk(12, 4, 7, 12, 18, 'c');     // 방문은 중간, 구매액 큼 (b와 경계 겹침)
-      return rows;
-    })(),
+    rows: [
+      { visits: 2, spend: 3.4, recency: 26, memberNo: 132, seg: 'a' },
+      { visits: 4, spend: 2.4, recency: 28, memberNo: 125, seg: 'a' },
+      { visits: 4, spend: 2, recency: 24, memberNo: 111, seg: 'a' },
+      { visits: 3, spend: 5.5, recency: 27, memberNo: 106, seg: 'a' },
+      { visits: 6, spend: 4.8, recency: 27, memberNo: 130, seg: 'a' },
+      { visits: 6, spend: 2.2, recency: 17, memberNo: 128, seg: 'a' },
+      { visits: 3, spend: 5.5, recency: 8, memberNo: 109, seg: 'a' },
+      { visits: 1, spend: 5.2, recency: 26, memberNo: 124, seg: 'a' },
+      { visits: 3, spend: 6.7, recency: 21, memberNo: 115, seg: 'a' },
+      { visits: 6, spend: 4.7, recency: 18, memberNo: 113, seg: 'a' },
+      { visits: 2, spend: 2.4, recency: 28, memberNo: 129, seg: 'a' },
+      { visits: 2, spend: 3.6, recency: 18, memberNo: 123, seg: 'a' },
+      { visits: 7, spend: 9.4, recency: 9, memberNo: 135, seg: 'b' },
+      { visits: 12, spend: 10.3, recency: 12, memberNo: 116, seg: 'b' },
+      { visits: 8, spend: 6.8, recency: 1, memberNo: 101, seg: 'b' },
+      { visits: 10, spend: 4.7, recency: 4, memberNo: 120, seg: 'b' },
+      { visits: 7, spend: 12, recency: 10, memberNo: 131, seg: 'b' },
+      { visits: 5, spend: 13, recency: 2, memberNo: 108, seg: 'b' },
+      { visits: 7, spend: 10.1, recency: 11, memberNo: 122, seg: 'b' },
+      { visits: 5, spend: 7.8, recency: 11, memberNo: 136, seg: 'b' },
+      { visits: 9, spend: 8.4, recency: 8, memberNo: 114, seg: 'b' },
+      { visits: 13, spend: 9.5, recency: 11, memberNo: 103, seg: 'b' },
+      { visits: 13, spend: 10.7, recency: 7, memberNo: 134, seg: 'b' },
+      { visits: 6, spend: 8.5, recency: 6, memberNo: 107, seg: 'b' },
+      { visits: 6, spend: 11.7, recency: 6, memberNo: 117, seg: 'c' },
+      { visits: 7, spend: 15.1, recency: 12, memberNo: 102, seg: 'c' },
+      { visits: 7, spend: 15, recency: 9, memberNo: 119, seg: 'c' },
+      { visits: 3, spend: 25.9, recency: 4, memberNo: 112, seg: 'c' },
+      { visits: 5, spend: 18.6, recency: 10, memberNo: 133, seg: 'c' },
+      { visits: 6, spend: 15.9, recency: 3, memberNo: 118, seg: 'c' },
+      { visits: 8, spend: 23.1, recency: 10, memberNo: 127, seg: 'c' },
+      { visits: 6, spend: 15.4, recency: 6, memberNo: 105, seg: 'c' },
+      { visits: 4, spend: 17.3, recency: 10, memberNo: 104, seg: 'c' },
+      { visits: 6, spend: 23.1, recency: 4, memberNo: 126, seg: 'c' },
+      { visits: 4, spend: 22.7, recency: 11, memberNo: 110, seg: 'c' },
+      { visits: 4, spend: 20.4, recency: 9, memberNo: 121, seg: 'c' },
+    ],
     models: ['kmeans'],
     reflectPrompts: [
-      { id: 'reflectName',   icon: '🏷️', label: '군집에 이름 붙이기',      rows: 3, placeholder: '세 그룹의 평균(방문·구매액)을 보고 각 그룹에 이름을 붙여보세요. 그룹별로 어떤 이벤트가 어울릴까요?' },
+      { id: 'reflectName',   icon: '🏷️', label: '군집에 이름 붙이기',      rows: 3, placeholder: '그룹별 평균을 보고 각 그룹에 이름을 붙여보세요(예: 단골·큰손·뜸한 손님). 그룹별로 어떤 이벤트가 어울릴까요?' },
       { id: 'reflectEthic',  icon: '⚖️', label: '맞춤 마케팅의 양면',      rows: 3, placeholder: '고객을 나눠 다르게 대하는 것의 좋은 점과, 조심해야 할 점(차별처럼 느껴질 수 있는 경우)은?' },
       { id: 'reflectCareer', icon: '🧭', label: '내 관심·진로와의 연결',   rows: 3, placeholder: '내 분야에서 "비슷한 것끼리 묶기(군집)"를 쓴다면 어디에 쓸 수 있을까요?' },
     ],
   },
 
-  /* ═══════ 함정: ML이 필요 없는 문제 ═══════ */
-  {
-    id: 'bmi',
-    icon: '⚖️',
-    tag: '함정',
-    title: '키·몸무게로 비만도(BMI) 판정하기',
-    subtitle: 'ML이 필요할까?',
-    task: 'none',
-    mlNeeded: false,
-    brief: [
-      { who: '🏫', name: '보건실 · 정다정 선생님', text: '저도 의뢰 하나 할게요! 학생들 <b>키와 몸무게</b>로 비만도(BMI)를 자동 판정해 주는 프로그램이 필요해요.' },
-      { who: '🏫', name: '보건실 · 정다정 선생님', text: '공식은 정해져 있어요. <b>BMI = 몸무게(kg) ÷ 키(m)²</b>, 그리고 결과는 <b>저체중 / 정상 / 과체중 / 비만</b> — 기준표도 보건 지침에 그대로 나와 있고요.' },
-      { who: '🙋', name: '나 (AI 프로젝트 매니저)', text: '잠깐, 이번 의뢰는 뭔가 다르지 않나요? 공식과 기준이 이미 <b>완벽하게 정해져</b> 있는데… 이것도 기계학습으로 풀어야 할까요?' },
-    ],
-    define: {
-      mlAnswer: 'rule',
-      q1: '판정 규칙을 우리가 정확히 적을 수 있나요? → 네! 공식과 기준이 이미 명확해요.',
-      q2: '데이터에서 패턴을 "학습"해야 하나요? → 아니요, 규칙이 확실하니 그대로 계산하면 돼요.',
-      feedbackRule: '정확해요! 👏 <b>규칙(공식·기준)이 명확하면</b> 그대로 코드로 옮기는 게 100% 정확하고 빨라요. 이건 기계학습이 아니라 <b>그냥 프로그래밍</b>이 정답이에요. (모든 문제에 ML이 필요한 건 아니에요!)',
-      feedbackMl: '잠깐 🤔 BMI는 "몸무게 ÷ 키²" 라는 <b>명확한 공식</b>과 정해진 기준이 있어요. 규칙이 분명한데 굳이 데이터로 학습할 필요가 있을까요? 이런 문제는 <b>그냥 프로그래밍</b>이 더 정확하고 간단해요.',
-    },
-    trapWhy: 'BMI는 공식과 기준이 이미 정해져 있어 규칙을 그대로 코드로 옮기면 <b>100% 정확</b>해요. 데이터로 패턴을 학습할 필요가 없으니 <b>ML이 필요 없는 문제</b>랍니다. 학습목표 ①: "ML로 풀 문제 / 그냥 프로그래밍으로 풀 문제"를 구분하기!',
-    reflectPrompts: [
-      { id: 'reflectTrap', icon: '💡', label: '왜 이 문제는 ML이 필요 없을까?', rows: 4, placeholder: '규칙이 명확한 문제와, 데이터로 학습해야 하는 문제는 무엇이 다를까요? 각각의 예를 하나씩 들어보세요.' },
-    ],
-  },
 ];
 
 function mlpById(id){ return MLP_LIST.find(m => m.id === id) || null; }

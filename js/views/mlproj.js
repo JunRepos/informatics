@@ -22,42 +22,42 @@ const MLP_W = {
   groups:   { icon: '🗂️', label: '그룹 보기' },
 };
 
+// 팔레트에는 모든 유형의 모델을 노출 — 학생이 유형 가설을 직접 실험으로 검증한다
 function _mlpPaletteList(task){
-  if(task === 'regression') return ['data', 'split', 'linreg', 'score', 'predict'];
-  if(task === 'clustering') return ['data', 'kmeans', 'groups'];
-  return ['data', 'split', 'logistic', 'tree', 'knn', 'score', 'predict'];
+  if(task === 'clustering') return ['data', 'kmeans', 'logistic', 'tree', 'knn', 'linreg', 'groups'];
+  return ['data', 'split', 'logistic', 'tree', 'knn', 'linreg', 'kmeans', 'score', 'predict'];
 }
+// 이 문제 유형과 "맞는" 모델들 (성적표·예측 등 정상 파이프라인 대상)
 function _mlpModelIds(task){
   if(task === 'regression') return ['linreg'];
   if(task === 'clustering') return ['kmeans'];
   return ['logistic', 'tree', 'knn'];
 }
+function _mlpAllModelIds(){ return ['logistic', 'tree', 'knn', 'linreg', 'kmeans']; }
+const MLP_MODEL_GROUPS = { classification: ['logistic', 'tree', 'knn'], regression: ['linreg'], clustering: ['kmeans'] };
 
 // 캔버스 고정 슬롯 (px)
 const MLP_NODE_W = 126, MLP_NODE_H = 46;
 function _mlpSlot(id){
   const task = MLP_SEL ? MLP_SEL.task : 'classification';
-  const C = {
-    classification: { data: [8, 128], split: [150, 128], logistic: [294, 16], tree: [294, 110], knn: [294, 204], score: [452, 56], predict: [452, 196] },
-    regression:     { data: [8, 128], split: [150, 128], linreg: [294, 110], score: [452, 56], predict: [452, 196] },
-    clustering:     { data: [20, 110], kmeans: [240, 110], groups: [430, 110] },
-  };
-  return (C[task] || C.classification)[id] || [8, 8];
+  const C = task === 'clustering'
+    ? { data: [20, 128], logistic: [240, 8], tree: [240, 68], kmeans: [240, 128], knn: [240, 188], linreg: [240, 248], groups: [430, 128] }
+    : { data: [8, 128], split: [150, 128], logistic: [294, 8], tree: [294, 68], knn: [294, 128], linreg: [294, 188], kmeans: [294, 248], score: [452, 68], predict: [452, 208] };
+  return C[id] || [8, 8];
 }
 
 /* ─────────────────── 공용 헬퍼 ─────────────────── */
 
-// 학습에 쓸 특징 키 (분류는 학생이 고른 단서, 그 외는 전체)
+// 학습에 쓸 특징 키 — 모든 유형에서 학생이 고른 단서 사용 (미선택 시 미끼 제외 전체)
 function _mlpFeatKeys(){
   const scn = MLP_SEL;
   if(!scn) return [];
-  if(scn.task === 'classification'){
-    const picked = MLP_ANSWERS.featPick;
-    if(Array.isArray(picked) && picked.length)
-      return picked.filter(k => scn.features.some(f => f.key === k));
-    return scn.features.filter(f => !f.decoy).map(f => f.key);
+  const picked = MLP_ANSWERS.featPick;
+  if(Array.isArray(picked) && picked.length){
+    const keys = picked.filter(k => scn.features.some(f => f.key === k));
+    if(keys.length) return keys;
   }
-  return scn.features.map(f => f.key);
+  return scn.features.filter(f => !f.decoy).map(f => f.key);
 }
 function _mlpFeatLabel(scn, key){
   const f = (scn.features || []).find(f => f.key === key);
@@ -212,6 +212,7 @@ function _vStMlpDefine(){
   const goalDone = !!A.goalPick;
 
   // Q2: 단서(특징) 고르기 — goal 정답 후 노출
+  const featMin = scn.task === 'clustering' ? 2 : 1;
   let featBlock = '';
   if(goalDone){
     const picked = Array.isArray(A.featPick) ? A.featPick : [];
@@ -222,11 +223,28 @@ function _vStMlpDefine(){
     featBlock = `<div class="mlp-q-head">🔎 어떤 정보가 <b>단서</b>가 될까요?</div>
       <div class="ml-sub-explain">${scn.featNote || '학습에 쓸 항목을 고르세요.'}</div>
       <div class="mlp-featrow">${chips}</div>
-      <div class="mlp-feat-cnt">${picked.length ? `단서 <b>${picked.length}개</b> 선택됨` : '최소 1개 이상 고르세요'}</div>`;
+      <div class="mlp-feat-cnt">${picked.length ? `단서 <b>${picked.length}개</b> 선택됨${picked.length < featMin ? ` — ${featMin}개 이상 고르세요` : ''}` : `최소 ${featMin}개 이상 고르세요`}</div>`;
   }
 
-  const featOk = !goalDone ? false : (Array.isArray(A.featPick) && A.featPick.length > 0);
-  const allOk = goalDone && featOk && chosen === d.mlAnswer;
+  const featOk = !goalDone ? false : (Array.isArray(A.featPick) && A.featPick.length >= featMin);
+
+  // Q4: 유형 가설 세우기 — 정오를 알려주지 않고, 캔버스 실험으로 검증
+  let typeBlock = '';
+  if(goalDone && featOk && chosen === d.mlAnswer){
+    const tPick = A.typePick;
+    const cards = Object.keys(MLP_TYPES).map(t => {
+      const T = MLP_TYPES[t];
+      return `<button class="mlp-goal-opt ${tPick === t ? 'good' : ''}" data-action="mlp-type" data-t="${t}">
+        <span class="mlp-goal-mk">${tPick === t ? '🧪' : '◻'}</span> <b>${T.icon} ${esc(T.label)}</b> — ${esc(T.hint)}
+      </button>`;
+    }).join('');
+    typeBlock = `<div class="mlp-q-head">🔬 이 문제는 어떤 <b>기계학습 유형</b>일까요? — 가설 세우기</div>
+      <div class="ml-sub-explain">${scn.predictWhat ? '우리가 하려는 것: ' + scn.predictWhat + '<br>' : ''}정답은 알려주지 않아요 — <b>가설을 세우고, 캔버스에서 직접 실험해 확인</b>합니다. (실험하다 생각이 바뀌면 돌아와서 바꿔도 돼요!)</div>
+      <div class="mlp-goal-list">${cards}</div>
+      ${tPick ? `<div class="mlp-feedback ok">🧪 <b>${MLP_TYPES[tPick].label}</b> 가설을 세웠어요! 캔버스에서 ${MLP_TYPES[tPick].icon} ${MLP_TYPES[tPick].label} 모델을 학습시켜 검증해 보세요.</div>` : ''}`;
+  }
+
+  const allOk = goalDone && featOk && chosen === d.mlAnswer && !!A.typePick;
 
   return `<div class="section">
     <div class="sec-title">📨 의뢰가 도착했어요</div>
@@ -237,11 +255,14 @@ function _vStMlpDefine(){
     ${goalFb}
     ${featBlock}
     ${goalDone && featOk ? needBlock : ''}
+    ${typeBlock}
   </div>
   <div class="ml-action-bar">
     ${allOk
       ? '<button class="btn-p" data-action="mlp-def-done">문제 정의 완료 — 파이프라인 조립하러 →</button>'
-      : `<div class="ml-train-hint">${!goalDone ? '먼저 해결 목표를 골라보세요.' : (!featOk ? '단서를 1개 이상 골라보세요.' : 'ML 필요 여부를 판단해 보세요.')}</div>`}
+      : `<div class="ml-train-hint">${!goalDone ? '먼저 해결 목표를 골라보세요.'
+        : (!featOk ? `단서를 ${featMin}개 이상 골라보세요.`
+        : (chosen !== d.mlAnswer ? 'ML 필요 여부를 판단해 보세요.' : '유형 가설을 세워보세요.'))}</div>`}
   </div>`;
 }
 
@@ -255,16 +276,27 @@ function _vStMlpCanvas(){
   if(!cv) return '<div class="section">초기화 중…</div>';
   const hint = _mlpCvHint();
 
-  // 팔레트
-  const pal = _mlpPaletteList(scn.task).map(id => {
+  // 팔레트 — 모델은 유형별 그룹으로, 학생의 가설 유형을 맨 위에
+  const palIds = _mlpPaletteList(scn.task);
+  const palBtn = id => {
     const w = MLP_W[id];
     const placed = !!cv.placed[id];
     return `<button class="mlp-pal-item ${placed ? 'placed' : ''}" data-action="mlp-cv-add" data-w="${id}" ${placed ? 'disabled' : ''}>
       <span>${w.icon}</span>${esc(w.label)}${placed ? ' ✓' : ''}</button>`;
-  }).join('');
+  };
+  const hyp = MLP_ANSWERS.typePick;
+  const taskOrder = ['classification', 'regression', 'clustering'];
+  const grpOrder = (hyp && taskOrder.includes(hyp)) ? [hyp, ...taskOrder.filter(t => t !== hyp)] : taskOrder;
+  let pal = palIds.filter(id => id === 'data' || id === 'split').map(palBtn).join('');
+  grpOrder.forEach(t => {
+    const ids = MLP_MODEL_GROUPS[t].filter(id => palIds.includes(id));
+    if(!ids.length) return;
+    pal += `<div class="mlp-pal-grp">${MLP_TYPES[t].icon} ${esc(MLP_TYPES[t].label)} 모델${hyp === t ? ' <b>· 내 가설 🧪</b>' : ''}</div>` + ids.map(palBtn).join('');
+  });
+  pal += palIds.filter(id => id === 'score' || id === 'predict' || id === 'groups').map(palBtn).join('');
 
   // 와이어 (SVG)
-  const CW = 590, CH = 268;
+  const CW = 590, CH = 304;
   let wires = '';
   const port = id => { const [x, y] = _mlpSlot(id); return [x + MLP_NODE_W, y + MLP_NODE_H / 2]; };
   const inlet = id => { const [x, y] = _mlpSlot(id); return [x, y + MLP_NODE_H / 2]; };
@@ -352,7 +384,11 @@ function _mlpNodeSub(id){
   if(id === 'split'){
     return MLP_SPLIT ? `훈련 ${MLP_SPLIT.train.length} · 테스트 ${MLP_SPLIT.test.length}` : '70 : 30';
   }
-  if(_mlpModelIds(scn.task).includes(id)){
+  if(MLP_MODELS[id]){
+    if(MLP_MODELS[id].task !== scn.task){
+      if(MLP_MISMATCH && MLP_MISMATCH.mk === id) return '✗ 유형 불일치!';
+      return MLP_TYPES[MLP_MODELS[id].task].label + ' 모델';
+    }
     if(MLP_ANIM && MLP_ANIM.mk === id) return '학습 중…';
     if(scn.task === 'classification' && MLP_COMPARE[id]) return `✓ 테스트 ${(MLP_COMPARE[id].testAcc * 100).toFixed(0)}%`;
     if(id === 'linreg' && MLP_REG) return `✓ R² ${(Math.max(0, MLP_REG.r2) * 100).toFixed(0)}%`;
@@ -386,8 +422,11 @@ function _mlpCvHint(){
   if(!cv.placed.data) return `팔레트에서 ${W.data.icon} <b>데이터</b>를 캔버스에 놓아 보세요`;
   if(!cv.placed.split) return `${W.split.icon} <b>나누기</b>를 놓으세요 — 훈련용과 테스트(시험)용을 나눌 거예요`;
   if(!_mlpHasEdge('data', 'split')) return `${W.data.icon} 데이터의 <b>● 포트</b>를 누른 뒤 ${W.split.icon} 나누기를 눌러 연결!`;
+  const hypT = MLP_ANSWERS.typePick && MLP_TYPES[MLP_ANSWERS.typePick];
+  const anyPlaced = _mlpAllModelIds().some(m => cv.placed[m]);
   const models = _mlpModelIds(scn.task).filter(m => cv.placed[m]);
-  if(!models.length) return `모델을 놓아 보세요 ${scn.task === 'classification' ? '— 나중에 여러 개를 비교할 수 있어요!' : ''}`;
+  if(!anyPlaced) return `${hypT ? `내 가설 <b>${hypT.icon} ${hypT.label}</b> 모델부터 놓고 실험해 보세요` : '모델을 놓아 보세요'} — 다른 유형 모델도 시험해볼 수 있어요!`;
+  if(!models.length) return `모델을 학습시켜 <b>가설을 검증</b>해 보세요 — 안 맞으면 실험 결과가 알려줄 거예요!`;
   const connected = models.filter(m => _mlpHasEdge('split', m));
   if(!connected.length) return `${W.split.icon} 나누기의 <b>●</b>를 눌러 모델에 <b>훈련 데이터</b>를 연결하세요`;
   const trained = connected.filter(m => MLP_COMPARE[m] || (m === 'linreg' && MLP_REG));
@@ -405,12 +444,12 @@ function _mlpCvHint(){
 function _mlpLinkTargets(from){
   const scn = MLP_SEL, cv = MLP_CV;
   const out = [];
-  const models = _mlpModelIds(scn.task);
+  const allModels = _mlpAllModelIds();
   _mlpPaletteList(scn.task).forEach(to => {
     if(!cv.placed[to] || to === from) return;
-    if(from === 'data' && (to === 'split' || (scn.task === 'clustering' && to === 'kmeans'))) out.push(to);
-    if(from === 'split' && models.includes(to)) out.push(to);
-    if(models.includes(from) && (to === 'score' || to === 'predict')) out.push(to);
+    if(from === 'data' && (to === 'split' || to === 'kmeans' || (scn.task === 'clustering' && allModels.includes(to)))) out.push(to);
+    if(from === 'split' && allModels.includes(to) && to !== 'kmeans') out.push(to);
+    if(allModels.includes(from) && (to === 'score' || to === 'predict')) out.push(to);
     if(from === 'kmeans' && to === 'groups') out.push(to);
   });
   return out;
@@ -444,7 +483,7 @@ function _mlpPanelBody(id){
   if(id === 'score') return _mlpPanelScore();
   if(id === 'predict') return _mlpPanelPredict();
   if(id === 'groups') return _mlpPanelGroups();
-  if(_mlpModelIds(scn.task).includes(id)) return _mlpPanelModel(id);
+  if(MLP_MODELS[id]) return _mlpPanelModel(id);
   return '';
 }
 
@@ -452,15 +491,12 @@ function _mlpPanelBody(id){
 function _mlpPanelData(){
   const scn = MLP_SEL;
   const keys = _mlpFeatKeys();
-  let chips = '';
-  if(scn.task === 'classification'){
-    const picked = Array.isArray(MLP_ANSWERS.featPick) ? MLP_ANSWERS.featPick : [];
-    chips = `<div class="ml-sub-explain" style="margin-bottom:8px">🔎 단서(특징) — 바꾸면 모델을 다시 학습해야 해요. ${scn.featNote || ''}</div>
-      <div class="mlp-featrow">${scn.features.map(f => {
-        const on = picked.includes(f.key);
-        return `<button class="mlp-featchip ${on ? 'on' : ''}" data-action="mlp-feat" data-k="${esc(f.key)}">${on ? '✔ ' : ''}${esc(f.label)}</button>`;
-      }).join('')}</div>`;
-  }
+  const picked = Array.isArray(MLP_ANSWERS.featPick) ? MLP_ANSWERS.featPick : [];
+  const chips = `<div class="ml-sub-explain" style="margin-bottom:8px">🔎 단서(특징) — 바꾸면 모델을 다시 학습해야 해요. ${scn.featNote || ''}</div>
+    <div class="mlp-featrow">${scn.features.map(f => {
+      const on = picked.includes(f.key);
+      return `<button class="mlp-featchip ${on ? 'on' : ''}" data-action="mlp-feat" data-k="${esc(f.key)}">${on ? '✔ ' : ''}${esc(f.label)}</button>`;
+    }).join('')}</div>`;
   const feats = scn.features.filter(f => keys.includes(f.key));
   let lastHead = '', lastCell = () => '';
   if(scn.task === 'classification'){
@@ -501,11 +537,24 @@ function _mlpPanelSplit(){
       <div class="mlp-retry-hint">테스트는 그대로 두고 훈련량만 바꿔요 — <b>같은 시험지로 공정 비교!</b> (바꾸면 모델 재학습 필요)</div>` : ''}`;
 }
 
-/* 모델 패널 — 하이퍼파라미터 + 학습 애니메이션 */
+/* 모델 패널 — 하이퍼파라미터 + 학습 애니메이션 (유형 불일치 모델이면 실험 카드) */
 function _mlpPanelModel(mk){
   const scn = MLP_SEL;
-  const connected = _mlpHasEdge('split', mk) || (scn.task === 'clustering' && _mlpHasEdge('data', mk));
+  const connected = _mlpHasEdge('split', mk) || _mlpHasEdge('data', mk);
   const m = MLP_MODELS[mk];
+
+  // 유형 불일치 모델 — "그래도 실험해 보기" → 왜 안 되는지 실데이터로 확인
+  if(m.task !== scn.task){
+    const desc = `<div class="ml-sub-explain" style="margin-bottom:8px">${esc(m.desc)} <span class="mlp-good">👍 ${esc(m.good)}</span> <span class="mlp-bad">⚠️ ${esc(m.bad)}</span></div>`;
+    const tried = MLP_MISMATCH && MLP_MISMATCH.mk === mk;
+    const needSrc = (mk === 'kmeans' || scn.task === 'clustering') ? '📁 데이터를' : '✂️ 나누기를';
+    const ctrl = !connected
+      ? `<div class="ml-train-hint">${needSrc} 먼저 연결하면 실험할 수 있어요</div>`
+      : `<div class="mlp-hp-row"><button class="btn-p btn-sm" data-action="mlp-train" data-mk="${mk}">🧪 이 모델로 실험해 보기</button></div>`;
+    return desc + ctrl + (tried
+      ? _mlpMismatchCard()
+      : `<div class="mlp-anim-empty">이건 <b>${MLP_TYPES[m.task].icon} ${MLP_TYPES[m.task].label}</b> 유형 모델이에요. 이 문제와 맞을까요? 직접 실험해서 확인해 보세요!</div>`);
+  }
   const running = MLP_ANIM && MLP_ANIM.mk === mk;
   let hyper = '';
   if(mk === 'tree'){
@@ -530,6 +579,45 @@ function _mlpIsTrained(mk){
   if(mk === 'linreg') return !!MLP_REG;
   if(mk === 'kmeans') return !!MLP_CLU;
   return !!MLP_COMPARE[mk];
+}
+
+/* 유형 불일치 실험 결과 카드 — 실데이터 증거로 "왜 안 되는지" 보여준다 */
+function _mlpMismatchCard(){
+  const scn = MLP_SEL, MM = MLP_MISMATCH;
+  if(!MM || !MM.info) return '';
+  const m = MLP_MODELS[MM.mk], I = MM.info;
+  let evid = '';
+  if(I.kind === 'cls-reg'){
+    evid = `<div class="ml-sub-explain">실제로 <b>${esc(I.featLabel)}</b>로 직선을 그어 예측해 봤어요. 테스트 승객 ${I.samples.length}명의 결과:</div>
+      <div class="mlp-mm-samples">${I.samples.map(s => `<span class="mlp-mm-chip">${esc(s.feat)} → 예측값 <b>${esc(s.pred)}</b>…?</span>`).join('')}</div>
+      <div class="ml-sub-explain"><b>${esc(scn.target.posLabel)}(1)도 ${esc(scn.target.negLabel)}(0)도 아닌 어중간한 숫자</b>만 나와요.
+      둘 중 하나를 골라야 하는 문제엔 <b>분류</b>가 필요해요!</div>`;
+  } else if(I.kind === 'cls-clu'){
+    evid = `<div class="ml-sub-explain">실제로 정답을 가리고 ${I.k}개 그룹으로 묶어 봤어요. 그룹 안을 들여다보면:</div>
+      <div class="mlp-mm-samples">${I.groups.map((g, i) => `<span class="mlp-mm-chip">그룹 ${i + 1} (${g.n}명) — ${esc(scn.target.posLabel)} ${g.pos} · ${esc(scn.target.negLabel)} ${g.neg}</span>`).join('')}</div>
+      <div class="ml-sub-explain">한 그룹 안에 <b>${esc(scn.target.posLabel)}·${esc(scn.target.negLabel)}이 섞여</b> 있죠?
+      군집은 묶기만 할 뿐 <b>누가 ${esc(scn.target.posLabel)}인지 말해주지 않아요</b>. 정답이 있는 데이터엔 정답을 보고 배우는 <b>지도학습(분류)</b>이 맞아요!</div>`;
+  } else if(I.kind === 'reg-cls'){
+    evid = `<div class="ml-sub-explain">분류 모델은 <b>정해진 보기 중에서만</b> 답을 골라요. 그런데 ${esc(scn.regression.yLabel)}은
+      ${I.vals.map(v => `<b>${esc(v)}</b>`).join(', ')}… 처럼 <b>끝없이 다양한 연속된 숫자</b>예요.</div>
+      <div class="ml-sub-explain">"14.83초"라는 보기를 미리 만들 수는 없죠. 새로운 숫자를 계산해 내는 건 <b>회귀</b>의 일이에요!</div>`;
+  } else if(I.kind === 'reg-clu'){
+    evid = `<div class="ml-sub-explain">묶을 수는 있어요 — 하지만 나오는 건 "비슷한 부원 그룹"일 뿐,
+      의뢰가 원하는 <b>"이 부원의 예상 ${esc(scn.regression.yLabel)} 몇 ${esc(scn.regression.yUnit)}"</b>라는 숫자는 끝내 나오지 않아요.
+      숫자를 예측하려면 <b>회귀</b>가 필요해요!</div>`;
+  } else if(I.kind === 'clu-sup'){
+    evid = `<div class="ml-sub-explain">${m.icon} ${esc(m.label)}는 <b>정답(라벨)을 보고 배우는 지도학습</b> 모델이에요.
+      그런데 이 데이터의 항목을 보세요:</div>
+      <div class="mlp-mm-samples">${I.cols.map(c => `<span class="mlp-mm-chip">${esc(c)}</span>`).join('')}<span class="mlp-mm-chip" style="color:#b91c1c"><b>정답 칸 없음!</b></span></div>
+      <div class="ml-sub-explain">"무엇을 맞혀라"라고 알려줄 정답이 없으니 <b>지도학습은 시작조차 할 수 없어요</b>.
+      정답 없이 비슷한 것끼리 묶는 건 <b>비지도학습(군집)</b>의 일이에요!</div>`;
+  }
+  return `<div class="mlp-feedback rethink" style="margin-top:8px">🔬 <b>실험 결과 — 이 유형으로는 풀리지 않아요!</b></div>
+    ${evid}
+    <div class="mlp-hp-row" style="margin-top:8px">
+      <button class="btn-sm" data-action="mlp-step" data-s="1">① 유형 가설 다시 세우기</button>
+      <span class="ml-train-hint" style="margin:0">틀린 가설도 훌륭한 실험이에요 🧪 (기록에 남아요)</span>
+    </div>`;
 }
 
 /* 학습 애니메이션 본문 — 진행 중엔 MLP_ANIM, 완료 후엔 최종 상태 */
@@ -720,13 +808,18 @@ function _mlpKnnScatter(axX, axY, A){
   </svg>`;
 }
 
-/* ── 선형회귀: 산점도 + 직선이 맞춰지는 애니 ── */
+/* ── 선형회귀: 단서 1개=직선 애니 / 여러 개=R² 곡선+가중치 막대 ── */
 function _mlpZoneLinreg(A){
   const scn = MLP_SEL;
+  if((A && A.st) || (!A && MLP_FIT.linreg && MLP_FIT.linreg.featureKeys)) return _mlpZoneLinregMulti(A);
   const gd = A ? A.gd : (MLP_FIT.linreg || null);
-  if(!gd) return '<div class="mlp-anim-empty">▶ 학습을 시작하면 직선이 점들 사이로 <b>스스로 찾아 들어가는</b> 과정을 볼 수 있어요</div>';
+  if(!gd) return `<div class="mlp-anim-empty">▶ 학습을 시작하면 ${_mlpFeatKeys().length > 1
+    ? '단서 여러 개를 함께 쓰는 학습 과정(R² 곡선 + 단서별 가중치)을'
+    : '직선이 점들 사이로 <b>스스로 찾아 들어가는</b> 과정을'} 볼 수 있어요</div>`;
   const cfg = scn.regression;
-  const pairs = MLP_SPLIT.train.map(r => [+r[cfg.x], +r[cfg.y]]);
+  const xKey = (A && A.xKey) || MLP_FIT.linregXKey || cfg.x;
+  const xLabel = _mlpFeatLabel(scn, xKey);
+  const pairs = MLP_SPLIT.train.map(r => [+r[xKey], +r[cfg.y]]);
   const W = 430, H = 200, P = 30;
   let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
   pairs.forEach(([x, y]) => { mnX = Math.min(mnX, x); mxX = Math.max(mxX, x); mnY = Math.min(mnY, y); mxY = Math.max(mxY, y); });
@@ -736,16 +829,43 @@ function _mlpZoneLinreg(A){
   const sy = v => H - P - ((v - mnY) / ((mxY - mnY) || 1)) * (H - P * 2);
   const dots = pairs.map(([x, y]) => `<circle cx="${sx(x).toFixed(1)}" cy="${sy(y).toFixed(1)}" r="4" class="mlp-kn-dot pos"/>`).join('');
   const y1 = gd.a * mnX + gd.b, y2 = gd.a * mxX + gd.b;
-  const done = !A && MLP_REG;
+  const done = !A && MLP_REG && !MLP_REG.multi;
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" class="mlp-kn-svg">
       <rect x="0" y="0" width="${W}" height="${H}" rx="8" class="bgr"/>
       ${dots}
       <line x1="${sx(mnX).toFixed(1)}" y1="${sy(y1).toFixed(1)}" x2="${sx(mxX).toFixed(1)}" y2="${sy(y2).toFixed(1)}" class="mlp-lr-line"/>
-      <text x="${W - 8}" y="${H - 8}" text-anchor="end" class="tk">${esc(cfg.xLabel)} →</text>
+      <text x="${W - 8}" y="${H - 8}" text-anchor="end" class="tk">${esc(xLabel)} →</text>
       <text x="10" y="16" class="tk">↑ ${esc(cfg.yLabel)}</text>
     </svg>
     <div class="mlp-anim-cap">학습 ${gd.iter}회 · 오차(MSE) <b>${gd.mse.toFixed(2)}</b>
-    ${done ? `<br>✅ 완료 — <b>${esc(cfg.yLabel)} ≈ ${MLP_REG.a.toFixed(2)} × ${esc(cfg.xLabel)} ${MLP_REG.b >= 0 ? '+' : '−'} ${Math.abs(MLP_REG.b).toFixed(2)}</b> · 테스트 R² <b>${(Math.max(0, MLP_REG.r2) * 100).toFixed(0)}%</b> · 평균 오차 ±${MLP_REG.mae.toFixed(2)}${esc(cfg.yUnit)}` : ''}</div>`;
+    ${done ? `<br>✅ 완료 — <b>${esc(cfg.yLabel)} ≈ ${MLP_REG.a.toFixed(2)} × ${esc(xLabel)} ${MLP_REG.b >= 0 ? '+' : '−'} ${Math.abs(MLP_REG.b).toFixed(2)}</b> · 테스트 R² <b>${(Math.max(0, MLP_REG.r2) * 100).toFixed(0)}%</b> · 평균 오차 ±${MLP_REG.mae.toFixed(2)}${esc(cfg.yUnit)}<br><span style="color:var(--text3)">💡 단서를 더 고르면(예: 수면) 설명력이 오를까요? 데이터 위젯에서 바꿔 실험!</span>` : ''}</div>`;
+}
+
+/* ── 선형회귀(다특성): R² 곡선 + 단서별 가중치 막대 ── */
+function _mlpZoneLinregMulti(A){
+  const scn = MLP_SEL, cfg = scn.regression;
+  const st = A ? A.st : MLP_FIT.linreg;
+  if(!st) return '<div class="mlp-anim-empty">▶ 학습을 시작하면 설명력(R²)이 오르는 과정과 단서별 <b>가중치</b>를 볼 수 있어요</div>';
+  const pts = (A ? A.pts : (MLP_FIT.linregPts || [])).map(p => ({ x: p[0], y: p[1] }));
+  const keys = st.featureKeys;
+  const maxW = Math.max(0.05, ...st.weights.map(w => Math.abs(w)));
+  const bars = keys.map((k, i) => {
+    const w = st.weights[i], pct = Math.abs(w) / maxW * 100;
+    return `<div class="mlp-wrow"><span class="mlp-wlb">${esc(_mlpFeatLabel(scn, k))}</span>
+      <div class="mlp-wbar"><div class="mlp-wfill ${w >= 0 ? 'pos' : 'neg'}" style="width:${pct.toFixed(0)}%"></div></div>
+      <span class="mlp-wsign">${w >= 0 ? '↑' : '↓'}${esc(cfg.yLabel)}</span></div>`;
+  }).join('');
+  const done = !A && MLP_REG && MLP_REG.multi;
+  return `<div class="mlp-anim-flex">
+    <div class="mlp-anim-left">${_mlpCurveSvg(pts, Math.max(100, st.iter), '학습 횟수(epoch)', '')}
+      <div class="mlp-anim-cap">epoch <b>${st.iter}</b> · 훈련 R² <b>${(Math.max(0, st.trainR2) * 100).toFixed(0)}%</b>
+      ${done ? `<br>✅ 완료 — 테스트 R² <b>${(Math.max(0, MLP_REG.r2) * 100).toFixed(0)}%</b> · 평균 오차 ±${MLP_REG.mae.toFixed(2)}${esc(cfg.yUnit)}` : ''}</div></div>
+    <div class="mlp-anim-right">
+      <div class="mlp-anim-cap" style="margin-bottom:4px">각 단서의 <b>가중치</b> — 길수록 ${esc(cfg.yLabel)}에 영향 큼</div>
+      ${bars}
+      ${done ? '<div class="mlp-retry-hint">가중치가 0에 가까운 단서는 모델이 "별 도움 안 됨"이라 판단한 거예요. 단서를 빼고 다시 실험해 볼까요?</div>' : ''}
+    </div>
+  </div>`;
 }
 
 /* ── k-평균: 중심 이동 애니 ── */
@@ -753,7 +873,7 @@ function _mlpZoneKmeans(A){
   const scn = MLP_SEL;
   const st = A ? A.km : (MLP_FIT.kmeans || null);
   if(!st && !MLP_CLU) return '<div class="mlp-anim-empty">▶ 묶기를 시작하면 중심(✕)이 움직이며 비슷한 손님끼리 색으로 묶이는 과정을 볼 수 있어요</div>';
-  const keys = scn.features.map(f => f.key);
+  const keys = (MLP_CLU && MLP_CLU.keys) || _mlpFeatKeys();
   const W = 430, H = 210, P = 28;
   const rows = scn.rows;
   let mn = [Infinity, Infinity], mx = [-Infinity, -Infinity];
@@ -781,10 +901,10 @@ function _mlpZoneKmeans(A){
     : (MLP_CLU ? `✅ ${MLP_CLU.iters}회 만에 수렴! 숨겨둔 실제 유형과 <b>${(MLP_CLU.purity * 100).toFixed(0)}%</b> 일치 — 🗂️ 그룹 보기에서 해석해 보세요` : '');
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" class="mlp-kn-svg">
       <rect x="0" y="0" width="${W}" height="${H}" rx="8" class="bgr"/>${dots}${xs}
-      <text x="${W - 8}" y="${H - 8}" text-anchor="end" class="tk">${esc(scn.features[0].label)} →</text>
-      <text x="10" y="16" class="tk">↑ ${esc(scn.features[1].label)}</text>
+      <text x="${W - 8}" y="${H - 8}" text-anchor="end" class="tk">${esc(_mlpFeatLabel(scn, keys[0]))} →</text>
+      <text x="10" y="16" class="tk">↑ ${esc(_mlpFeatLabel(scn, keys[1] || keys[0]))}</text>
     </svg>
-    <div class="mlp-anim-cap">${cap}</div>`;
+    <div class="mlp-anim-cap">${cap}${keys.length > 2 ? ` <span style="color:var(--text3)">(그림은 앞 단서 2개 기준 — 묶기는 ${keys.length}개 단서 모두 사용)</span>` : ''}</div>`;
 }
 
 /* 성적표 패널 */
@@ -829,13 +949,13 @@ function _mlpPanelPredict(){
   if(!MLP_PRED || MLP_PRED.model !== mk) return head + '<div class="mlp-anim-empty">테스트 데이터 전원을 이 모델로 채점해 봅니다 — 특히 <b>틀린 사례</b>가 성찰의 재료가 돼요!</div>';
   const P = MLP_PRED;
   if(scn.task === 'regression'){
-    const rowsH = P.list.slice(0, 8).map(c => `<tr><td>${c.row[scn.regression.x]}${esc(scn.regression.xUnit)}</td>
+    const rowsH = P.list.slice(0, 8).map(c => `<tr><td>${esc(_mlpRegRowLabel(c.row))}</td>
       <td>${c.pred.toFixed(2)}${esc(scn.regression.yUnit)}</td><td>${c.row[scn.regression.y]}${esc(scn.regression.yUnit)}</td>
       <td class="${Math.abs(c.err) > P.maeAvg * 1.6 ? 'mlp-err-big' : ''}">${c.err > 0 ? '+' : ''}${c.err.toFixed(2)}</td></tr>`).join('');
-    const worst = P.wrong.map(c => `<div class="mlp-wrongcard">😅 <b>${c.row[scn.regression.x]}${esc(scn.regression.xUnit)}</b> 훈련하는 부원 —
+    const worst = P.wrong.map(c => `<div class="mlp-wrongcard">😅 <b>${esc(_mlpRegRowLabel(c.row))}</b>인 부원 —
       예측 <b>${c.pred.toFixed(2)}</b> vs 실제 <b>${c.row[scn.regression.y]}</b> (오차 ${Math.abs(c.err).toFixed(2)}${esc(scn.regression.yUnit)})<br>
-      <span class="mlp-wrong-q">직선이 못 담은 이 차이는 어디서 왔을까요?</span></div>`).join('');
-    return head + `<table class="tbl mlp-data-table" style="margin-top:8px"><thead><tr><th>${esc(scn.regression.xLabel)}</th><th>예측</th><th>실제</th><th>오차</th></tr></thead><tbody>${rowsH}</tbody></table>
+      <span class="mlp-wrong-q">모델이 못 담은 이 차이는 어디서 왔을까요? 어떤 단서를 더하면 좋을까요?</span></div>`).join('');
+    return head + `<table class="tbl mlp-data-table" style="margin-top:8px"><thead><tr><th>부원 조건 (고른 단서)</th><th>예측</th><th>실제</th><th>오차</th></tr></thead><tbody>${rowsH}</tbody></table>
       <div class="sec-title" style="margin-top:10px">예측이 가장 빗나간 사례</div>${worst}`;
   }
   const grid = P.list.map(c => `<span class="mlp-ok ${c.ok ? '' : 'ng'}">${c.ok ? '✓' : '✗'}</span>`).join('');
@@ -858,12 +978,22 @@ function _mlpPanelPredict(){
 function _mlpPanelGroups(){
   const scn = MLP_SEL;
   if(!MLP_CLU) return '<div class="mlp-anim-empty">먼저 🎯 k-평균을 실행하세요</div>';
-  const feats = scn.features;
+  const keys = MLP_CLU.keys || _mlpFeatKeys();
+  const feats = keys.map(k => scn.features.find(f => f.key === k)).filter(Boolean);
   const rows = (MLP_CLU.groupStats || []).map((g, i) => `<tr>
     <td><b>그룹 ${i + 1}</b></td><td>${g.n}명</td>
-    ${g.means.map((m, j) => `<td>${m.toFixed(1)}${esc(feats[j].unit || '')}</td>`).join('')}</tr>`).join('');
-  return `<div class="ml-sub-explain">모델은 <b>정답 없이</b> 묶었어요. 각 그룹의 평균을 보고 <b>"어떤 손님들일까?"</b> 이름을 붙여보세요. (검증용으로 숨겨둔 실제 유형과는 <b>${(MLP_CLU.purity * 100).toFixed(0)}%</b> 일치)</div>
+    ${g.means.map((m, j) => `<td>${m.toFixed(1)}${esc((feats[j] && feats[j].unit) || '')}</td>`).join('')}</tr>`).join('');
+  return `<div class="ml-sub-explain">모델은 <b>정답 없이</b> 묶었어요. 각 그룹의 평균을 보고 <b>"어떤 손님들일까?"</b> 이름을 붙여보세요. (검증용으로 숨겨둔 실제 유형과는 <b>${(MLP_CLU.purity * 100).toFixed(0)}%</b> 일치 — 단서를 바꾸면 이 숫자도 달라져요!)</div>
     <table class="mlp-summary"><thead><tr><th></th><th>인원</th>${feats.map(f => `<th>평균 ${esc(f.label)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* 회귀: 행을 "고른 단서" 값으로 요약 */
+function _mlpRegRowLabel(row){
+  const scn = MLP_SEL;
+  return _mlpFeatKeys().map(k => {
+    const f = scn.features.find(x => x.key === k);
+    return `${f ? f.label : k} ${mlpFmtFeat(f || {}, row[k])}`;
+  }).join(' · ');
 }
 
 /* ═══════════════════════════════════════
@@ -888,15 +1018,18 @@ function _vStMlpReflect(){
   const fm = MLP_MODELS[A.finalModelKey];
   const goal = scn.goalQuiz ? (scn.goalQuiz.options.find(o => o.id === A.goalPick) || null) : null;
   const featLbls = (A.featPick || []).map(k => _mlpFeatLabel(scn, k)).join(', ');
+  const typeT = A.typePick ? MLP_TYPES[A.typePick] : null;
   const summary = `<table class="mlp-summary"><tbody>
     <tr><th>의뢰(문제)</th><td>${esc(scn.title)}</td></tr>
     ${goal ? `<tr><th>해결 목표</th><td>${esc(goal.label)}</td></tr>` : ''}
     ${featLbls ? `<tr><th>고른 단서</th><td>${esc(featLbls)}</td></tr>` : ''}
     <tr><th>ML 필요?</th><td>${A.need === 'ml' ? '✅ 필요 (데이터로 학습)' : '규칙으로 충분'}</td></tr>
+    ${typeT ? `<tr><th>유형 가설</th><td>${typeT.icon} ${esc(typeT.label)}${A.typePick === scn.typeAnswer ? ' <span style="color:var(--ok)">— 실험으로 확인 ✓</span>' : ''}${Array.isArray(A.misTries) && A.misTries.length ? ` <span style="color:var(--text3)">(다른 유형 실험 ${A.misTries.length}회)</span>` : ''}</td></tr>` : ''}
     <tr><th>최종 모델</th><td>${fm ? fm.icon + ' ' + esc(fm.label) : '–'}</td></tr>
     <tr><th>${_mlpMetricLabel(scn)}</th><td><b>${A.finalAcc != null ? (A.finalAcc * 100).toFixed(0) + '%' : '–'}</b></td></tr>
     ${Array.isArray(A.runsLog) && A.runsLog.length > 1 ? `<tr><th>비교한 모델</th><td>${A.runsLog.map(r => `${esc(MLP_MODELS[r.model]?.label || r.model)} ${(r.testAcc * 100).toFixed(0)}%`).join(' · ')}</td></tr>` : ''}
-  </tbody></table>`;
+  </tbody></table>
+  ${scn.typeWhy ? `<div class="ml-sub-explain" style="margin-top:6px">🔬 <b>유형 확인</b> — ${scn.typeWhy}</div>` : ''}`;
 
   // 재료 1: 오답/오차 카드
   let material = '';
@@ -913,13 +1046,14 @@ function _vStMlpReflect(){
       <div class="ml-sub-explain">아래 성찰을 쓸 때 이 사례들을 근거로 써보세요. <b>"왜 틀렸을까?"</b></div>${cards}`;
   } else if(MLP_PRED && MLP_PRED.wrong.length && scn.task === 'regression'){
     const cfg = scn.regression;
-    const cards = MLP_PRED.wrong.map(c => `<div class="mlp-wrongcard">😅 주 <b>${c.row[cfg.x]}${esc(cfg.xUnit)}</b> 훈련 —
+    const cards = MLP_PRED.wrong.map(c => `<div class="mlp-wrongcard">😅 <b>${esc(_mlpRegRowLabel(c.row))}</b>인 부원 —
       예측 <b>${c.pred.toFixed(2)}</b> vs 실제 <b>${c.row[cfg.y]}</b> (${Math.abs(c.err).toFixed(2)}${esc(cfg.yUnit)} 빗나감)</div>`).join('');
     material += `<div class="sec-title">🔍 재료 ① — 예측이 빗나간 사례</div>${cards}`;
   } else if(scn.task === 'clustering' && MLP_CLU){
-    const feats = scn.features;
+    const cKeys = MLP_CLU.keys || _mlpFeatKeys();
+    const feats = cKeys.map(k => scn.features.find(f => f.key === k)).filter(Boolean);
     const rows = (MLP_CLU.groupStats || []).map((g, i) => `<tr><td><b>그룹 ${i + 1}</b></td><td>${g.n}명</td>
-      ${g.means.map((m, j) => `<td>${m.toFixed(1)}${esc(feats[j].unit || '')}</td>`).join('')}</tr>`).join('');
+      ${g.means.map((m, j) => `<td>${m.toFixed(1)}${esc((feats[j] && feats[j].unit) || '')}</td>`).join('')}</tr>`).join('');
     material += `<div class="sec-title">🔍 재료 — 그룹별 평균</div>
       <table class="mlp-summary"><thead><tr><th></th><th>인원</th>${feats.map(f => `<th>${esc(f.label)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
   }
@@ -1081,6 +1215,8 @@ function _vTcMlpStudent(){
   if(Array.isArray(a.featPick) && a.featPick.length)
     decisions += `<tr><th>고른 단서</th><td>${a.featPick.map(k => esc(_mlpFeatLabel(scn, k))).join(', ')}${a.featPick.some(k => scn.features.find(f => f.key === k && f.decoy)) ? ' <span style="color:#b45309">(미끼 포함!)</span>' : ''}</td></tr>`;
   decisions += `<tr><th>ML 필요?</th><td>${a.need === 'ml' ? '🤖 기계학습' : (a.need === 'rule' ? '⌨️ 그냥 프로그래밍' : '–')}</td></tr>`;
+  if(a.typePick)
+    decisions += `<tr><th>유형 가설</th><td>${esc(MLP_TYPES[a.typePick]?.label || a.typePick)}${a.typePick === scn.typeAnswer ? ' ✓' : ' <span style="color:#b45309">(정답과 다름)</span>'}${Array.isArray(a.misTries) && a.misTries.length ? ` · 불일치 모델 실험 ${a.misTries.length}회 <span style="color:var(--text3)">(${a.misTries.map(k => esc(MLP_MODELS[k]?.label || k)).join(', ')})</span>` : ''}</td></tr>`;
   if(scn.mlNeeded){
     decisions += `<tr><th>최종 모델·평가</th><td>${a.finalModelKey ? esc(MLP_MODELS[a.finalModelKey]?.label || a.finalModelKey) + ' · <b>' + (a.finalAcc * 100 || 0).toFixed(0) + '%</b>' : '–'}</td></tr>`;
     if(Array.isArray(a.runsLog) && a.runsLog.length)

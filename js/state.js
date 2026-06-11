@@ -263,6 +263,7 @@ let MLP_LINK       = null;   // 연결 모드: 출발 위젯 id
 let MLP_ANIM       = null;   // 학습/평가 애니 상태 { mk, timer, ... }
 let MLP_PRED       = null;   // 예측 보기 결과 { model, list:[{row,pred,ok}], wrong:[...], acc }
 let MLP_FIT        = {};     // 학습 완료된 모델 객체 { tree:node, logistic:stepper, knn:{stats,k}, linreg:{a,b,...} }
+let MLP_MISMATCH   = null;   // 유형 불일치 실험 결과 { mk, info } — 안 맞는 유형 모델을 학습시켰을 때
 // 선생님: 학생 기록 열람
 let MLP_TC_SEL     = null;   // 보고 있는 시나리오
 let MLP_TC_VIEW    = 'list'; // 'list'|'student'
