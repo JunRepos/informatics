@@ -43,14 +43,6 @@ document.addEventListener('click', async e => {
     MLA_ANSWERS.sitId = 'mine';
     _mlaQueueSave(); render(); return;
   }
-  if(act === 'mla-q1ml'){
-    const m = el.dataset.mark;
-    let arr = Array.isArray(MLA_ANSWERS.q1_ml) ? MLA_ANSWERS.q1_ml.slice() : [];
-    arr = arr.includes(m) ? arr.filter(x => x !== m) : arr.concat(m);
-    MLA_ANSWERS.q1_ml = arr;
-    _mlaQueueSave(); render(); return;
-  }
-  if(act === 'mla-q2task'){ MLA_ANSWERS.q2_task = el.dataset.mark; _mlaQueueSave(); render(); return; }
   if(act === 'mla-q2type'){ MLA_ANSWERS.q2_type = el.dataset.type; _mlaQueueSave(); render(); return; }
   if(act === 'mla-q2model'){ MLA_ANSWERS.q2_model = el.dataset.model; _mlaQueueSave(); render(); return; }
 
@@ -130,8 +122,8 @@ function _mlaExportCSV(){
   if(!TC_CLS) return;
   const cols = [
     ['sit', '선택상황'], ['pickReason', '고른이유'],
-    ['q1_ml', '문항1_ML로풀일'], ['q1_rule', '문항1_규칙형/이유'],
-    ['q2_task', '문항2_깊게풀문제'], ['q2_type', '문항2_유형'], ['q2_model', '문항2_모델'], ['q2_why', '문항2_근거'],
+    ['q1_ml', '문항1_찾은ML과제'], ['q1_rule', '문항1_규칙형/이유'],
+    ['q2_pick', '문항2_깊게풀문제'], ['q2_type', '문항2_유형'], ['q2_model', '문항2_모델'], ['q2_why', '문항2_근거'],
     ['q3_input', '문항3_입력'], ['q3_output', '문항3_출력'], ['q3_effect', '문항3_기대효과'],
     ['score', '점수(합)'],
   ];
@@ -142,16 +134,10 @@ function _mlaExportCSV(){
     const a = sub?.answers || {};
     const sc = MLA_TC_SCORES[st.number] || {};
     const sit = a.sitId === 'mine' ? null : mlaSituationById(a.sitId);
-    const taskTxt = m => {
-      if(a.sitId === 'mine' || !sit) return m || '';
-      const i = MLA_MARKS.indexOf(m); return i >= 0 ? `${m} ${sit.tasks[i]}` : (m || '');
-    };
     const line = [st.number, st.name];
     for(const [k] of cols){
       let v = '';
       if(k === 'sit') v = a.sitId === 'mine' ? `나의문제: ${a.mineProblem || ''}` : (sit ? `상황${sit.id.slice(1)} ${sit.field}` : '');
-      else if(k === 'q1_ml') v = Array.isArray(a.q1_ml) ? a.q1_ml.map(taskTxt).join(' / ') : '';
-      else if(k === 'q2_task') v = taskTxt(a.q2_task);
       else if(k === 'score'){ const t = ['q1', 'q2', 'q3'].reduce((s, kk) => s + (Number(sc[kk]) || 0), 0); v = ['q1', 'q2', 'q3'].some(kk => sc[kk] != null && sc[kk] !== '') ? t : ''; }
       else v = a[k] || '';
       line.push(v);

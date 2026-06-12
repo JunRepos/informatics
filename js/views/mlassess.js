@@ -53,13 +53,14 @@ function vStMlAssess(){
         <textarea class="aia-field-area" data-action="mla-input" data-fid="mineProblem" rows="3" placeholder="예: 우리 동아리 공연 관객 수를 미리 예측하고 싶다…">${esc(A.mineProblem || '')}</textarea>
       </div>`;
     } else {
-      const tasks = sit.tasks.map((t, i) => `<li><b>${MLA_MARKS[i]}</b> ${esc(t)}</li>`).join('');
+      const dataChips = (sit.dataItems || []).map(d => `<li>${esc(d)}</li>`).join('');
       body += `<div class="mla-dossier">
         <div class="mla-dossier-tag">📋 상황 ${sit.id.slice(1)} · ${esc(sit.field)}</div>
         <div class="mla-dossier-org">${sit.icon} ${esc(sit.title)}</div>
         <div class="mla-dossier-scene">${esc(sit.scene)}</div>
-        <div class="mla-tasklist-h">이 조직이 하고 싶어 하는 일</div>
-        <ul class="mla-tasklist">${tasks}</ul>
+        <div class="mla-tasklist-h">📂 이 조직이 가지고 있는 데이터</div>
+        <ul class="mla-tasklist data">${dataChips}</ul>
+        <div class="mla-derive-hint">💡 이 데이터를 보고 <b>무엇을 할 수 있을지 직접 찾아내는</b> 것이 여러분의 일이에요.</div>
       </div>`;
     }
 
@@ -69,32 +70,25 @@ function vStMlAssess(){
       <input type="text" class="sc-cmt-in" data-action="mla-input" data-fid="pickReason" value="${esc(A.pickReason || '')}" placeholder="한 줄로 적어보세요"/>
     </div>`;
 
-    // 문항 1
-    body += `<div class="mla-q-head">문항 1. 기계학습으로 풀 수 있는 일 구분 <span class="mla-pt">[5점]</span></div>`;
+    // 문항 1 — 학생이 데이터에서 직접 문제를 산출 (메뉴 없음)
+    body += `<div class="mla-q-head">문항 1. 데이터로 풀 수 있는 일 찾아내기 <span class="mla-pt">[5점]</span></div>`;
     if(isMine){
       body += `<div class="ml-sub-explain">내가 정한 문제가 <b>기계학습으로 풀기에 적합한지</b> 판단하고, 그 이유를 적으세요. (규칙으로 충분한 문제라면 그렇게 판단해도 됩니다.)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_rule" rows="3" placeholder="내 문제가 기계학습에 적합한(또는 부적합한) 이유를 적어보세요.">${esc(A.q1_rule || '')}</textarea>`;
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="3" placeholder="내 문제가 기계학습에 적합한(또는 부적합한) 이유를 적어보세요.">${esc(A.q1_ml || '')}</textarea>`;
     } else {
-      const checks = sit.tasks.map((t, i) => {
-        const m = MLA_MARKS[i];
-        const on = Array.isArray(A.q1_ml) && A.q1_ml.includes(m);
-        return `<button class="mla-check ${on ? 'on' : ''}" data-action="mla-q1ml" data-mark="${m}">${on ? '☑' : '☐'} <b>${m}</b> ${esc(t)}</button>`;
-      }).join('');
-      body += `<div class="ml-sub-explain">㉠~㉣ 중 <b>기계학습으로 풀 수 있는 일</b>을 모두 고르고, 기계학습이 필요 없는 일은 <b>그 기호와 이유</b>를 한 줄로 쓰세요.</div>
-        <div class="mla-checklist">${checks}</div>
-        <div class="mla-field-label">기계학습이 필요 없는 일과 그 이유 (규칙으로 풀 수 있는가?)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_rule" rows="2" placeholder="예: ㉢ — 정해진 수가표대로 계산하면 되므로 규칙으로 충분하다.">${esc(A.q1_rule || '')}</textarea>`;
+      body += `<div class="ml-sub-explain">위 데이터를 활용해 이 조직을 도울 일을 <b>직접 찾아보세요.</b><br>
+        · 기계학습으로 풀 수 있는 일을 <b>2가지 이상</b> 찾아 쓰고<br>
+        · 반대로 <b>기계학습이 필요 없는(규칙·계산으로 충분한) 일</b>도 1가지 찾아, 왜 그런지 함께 쓰세요.</div>
+        <div class="mla-field-label">① 기계학습으로 풀 수 있는 일 (2가지 이상)</div>
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="3" placeholder="예: 환자가 적은 증상으로 알맞은 진료과를 안내한다 / 접수 혼잡도로 예상 대기 시간을 알려 준다 …">${esc(A.q1_ml || '')}</textarea>
+        <div class="mla-field-label">② 기계학습이 필요 없는 일 + 이유 (규칙·계산으로 충분한 것)</div>
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_rule" rows="2" placeholder="예: 진료비 계산 — 정해진 수가표대로 계산하면 되므로 규칙으로 충분하다.">${esc(A.q1_rule || '')}</textarea>`;
     }
 
     // 문항 2
-    body += `<div class="mla-q-head">문항 2. 알맞은 기계학습 유형·모델 선택 <span class="mla-pt">[5점]</span></div>`;
-    if(!isMine){
-      const taskRadios = sit.tasks.map((t, i) => {
-        const m = MLA_MARKS[i];
-        return `<button class="mla-radio ${A.q2_task === m ? 'on' : ''}" data-action="mla-q2task" data-mark="${m}">${A.q2_task === m ? '◉' : '○'} ${m}</button>`;
-      }).join('');
-      body += `<div class="mla-field-label">깊게 풀 문제 한 가지를 정하세요</div><div class="mla-radio-row">${taskRadios}</div>`;
-    }
+    body += `<div class="mla-q-head">문항 2. 알맞은 기계학습 유형·모델 선택 <span class="mla-pt">[5점]</span></div>
+      <div class="mla-field-label">${isMine ? '내 문제' : '문항 1에서 찾은 일 중'} 깊게 풀 문제 한 가지를 한 문장으로 쓰세요</div>
+      <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="예: 환자가 적어 낸 증상을 보고 알맞은 진료과를 안내하는 문제">${esc(A.q2_pick || '')}</textarea>`;
     const typeRadios = MLA_TYPES.map(t => `<button class="mla-radio ${A.q2_type === t ? 'on' : ''}" data-action="mla-q2type" data-type="${esc(t)}">${A.q2_type === t ? '◉' : '○'} ${esc(t)}</button>`).join('');
     body += `<div class="mla-field-label">① 유형</div><div class="mla-radio-row">${typeRadios}</div>`;
     // 치트시트
@@ -138,20 +132,14 @@ function _mlaAnswerSummary(a, compact){
   const isMine = a.sitId === 'mine';
   const sit = isMine ? null : mlaSituationById(a.sitId);
   const sitLbl = isMine ? '✍️ 나의 문제' : (sit ? `${sit.icon} 상황 ${sit.id.slice(1)} · ${esc(sit.field)} (${esc(sit.org)})` : '–');
-  const taskLbl = m => {
-    if(isMine || !sit) return m || '–';
-    const i = MLA_MARKS.indexOf(m);
-    return i >= 0 ? `${m} ${esc(sit.tasks[i])}` : (m || '–');
-  };
-  const q1ml = Array.isArray(a.q1_ml) && a.q1_ml.length ? a.q1_ml.map(taskLbl).join(' / ') : (isMine ? '(나의 문제)' : '(선택 없음)');
   const row = (k, v) => `<tr><th>${k}</th><td>${v || '<span style="color:var(--text3)">(무응답)</span>'}</td></tr>`;
   return `<table class="mlp-summary"><tbody>
     ${row('선택 상황', sitLbl)}
     ${isMine ? row('나의 문제', esc(a.mineProblem || '')) : ''}
     ${a.pickReason ? row('고른 이유', esc(a.pickReason)) : ''}
-    ${row('문항1 · ML로 풀 일', isMine ? '' : esc(q1ml))}
-    ${row('문항1 · 규칙형/이유', esc(a.q1_rule || ''))}
-    ${row('문항2 · 깊게 풀 문제', isMine ? '(나의 문제)' : esc(taskLbl(a.q2_task)))}
+    ${row(isMine ? '문항1 · ML 적합 판단' : '문항1 · 찾은 ML 과제', esc(a.q1_ml || ''))}
+    ${isMine ? '' : row('문항1 · 규칙형/이유', esc(a.q1_rule || ''))}
+    ${row('문항2 · 깊게 풀 문제', esc(a.q2_pick || ''))}
     ${row('문항2 · 유형', esc(a.q2_type || ''))}
     ${row('문항2 · 모델', esc(a.q2_model || ''))}
     ${row('문항2 · 근거', esc(a.q2_why || ''))}
