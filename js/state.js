@@ -270,6 +270,20 @@ let MLP_TC_VIEW    = 'list'; // 'list'|'student'
 let MLP_TC_SNUM    = null;   // 보고 있는 학번
 let MLP_ALL_SUBS   = {};     // { [학번]: submission }
 
+// 📝 ML 수행평가 (디지털 활동지) — 정의는 ml-assessment-data.js
+let MLA_ACTIVE     = {};     // { [classId]: bool } 응시(노출) 토글 캐시
+let MLA_ANSWERS    = {};     // 학생 응답 { sitId, mineProblem, pickReason, q1_ml[], q1_rule, q2_task, q2_type, q2_model, q2_why, q3_input, q3_output, q3_effect, startedAt }
+let MLA_SUB        = null;   // 내 제출 캐시
+let MLA_SAVING     = null;   // null|'save'|'submit'
+let MLA_SAVE_TIMER = null;   // 자동저장 debounce
+let MLA_LOADING    = false;  // 내 기록 로딩 중
+// 선생님: 응시 관리·채점
+let MLA_TC_VIEW    = 'list'; // 'list'|'student'
+let MLA_TC_SNUM    = null;   // 보고 있는 학번
+let MLA_ALL_SUBS   = {};     // { [학번]: submission }
+let MLA_TC_SCORES  = {};     // { [학번]: {q1,q2,q3} } 채점 캐시
+let MLA_TC_SAVING  = null;   // 저장 중 학번
+
 // 🧠 AI 활동지 (인공지능 단원 학습지) — 정의는 aiactivity-data.js
 let AIA_ACTIVE      = {};       // { [classId]: bool } 메뉴 노출 캐시
 let AIA_VIEW        = 'list';   // 'list'|'do' (학생) / 'list'|'tcStudent' (선생님)

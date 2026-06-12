@@ -575,6 +575,26 @@ async function setAiaActive(cid, on){
   AIA_ACTIVE[cid] = !!on;
 }
 
+// ── 📝 ML 수행평가 응시(노출) 토글 ──
+//   새 Firebase 규칙 없이: submissions 하위(쓰기 허용)에 토글 저장.
+//   학번 폴더(mlassess)와 형제라 학생 제출 목록과 충돌 없음.
+async function loadMlaActive(cid){
+  try {
+    const s = await db.ref(`aiactivity/submissions/${cid}/mlassessActive`).get();
+    const on = s.exists() ? !!s.val() : false;
+    MLA_ACTIVE[cid] = on;
+    return on;
+  } catch(err){
+    console.warn('[ML수행평가] active 로드 실패:', err.message || err);
+    MLA_ACTIVE[cid] = false;
+    return false;
+  }
+}
+async function setMlaActive(cid, on){
+  await db.ref(`aiactivity/submissions/${cid}/mlassessActive`).set(!!on);
+  MLA_ACTIVE[cid] = !!on;
+}
+
 async function loadAiaSubmission(cid, actId, studentNum){
   try {
     const s = await db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`).get();
@@ -666,7 +686,8 @@ async function loadAllClassData(cid){
     loadAsmtGuideActive(cid),
     loadAicActive(cid),
     loadAiaActive(cid),
-    loadMlActive(cid)
+    loadMlActive(cid),
+    loadMlaActive(cid)
   ]);
 }
 

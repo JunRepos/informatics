@@ -25,6 +25,7 @@ function vStudent(){
     ${isInfo && ML_ACTIVE[SEL_CLS?.id] ? tab('🤖 기계학습','ml',ST_TAB,"setST('ml')") : ''}
     ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
     ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
+    ${isInfo && MLA_ACTIVE[SEL_CLS?.id] ? tab('📝 ML 수행평가','mlassess',ST_TAB,"setST('mlassess')") : ''}
     ${isInfo ? tab('📊 내 점수','myscore',ST_TAB,"setST('myscore')") : ''}
     ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
   </div>`;
@@ -44,6 +45,7 @@ function vStudent(){
   else if(ST_TAB === 'ml')      body = vStMl();
   else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
   else if(ST_TAB === 'asmt')    body = vStAssessment();
+  else if(ST_TAB === 'mlassess')body = vStMlAssess();
   else if(ST_TAB === 'myscore') body = vStMyScore();
   else if(ST_TAB === 'mine')    body = vStMine();
   return tabs + body;
@@ -123,6 +125,17 @@ function setST(t){
     AIA_SUB = null;
     AIA_SAVING = false;
     loadAiaActive(SEL_CLS.id).then(() => render());
+  } else if(t === 'mlassess' && SEL_CLS && ST_USER){
+    // 📝 ML 수행평가 — 내 응시 기록 로드
+    MLA_ANSWERS = {}; MLA_SUB = null; MLA_SAVING = null; MLA_LOADING = true;
+    if(MLA_SAVE_TIMER){ clearTimeout(MLA_SAVE_TIMER); MLA_SAVE_TIMER = null; }
+    render();
+    loadAiaSubmission(SEL_CLS.id, 'mlassess', ST_USER.number).then(sub => {
+      MLA_SUB = sub;
+      if(sub && sub.answers) MLA_ANSWERS = { ...sub.answers };
+      MLA_LOADING = false;
+      render();
+    }).catch(() => { MLA_LOADING = false; render(); });
   } else if(t === 'ml' && SEL_CLS && ST_USER){
     // 🤖 기계학습 체험 — active 확인 + 상태 초기화
     ML_TAB = 'supervised';

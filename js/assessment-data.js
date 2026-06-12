@@ -247,14 +247,17 @@ const ASMT_LIST = [
   {
     id: 'aicode',
     icon: '🤖',
-    title: '인공지능으로 문제 해결하기',
-    subtitle: '준비 중',
+    title: '머신러닝을 활용하여 진로 문제 해결하기',
+    subtitle: '논술 · 15점',
     total: 15,
-    parts: [],
+    parts: [
+      { key: 'q1', label: '문항 1 · 판단',      max: 5 },
+      { key: 'q2', label: '문항 2 · 유형·모델', max: 5 },
+      { key: 'q3', label: '문항 3 · 해결 방안', max: 5 },
+    ],
     inputMode: 'number',
     storage: 'ext',
-    placeholder: true,
-    note: '세부 배점은 추후 확정. 현재는 자리만 표시됩니다.',
+    note: '응시·답안 열람·채점은 「📝 ML 수행평가」 탭에서 하세요. 여기서도 점수 수정·공개 토글이 가능하며 같은 점수에 반영됩니다.',
   },
 ];
 
