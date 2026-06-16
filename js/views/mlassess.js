@@ -35,6 +35,8 @@ function vStMlAssess(){
   const sit = isMine ? null : mlaEffSit(cid, A.sitId);
   const chosen = !!A.sitId;
   const sits = mlaEffSituations(cid);
+  const Q = mlaEffQ(cid);
+  const subHtml = s => esc(s || '').replace(/\n/g, '<br>');
 
   const head = `<div class="mla-head">
     <div>
@@ -71,7 +73,7 @@ function vStMlAssess(){
       body += `<div class="mla-dossier mine">
         <div class="mla-dossier-tag">✍️ 나의 문제</div>
         <div class="ml-sub-explain">내 진로·관심 분야에서 <b>기계학습으로 풀고 싶은 문제</b>를 직접 정해 적어보세요. (문항 1은 "내 문제가 기계학습에 적합한 이유"로 답하면 됩니다.)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="mineProblem" rows="3" placeholder="예: 우리 동아리 공연 관객 수를 미리 예측하고 싶다…">${esc(A.mineProblem || '')}</textarea>
+        <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="mineProblem" rows="3" placeholder="여기에 작성하세요">${esc(A.mineProblem || '')}</textarea>
       </div>`;
     } else {
       body += `<div class="mla-dossier">
@@ -89,44 +91,41 @@ function vStMlAssess(){
     </div>`;
 
     // 문항 1
-    body += `<div class="mla-q-head">문항 1. 기계학습으로 풀 수 있는 일 찾기 <span class="mla-pt">[5점]</span></div>`;
+    body += `<div class="mla-q-head">문항 1. ${esc(Q.q1head)} <span class="mla-pt">[5점]</span></div>`;
     if(isMine){
       body += `<div class="ml-sub-explain">내가 정한 문제가 <b>기계학습으로 풀기에 적합한지</b> 판단하고, 그 이유를 적으세요. (규칙·계산으로 충분한 문제라면 그렇게 판단해도 됩니다.)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="4" placeholder="내 문제가 기계학습에 적합한(또는 부적합한) 이유를, 데이터·규칙 관점에서 적어보세요.">${esc(A.q1_ml || '')}</textarea>`;
+        <div class="mla-field-label">✏️ 답안</div>
+        <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_ml" rows="4" placeholder="여기에 작성하세요">${esc(A.q1_ml || '')}</textarea>`;
     } else {
-      body += `<div class="ml-sub-explain">위 상황에서 <b>기계학습으로 풀 수 있는 일 2가지</b>를 찾아 쓰고, 각각 왜 그런지 근거를 함께 쓰세요.<br>
-        · <b>㉮ 데이터</b> 관점 — 학습할 정답(결과)이 이미 쌓여 있나요?  · <b>㉯ 규칙</b> 관점 — 정해진 공식·표만으로는 풀기 어려운가요?</div>
-        <div class="mla-field-label">① 기계학습으로 풀 수 있는 일 + 근거</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_a" rows="3" placeholder="예: 환자의 예상 대기 시간을 알려 주기 — 과거에 ‘실제 대기 시간’이 쌓여 있고(데이터), 같은 시간대도 들쭉날쭉해 공식으로는 못 맞춘다(규칙).">${esc(A.q1_a || '')}</textarea>
-        <div class="mla-field-label">② 기계학습으로 풀 수 있는 일 + 근거</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_b" rows="3" placeholder="예: 증상을 보고 알맞은 진료과 안내하기 — 증상별 ‘실제 배정 과’가 기록돼 있고(데이터), 같은 증상도 여러 과로 갈려 단순 표로는 안 된다(규칙).">${esc(A.q1_b || '')}</textarea>`;
+      body += `<div class="ml-sub-explain">${subHtml(Q.q1sub)}</div>
+        <div class="mla-field-label">✏️ ① 기계학습으로 풀 수 있는 일 + 근거</div>
+        <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_a" rows="3" placeholder="여기에 작성하세요">${esc(A.q1_a || '')}</textarea>
+        <div class="mla-field-label">✏️ ② 기계학습으로 풀 수 있는 일 + 근거</div>
+        <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_b" rows="3" placeholder="여기에 작성하세요">${esc(A.q1_b || '')}</textarea>`;
     }
 
     // 문항 2
-    body += `<div class="mla-q-head">문항 2. 알맞은 기계학습 유형·모델 선택 <span class="mla-pt">[5점]</span></div>
-      <div class="mla-field-label">${isMine ? '내 문제' : '문항 1에서 찾은 일 중'} 깊게 풀 문제 한 가지를 한 문장으로 쓰세요</div>
-      <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="예: 환자가 적어 낸 증상을 보고 알맞은 진료과를 안내하는 문제">${esc(A.q2_pick || '')}</textarea>`;
+    body += `<div class="mla-q-head">문항 2. ${esc(Q.q2head)} <span class="mla-pt">[5점]</span></div>
+      <div class="ml-sub-explain">${subHtml(Q.q2sub)}</div>
+      <div class="mla-field-label">✏️ ${isMine ? '내 문제' : '문항 1에서 찾은 일 중'} 깊게 풀 문제 한 가지를 한 문장으로</div>
+      <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="여기에 작성하세요">${esc(A.q2_pick || '')}</textarea>`;
     const typeRadios = MLA_TYPES.map(t => `<button class="mla-radio ${A.q2_type === t ? 'on' : ''}" data-action="mla-q2type" data-type="${esc(t)}">${A.q2_type === t ? '◉' : '○'} ${esc(t)}</button>`).join('');
-    body += `<div class="mla-field-label">① 유형</div><div class="mla-radio-row">${typeRadios}</div>`;
-    body += `<details class="mla-cheat"><summary>📑 모델 한눈에 보기 (참고)</summary>
-      <table class="tbl mla-cheat-tbl"><thead><tr><th>모델</th><th>학습 유형</th><th>이런 문제에 어울려요</th></tr></thead><tbody>
-      ${MLA_MODELS.map(m => `<tr><td><b>${esc(m.key)}</b></td><td>${esc(m.type)}</td><td>${esc(m.desc)}</td></tr>`).join('')}
-      </tbody></table><div class="mla-cheat-note">※ 강화학습에 맞는 모델은 목록에 없어요(이번 상황들엔 잘 맞지 않아요).</div></details>`;
+    body += `<div class="mla-field-label">① 유형 선택</div><div class="mla-radio-row">${typeRadios}</div>`;
     const modelRadios = MLA_MODELS.map(m => `<button class="mla-radio ${A.q2_model === m.key ? 'on' : ''}" data-action="mla-q2model" data-model="${esc(m.key)}">${A.q2_model === m.key ? '◉' : '○'} ${esc(m.key)}</button>`).join('');
-    body += `<div class="mla-field-label">② 모델</div><div class="mla-radio-row wrap">${modelRadios}</div>
-      <div class="mla-field-label">고른 이유 + 모델 작동 방식</div>
-      <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="유형·모델을 고른 이유와, 그 모델이 대략 어떻게 작동하는지(예: kNN은 가까운 이웃의 다수결로 정한다)를 한두 줄로 적어보세요.">${esc(A.q2_why || '')}</textarea>`;
+    body += `<div class="mla-field-label">② 모델 선택</div><div class="mla-radio-row wrap">${modelRadios}</div>
+      <div class="mla-field-label">✏️ 고른 이유 + 모델 작동 방식</div>
+      <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="여기에 작성하세요">${esc(A.q2_why || '')}</textarea>`;
 
     // 문항 3
-    body += `<div class="mla-q-head">문항 3. 선택한 모델로 해결하는 방안 <span class="mla-pt">[5점]</span></div>
-      <div class="ml-sub-explain">데이터를 어디서 모으고 어떻게 손질하는지는 쓰지 않아도 됩니다.</div>
+    body += `<div class="mla-q-head">문항 3. ${esc(Q.q3head)} <span class="mla-pt">[5점]</span></div>
+      <div class="ml-sub-explain">${subHtml(Q.q3sub)}</div>
       <div class="mla-q3">
-        <div class="mla-q3-row"><span class="mla-q3-k">① 입력 (모델에 넣을 특징)</span>
-          <textarea class="aia-field-area" data-action="mla-input" data-fid="q3_input" rows="2" placeholder="이 문제에서 무엇을 보고 판단·예측하게 할까?">${esc(A.q3_input || '')}</textarea></div>
-        <div class="mla-q3-row"><span class="mla-q3-k">② 출력 (모델이 내놓을 결과)</span>
-          <textarea class="aia-field-area" data-action="mla-input" data-fid="q3_output" rows="2" placeholder="예측값·분류 결과·그룹 중 무엇을 내놓게 할까?">${esc(A.q3_output || '')}</textarea></div>
-        <div class="mla-q3-row"><span class="mla-q3-k">③ 기대 효과</span>
-          <textarea class="aia-field-area" data-action="mla-input" data-fid="q3_effect" rows="2" placeholder="이 모델 덕분에 문제 상황이 어떻게 나아지나?">${esc(A.q3_effect || '')}</textarea></div>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ① 입력 (모델에 넣을 특징)</span>
+          <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_input" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_input || '')}</textarea></div>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ② 출력 (모델이 내놓을 결과)</span>
+          <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_output" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_output || '')}</textarea></div>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ③ 기대 효과</span>
+          <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_effect" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_effect || '')}</textarea></div>
       </div>`;
   }
 
@@ -269,6 +268,14 @@ function _vTcMlaEdit(){
   }).join('');
   const intro = d.intro != null ? d.intro : MLA_INTRO_DEFAULT;
   const rubric = d.rubricStudent != null ? d.rubricStudent : '';
+  const qd = d.q || {};
+  const qv = k => qd[k] != null ? qd[k] : MLA_Q_DEFAULT[k];
+  const qRow = (head, sub, hk, sk) => `<div class="mla-edit-q">
+      <label class="mla-edit-label">${head} · 제목</label>
+      <input type="text" class="sc-cmt-in" data-action="mla-edit-input" data-field="q.${hk}" value="${esc(qv(hk))}"/>
+      <label class="mla-edit-label">${head} · 설명 <small>(빈 줄로 줄바꿈)</small></label>
+      <textarea class="aia-field-area" data-action="mla-edit-input" data-field="q.${sk}" rows="3">${esc(qv(sk))}</textarea>
+    </div>`;
   return `<div class="aia-tcs-header">
       <button class="btn-sm" data-action="mla-tc-editback">← 관리</button>
       <div class="aia-tcs-info"><span class="aia-tcs-name">✏️ 상황·루브릭 편집</span></div>
@@ -278,6 +285,14 @@ function _vTcMlaEdit(){
     <div class="section mla-edit-sec">
       <div class="aia-tcs-sec-title">📢 안내문 (상단 설명)</div>
       <textarea class="aia-field-area" data-action="mla-edit-input" data-field="intro" rows="3">${esc(intro)}</textarea>
+    </div>
+
+    <div class="section mla-edit-sec">
+      <div class="aia-tcs-sec-title">📝 문항 안내 (질문 글)</div>
+      <div class="ml-sub-explain">문항의 <b>제목과 설명만</b> 고칠 수 있어요. 입력칸·유형/모델 선택지 구조는 그대로 유지됩니다.</div>
+      ${qRow('문항 1', '', 'q1head', 'q1sub')}
+      ${qRow('문항 2', '', 'q2head', 'q2sub')}
+      ${qRow('문항 3', '', 'q3head', 'q3sub')}
     </div>
 
     <div class="section mla-edit-sec">

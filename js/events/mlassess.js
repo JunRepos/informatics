@@ -68,7 +68,7 @@ document.addEventListener('click', async e => {
   /* 선생님: 상황·루브릭 편집 */
   if(act === 'mla-tc-edit'){
     const cur = MLA_CONFIG[TC_CLS?.id] || {};
-    MLA_EDIT_DRAFT = JSON.parse(JSON.stringify({ intro: cur.intro ?? null, situations: cur.situations || {}, rubricStudent: cur.rubricStudent ?? null }));
+    MLA_EDIT_DRAFT = JSON.parse(JSON.stringify({ intro: cur.intro ?? null, q: cur.q || {}, situations: cur.situations || {}, rubricStudent: cur.rubricStudent ?? null }));
     MLA_TC_VIEW = 'edit'; render(); return;
   }
   if(act === 'mla-tc-editback'){ MLA_TC_VIEW = 'list'; MLA_EDIT_DRAFT = null; render(); return; }
@@ -78,6 +78,12 @@ document.addEventListener('click', async e => {
     const cfg = {};
     if(d.intro && String(d.intro).trim() && d.intro !== MLA_INTRO_DEFAULT) cfg.intro = String(d.intro);
     if(d.rubricStudent && String(d.rubricStudent).trim()) cfg.rubricStudent = String(d.rubricStudent);
+    const qo = {};
+    for(const k in MLA_Q_DEFAULT){
+      const v = (d.q || {})[k];
+      if(v != null && String(v).trim() && v !== MLA_Q_DEFAULT[k]) qo[k] = String(v);
+    }
+    if(Object.keys(qo).length) cfg.q = qo;
     const sm = {};
     for(const s of MLA_SITUATIONS){
       const ov = (d.situations || {})[s.id] || {};
@@ -144,7 +150,10 @@ document.addEventListener('input', e => {
     const f = ei.dataset.field, v = e.target.value;
     if(f === 'intro') MLA_EDIT_DRAFT.intro = v;
     else if(f === 'rubric') MLA_EDIT_DRAFT.rubricStudent = v;
-    else {
+    else if(f.startsWith('q.')){
+      if(!MLA_EDIT_DRAFT.q) MLA_EDIT_DRAFT.q = {};
+      MLA_EDIT_DRAFT.q[f.slice(2)] = v;
+    } else {
       const [sid, key] = f.split('.');
       if(!MLA_EDIT_DRAFT.situations) MLA_EDIT_DRAFT.situations = {};
       if(!MLA_EDIT_DRAFT.situations[sid]) MLA_EDIT_DRAFT.situations[sid] = {};
