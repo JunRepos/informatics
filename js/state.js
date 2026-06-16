@@ -272,7 +272,7 @@ let MLP_ALL_SUBS   = {};     // { [학번]: submission }
 
 // 📝 ML 수행평가 (디지털 활동지) — 정의는 ml-assessment-data.js
 let MLA_ACTIVE     = {};     // { [classId]: bool } 응시(노출) 토글 캐시
-let MLA_CONFIG     = {};     // { [classId]: { intro?, situations?:{s1:{title,scene}}, rubricStudent?, updatedAt } } 교사 편집본
+let MLA_CONFIG     = {};     // { [classId]: { intro?, q?:{q1head..}, situations?:{s1:{title,scene}}, rubric?:{q1:{p5..p2}}, updatedAt } } 교사 편집본
 let MLA_ANSWERS    = {};     // 학생 응답 { sitId, mineProblem, pickReason, q1_a, q1_b, q1_ml(=나의문제), q2_pick, q2_type, q2_model, q2_why, q3_input, q3_output, q3_effect, startedAt }
 let MLA_SUB        = null;   // 내 제출 캐시
 let MLA_SAVING     = null;   // null|'save'|'submit'

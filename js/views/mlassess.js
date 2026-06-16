@@ -9,17 +9,12 @@ function _mlaScenePs(scene){
     .map(p => `<p>${esc(p)}</p>`).join('');
 }
 
-// 학생용 채점 기준(루브릭) HTML — ⚠️ 정답 없음. 교사 덮어쓴 문자열이 있으면 그걸, 없으면 기본 표.
-function mlaRubricHtml(cid){
-  const ov = mlaRubricOverride(cid);
-  if(ov){
-    return `<div class="mla-rubric-custom">${esc(ov).replace(/\n/g, '<br>')}</div>`;
-  }
-  return MLA_RUBRIC_STUDENT.map(b => `
-    <div class="mla-rubric-q"><b>${esc(b.q)}</b> <span class="mla-pt">[${b.max}점]</span></div>
-    <table class="tbl mla-rubric-tbl"><tbody>
-      ${b.levels.map(([pt, d]) => `<tr><th>${esc(pt)}</th><td>${esc(d)}</td></tr>`).join('')}
-    </tbody></table>`).join('');
+// 문항별 학생 채점 기준(루브릭) 드롭다운 — ⚠️ 정답 없음. 5·4·3·2점 표.
+function mlaRubricBox(cid, qkey){
+  const r = mlaRubricFor(cid, qkey);
+  const rows = MLA_RUBRIC_LEVELS.map(pk => `<tr><th>${MLA_RUBRIC_PTS[pk]}</th><td>${esc(r[pk])}</td></tr>`).join('');
+  return `<details class="mla-rubric"><summary>📊 채점 기준 보기 (5점 만점 ~ 2점)</summary>
+    <div class="mla-rubric-body"><table class="tbl mla-rubric-tbl"><tbody>${rows}</tbody></table></div></details>`;
 }
 
 /* ─────────── 학생 응시 ─────────── */
@@ -46,10 +41,6 @@ function vStMlAssess(){
     ${submitted ? '<span class="aia-submit-chip done">✓ 제출 완료</span>' : '<span class="aia-submit-chip pending">⏳ 작성 중</span>'}
   </div>`;
 
-  // 채점 기준(루브릭) — 접어둠
-  const rubric = `<details class="mla-rubric"><summary>📊 채점 기준 보기 — 점수가 어떻게 매겨지나요? (총 ${MLA_META.total}점)</summary>
-    <div class="mla-rubric-body">${mlaRubricHtml(cid)}</div></details>`;
-
   if(submitted){
     return `<div class="section">${head}
       <div class="mlp-feedback ok">✅ 제출이 완료되었습니다. 수정이 필요하면 선생님께 말씀하세요.</div>
@@ -65,7 +56,7 @@ function vStMlAssess(){
   const mineCard = `<button class="mla-sit-card mine ${isMine ? 'on' : ''}" data-action="mla-mine">
       <span class="mla-sit-ic">✍️</span><span class="mla-sit-tx"><b>나의 문제</b> · 직접 정하기<small>내 진로의 문제를 직접</small></span></button>`;
 
-  let body = `${rubric}<div class="mla-q-head">📂 상황 고르기</div>
+  let body = `<div class="mla-q-head">📂 상황 고르기</div>
     <div class="mla-sit-grid">${cards}${mineCard}</div>`;
 
   if(chosen){
@@ -91,7 +82,7 @@ function vStMlAssess(){
     </div>`;
 
     // 문항 1
-    body += `<div class="mla-q-head">문항 1. ${esc(Q.q1head)} <span class="mla-pt">[5점]</span></div>`;
+    body += `<div class="mla-q-head">문항 1. ${esc(Q.q1head)} <span class="mla-pt">[5점]</span></div>${mlaRubricBox(cid, 'q1')}`;
     if(isMine){
       body += `<div class="ml-sub-explain">내가 정한 문제가 <b>기계학습으로 풀기에 적합한지</b> 판단하고, 그 이유를 적으세요. (규칙·계산으로 충분한 문제라면 그렇게 판단해도 됩니다.)</div>
         <div class="mla-field-label">✏️ 답안</div>
@@ -105,7 +96,7 @@ function vStMlAssess(){
     }
 
     // 문항 2
-    body += `<div class="mla-q-head">문항 2. ${esc(Q.q2head)} <span class="mla-pt">[5점]</span></div>
+    body += `<div class="mla-q-head">문항 2. ${esc(Q.q2head)} <span class="mla-pt">[5점]</span></div>${mlaRubricBox(cid, 'q2')}
       <div class="ml-sub-explain">${subHtml(Q.q2sub)}</div>
       <div class="mla-field-label">✏️ ${isMine ? '내 문제 중 ' : ''}${esc(Q.q2pickLabel)}</div>
       <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="여기에 작성하세요">${esc(A.q2_pick || '')}</textarea>`;
@@ -117,7 +108,7 @@ function vStMlAssess(){
       <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="여기에 작성하세요">${esc(A.q2_why || '')}</textarea>`;
 
     // 문항 3
-    body += `<div class="mla-q-head">문항 3. ${esc(Q.q3head)} <span class="mla-pt">[5점]</span></div>
+    body += `<div class="mla-q-head">문항 3. ${esc(Q.q3head)} <span class="mla-pt">[5점]</span></div>${mlaRubricBox(cid, 'q3')}
       <div class="ml-sub-explain">${subHtml(Q.q3sub)}</div>
       <div class="mla-q3">
         <div class="mla-q3-row"><span class="mla-q3-k">✏️ ${esc(Q.q3inLabel)}</span>
@@ -267,7 +258,11 @@ function _vTcMlaEdit(){
     </div>`;
   }).join('');
   const intro = d.intro != null ? d.intro : MLA_INTRO_DEFAULT;
-  const rubric = d.rubricStudent != null ? d.rubricStudent : '';
+  const rd = d.rubric || {};
+  const rv = (qk, pk) => (rd[qk] && rd[qk][pk] != null) ? rd[qk][pk] : MLA_RUBRIC_DEFAULT[qk][pk];
+  const rBlock = (title, qk) => `<div class="mla-edit-q"><div class="mla-edit-sit-h">${title} 채점 기준</div>` +
+    MLA_RUBRIC_LEVELS.map(pk => `<label class="mla-edit-label">${MLA_RUBRIC_PTS[pk]}</label>` +
+      `<textarea class="aia-field-area" data-action="mla-edit-input" data-field="rubric.${qk}.${pk}" rows="2">${esc(rv(qk, pk))}</textarea>`).join('') + `</div>`;
   const qd = d.q || {};
   const qv = k => qd[k] != null ? qd[k] : MLA_Q_DEFAULT[k];
   const qField = (label, key, area) => `<label class="mla-edit-label">${label}</label>` + (area
@@ -299,9 +294,11 @@ function _vTcMlaEdit(){
     </div>
 
     <div class="section mla-edit-sec">
-      <div class="aia-tcs-sec-title">📊 학생용 채점 기준 (루브릭)</div>
-      <div class="ml-sub-explain">⚠️ <b>학생에게 보이는</b> 칸입니다 — 정답(어떤 게 ML인지·유형이 무엇인지)을 쓰지 마세요. <b>비워 두면</b> 기본 채점 기준표가 자동으로 보입니다.</div>
-      <textarea class="aia-field-area mla-edit-rubric" data-action="mla-edit-input" data-field="rubric" rows="8" placeholder="(비워 두면 기본 기준표가 표시됩니다) 직접 쓰려면 점수대별 기준만 적고, 정답은 넣지 마세요.">${esc(rubric)}</textarea>
+      <div class="aia-tcs-sec-title">📊 학생용 채점 기준 (문항별 · 5점~2점)</div>
+      <div class="ml-sub-explain">⚠️ <b>학생에게 보이는</b> 칸입니다 — 정답(어떤 게 ML인지·유형이 무엇인지)을 쓰지 마세요. 학생은 시험 중 <b>각 문항 옆 드롭다운</b>으로 봅니다. 칸을 비우면 그 점수대는 기본값이 쓰입니다.</div>
+      ${rBlock('문항 1', 'q1')}
+      ${rBlock('문항 2', 'q2')}
+      ${rBlock('문항 3', 'q3')}
     </div>
 
     <div class="aia-submit-bar">

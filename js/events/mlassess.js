@@ -68,7 +68,7 @@ document.addEventListener('click', async e => {
   /* 선생님: 상황·루브릭 편집 */
   if(act === 'mla-tc-edit'){
     const cur = MLA_CONFIG[TC_CLS?.id] || {};
-    MLA_EDIT_DRAFT = JSON.parse(JSON.stringify({ intro: cur.intro ?? null, q: cur.q || {}, situations: cur.situations || {}, rubricStudent: cur.rubricStudent ?? null }));
+    MLA_EDIT_DRAFT = JSON.parse(JSON.stringify({ intro: cur.intro ?? null, q: cur.q || {}, situations: cur.situations || {}, rubric: cur.rubric || {} }));
     MLA_TC_VIEW = 'edit'; render(); return;
   }
   if(act === 'mla-tc-editback'){ MLA_TC_VIEW = 'list'; MLA_EDIT_DRAFT = null; render(); return; }
@@ -77,7 +77,17 @@ document.addEventListener('click', async e => {
     const d = MLA_EDIT_DRAFT || {};
     const cfg = {};
     if(d.intro && String(d.intro).trim() && d.intro !== MLA_INTRO_DEFAULT) cfg.intro = String(d.intro);
-    if(d.rubricStudent && String(d.rubricStudent).trim()) cfg.rubricStudent = String(d.rubricStudent);
+    // 루브릭: 문항별 칸 단위, 기본값과 다른 것만 저장
+    const ro = {};
+    for(const qk of ['q1', 'q2', 'q3']){
+      const o = {};
+      for(const pk of MLA_RUBRIC_LEVELS){
+        const v = ((d.rubric || {})[qk] || {})[pk];
+        if(v != null && String(v).trim() && v !== MLA_RUBRIC_DEFAULT[qk][pk]) o[pk] = String(v);
+      }
+      if(Object.keys(o).length) ro[qk] = o;
+    }
+    if(Object.keys(ro).length) cfg.rubric = ro;
     const qo = {};
     for(const k in MLA_Q_DEFAULT){
       const v = (d.q || {})[k];
@@ -149,7 +159,12 @@ document.addEventListener('input', e => {
     if(!MLA_EDIT_DRAFT) MLA_EDIT_DRAFT = {};
     const f = ei.dataset.field, v = e.target.value;
     if(f === 'intro') MLA_EDIT_DRAFT.intro = v;
-    else if(f === 'rubric') MLA_EDIT_DRAFT.rubricStudent = v;
+    else if(f.startsWith('rubric.')){
+      const p = f.split('.'); // rubric.q1.p5
+      if(!MLA_EDIT_DRAFT.rubric) MLA_EDIT_DRAFT.rubric = {};
+      if(!MLA_EDIT_DRAFT.rubric[p[1]]) MLA_EDIT_DRAFT.rubric[p[1]] = {};
+      MLA_EDIT_DRAFT.rubric[p[1]][p[2]] = v;
+    }
     else if(f.startsWith('q.')){
       if(!MLA_EDIT_DRAFT.q) MLA_EDIT_DRAFT.q = {};
       MLA_EDIT_DRAFT.q[f.slice(2)] = v;
