@@ -130,7 +130,10 @@ function setST(t){
     MLA_ANSWERS = {}; MLA_SUB = null; MLA_SAVING = null; MLA_LOADING = true;
     if(MLA_SAVE_TIMER){ clearTimeout(MLA_SAVE_TIMER); MLA_SAVE_TIMER = null; }
     render();
-    loadAiaSubmission(SEL_CLS.id, 'mlassess', ST_USER.number).then(sub => {
+    Promise.all([
+      loadAiaSubmission(SEL_CLS.id, 'mlassess', ST_USER.number),
+      loadMlaConfig(SEL_CLS.id),
+    ]).then(([sub]) => {
       MLA_SUB = sub;
       if(sub && sub.answers) MLA_ANSWERS = { ...sub.answers };
       MLA_LOADING = false;

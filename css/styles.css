@@ -2697,3 +2697,30 @@ input.quiz-cloze-blank:focus{outline:none;background:var(--accent-lt,rgba(99,102
 .ml2-km-cdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .ml2-km-cctr{font-size:11.5px;color:var(--text3);margin-top:2px;font-weight:500;font-variant-numeric:tabular-nums}
 
+/* ── 📝 ML 수행평가 개방형 v4 추가분 ── */
+.mla-dossier-scene p{margin:0 0 9px}
+.mla-dossier-scene p:last-child{margin-bottom:0;font-weight:600}
+.mla-cheat-note{font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.5}
+/* 학생용 루브릭 패널 */
+.mla-rubric{margin:6px 0 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);overflow:hidden}
+.mla-rubric>summary{cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text2);list-style:none}
+.mla-rubric>summary::-webkit-details-marker{display:none}
+.mla-rubric>summary::before{content:'▸ ';color:var(--text3)}
+.mla-rubric[open]>summary::before{content:'▾ '}
+.mla-rubric-body{padding:4px 14px 14px}
+.mla-rubric-q{font-size:13px;font-weight:800;color:#1f6b47;margin:12px 0 6px}
+[data-theme="dark"] .mla-rubric-q{color:#8fd3b0}
+.mla-rubric-tbl{font-size:12.5px;width:100%}
+.mla-rubric-tbl th{width:46px;text-align:center;font-weight:800;color:#E8740C;vertical-align:top;padding:6px 6px}
+.mla-rubric-tbl td{padding:6px 8px;line-height:1.55;color:var(--text)}
+.mla-rubric-custom{font-size:13px;line-height:1.7;color:var(--text)}
+/* 교사 편집 폼 */
+.mla-edit-sec{margin-bottom:14px}
+.mla-edit-sit{padding:12px 0;border-top:1px dashed var(--border)}
+.mla-edit-sit:first-of-type{border-top:none}
+.mla-edit-sit-h{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:7px}
+.mla-edit-label{display:block;font-size:11.5px;font-weight:700;color:var(--text3);margin:8px 0 4px}
+.mla-edit-label small{font-weight:500}
+.mla-edit-scene{line-height:1.7}
+.mla-edit-rubric{line-height:1.7}
+

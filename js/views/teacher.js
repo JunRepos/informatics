@@ -116,11 +116,13 @@ function setTC(t){
   } else if(t === 'mlassess' && TC_CLS){
     // 📝 ML 수행평가 관리 — 응시토글 + 답안 + 점수 일괄 로드
     MLA_TC_VIEW = 'list'; MLA_TC_SNUM = null; MLA_ALL_SUBS = {}; MLA_TC_SCORES = {};
+    MLA_EDIT_DRAFT = null; MLA_EDIT_SAVING = false;
     const cid = TC_CLS.id;
     Promise.all([
       loadMlaActive(cid),
       loadAllAiaSubmissions(cid, 'mlassess'),
       loadAllAsmtScoresExt(cid, 'aicode'),
+      loadMlaConfig(cid),
     ]).then(([_a, subs, scores]) => {
       MLA_ALL_SUBS = subs || {};
       MLA_TC_SCORES = scores || {};

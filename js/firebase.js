@@ -595,6 +595,25 @@ async function setMlaActive(cid, on){
   MLA_ACTIVE[cid] = !!on;
 }
 
+// ── 📝 ML 수행평가 — 상황·안내·학생용 루브릭 편집본(config) ──
+//   submissions 하위(쓰기 허용)에 저장 → 새 Firebase 규칙 불필요.
+async function loadMlaConfig(cid){
+  try {
+    const s = await db.ref(`aiactivity/submissions/${cid}/mlassessConfig`).get();
+    MLA_CONFIG[cid] = s.exists() ? (s.val() || {}) : {};
+  } catch(err){
+    console.warn('[ML수행평가] config 로드 실패:', err.message || err);
+    MLA_CONFIG[cid] = {};
+  }
+  return MLA_CONFIG[cid];
+}
+async function setMlaConfig(cid, cfg){
+  const payload = { ...(cfg || {}), updatedAt: new Date().toISOString() };
+  await db.ref(`aiactivity/submissions/${cid}/mlassessConfig`).set(payload);
+  MLA_CONFIG[cid] = payload;
+  return payload;
+}
+
 async function loadAiaSubmission(cid, actId, studentNum){
   try {
     const s = await db.ref(`aiactivity/submissions/${cid}/${actId}/${studentNum}`).get();

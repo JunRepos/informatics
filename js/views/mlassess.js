@@ -1,8 +1,26 @@
 /* ═══════════════════════════════════════
-   views/mlassess.js — 📝 ML 수행평가 (디지털 활동지)
-   학생 응시(vStMlAssess) + 선생님 응시관리·채점(vTcMlAssess)
+   views/mlassess.js — 📝 ML 수행평가 (디지털 활동지 · 개방형 v4)
+   학생 응시(vStMlAssess) + 선생님 응시관리·채점(vTcMlAssess) + 상황·루브릭 편집(_vTcMlaEdit)
    비계(정오 피드백·길잡이) 없음 — 순수 수합. 채점은 교사용 정답 문서로.
 ═══════════════════════════════════════ */
+
+function _mlaScenePs(scene){
+  return String(scene || '').split(/\n+/).filter(p => p.trim())
+    .map(p => `<p>${esc(p)}</p>`).join('');
+}
+
+// 학생용 채점 기준(루브릭) HTML — ⚠️ 정답 없음. 교사 덮어쓴 문자열이 있으면 그걸, 없으면 기본 표.
+function mlaRubricHtml(cid){
+  const ov = mlaRubricOverride(cid);
+  if(ov){
+    return `<div class="mla-rubric-custom">${esc(ov).replace(/\n/g, '<br>')}</div>`;
+  }
+  return MLA_RUBRIC_STUDENT.map(b => `
+    <div class="mla-rubric-q"><b>${esc(b.q)}</b> <span class="mla-pt">[${b.max}점]</span></div>
+    <table class="tbl mla-rubric-tbl"><tbody>
+      ${b.levels.map(([pt, d]) => `<tr><th>${esc(pt)}</th><td>${esc(d)}</td></tr>`).join('')}
+    </tbody></table>`).join('');
+}
 
 /* ─────────── 학생 응시 ─────────── */
 
@@ -10,42 +28,45 @@ function vStMlAssess(){
   if(MLA_LOADING){
     return `<div class="section"><div class="ml-sub-explain">⏳ 내 응시 기록을 불러오는 중…</div></div>`;
   }
+  const cid = SEL_CLS?.id;
   const A = MLA_ANSWERS;
   const submitted = !!MLA_SUB?.submittedAt;
-  const sit = A.sitId === 'mine' ? null : mlaSituationById(A.sitId);
   const isMine = A.sitId === 'mine';
+  const sit = isMine ? null : mlaEffSit(cid, A.sitId);
   const chosen = !!A.sitId;
+  const sits = mlaEffSituations(cid);
 
-  // 헤더
   const head = `<div class="mla-head">
     <div>
       <div class="mla-title">📝 ${esc(MLA_META.title)}</div>
-      <div class="mla-sub">배점 <b>${MLA_META.total}점</b> · 권장 ${MLA_META.minutes}분 · 뒷장의 8개 상황 중 <b>자신의 진로와 가장 가까운 상황 1개</b>를 골라 세 문항에 답하세요.</div>
+      <div class="mla-sub">배점 <b>${MLA_META.total}점</b> · 권장 ${MLA_META.minutes}분 · ${esc(mlaEffIntro(cid))}</div>
     </div>
     ${submitted ? '<span class="aia-submit-chip done">✓ 제출 완료</span>' : '<span class="aia-submit-chip pending">⏳ 작성 중</span>'}
   </div>`;
 
-  // 제출 완료 → 읽기 전용
+  // 채점 기준(루브릭) — 접어둠
+  const rubric = `<details class="mla-rubric"><summary>📊 채점 기준 보기 — 점수가 어떻게 매겨지나요? (총 ${MLA_META.total}점)</summary>
+    <div class="mla-rubric-body">${mlaRubricHtml(cid)}</div></details>`;
+
   if(submitted){
     return `<div class="section">${head}
       <div class="mlp-feedback ok">✅ 제출이 완료되었습니다. 수정이 필요하면 선생님께 말씀하세요.</div>
-      ${_mlaAnswerSummary(A, true)}
+      ${_mlaAnswerSummary(A, true, cid)}
     </div>`;
   }
 
   // 상황 선택 그리드
-  const cards = MLA_SITUATIONS.map(s => `<button class="mla-sit-card ${A.sitId === s.id ? 'on' : ''}" data-action="mla-pick-sit" data-sit="${s.id}">
+  const cards = sits.map(s => `<button class="mla-sit-card ${A.sitId === s.id ? 'on' : ''}" data-action="mla-pick-sit" data-sit="${s.id}">
       <span class="mla-sit-ic">${s.icon}</span>
       <span class="mla-sit-tx"><b>상황 ${s.id.slice(1)}</b> · ${esc(s.field)}<small>${esc(s.org)}</small></span>
     </button>`).join('');
   const mineCard = `<button class="mla-sit-card mine ${isMine ? 'on' : ''}" data-action="mla-mine">
       <span class="mla-sit-ic">✍️</span><span class="mla-sit-tx"><b>나의 문제</b> · 직접 정하기<small>내 진로의 문제를 직접</small></span></button>`;
 
-  let body = `<div class="mla-q-head">📂 상황 고르기</div>
+  let body = `${rubric}<div class="mla-q-head">📂 상황 고르기</div>
     <div class="mla-sit-grid">${cards}${mineCard}</div>`;
 
   if(chosen){
-    // 선택한 상황 상세 (의뢰서 톤)
     if(isMine){
       body += `<div class="mla-dossier mine">
         <div class="mla-dossier-tag">✍️ 나의 문제</div>
@@ -53,14 +74,11 @@ function vStMlAssess(){
         <textarea class="aia-field-area" data-action="mla-input" data-fid="mineProblem" rows="3" placeholder="예: 우리 동아리 공연 관객 수를 미리 예측하고 싶다…">${esc(A.mineProblem || '')}</textarea>
       </div>`;
     } else {
-      const dataChips = (sit.dataItems || []).map(d => `<li>${esc(d)}</li>`).join('');
       body += `<div class="mla-dossier">
         <div class="mla-dossier-tag">📋 상황 ${sit.id.slice(1)} · ${esc(sit.field)}</div>
         <div class="mla-dossier-org">${sit.icon} ${esc(sit.title)}</div>
-        <div class="mla-dossier-scene">${esc(sit.scene)}</div>
-        <div class="mla-tasklist-h">📂 이 조직이 가지고 있는 데이터</div>
-        <ul class="mla-tasklist data">${dataChips}</ul>
-        <div class="mla-derive-hint">💡 이 데이터를 보고 <b>무엇을 할 수 있을지 직접 찾아내는</b> 것이 여러분의 일이에요.</div>
+        <div class="mla-dossier-scene">${_mlaScenePs(sit.scene)}</div>
+        <div class="mla-derive-hint">💡 이 상황 속 ‘하고 싶은 일’ 중에서 <b>기계학습으로 풀 수 있는 일을 직접 찾아내는</b> 것이 여러분의 일이에요.</div>
       </div>`;
     }
 
@@ -70,19 +88,18 @@ function vStMlAssess(){
       <input type="text" class="sc-cmt-in" data-action="mla-input" data-fid="pickReason" value="${esc(A.pickReason || '')}" placeholder="한 줄로 적어보세요"/>
     </div>`;
 
-    // 문항 1 — 학생이 데이터에서 직접 문제를 산출 (메뉴 없음)
-    body += `<div class="mla-q-head">문항 1. 데이터로 풀 수 있는 일 찾아내기 <span class="mla-pt">[5점]</span></div>`;
+    // 문항 1
+    body += `<div class="mla-q-head">문항 1. 기계학습으로 풀 수 있는 일 찾기 <span class="mla-pt">[5점]</span></div>`;
     if(isMine){
-      body += `<div class="ml-sub-explain">내가 정한 문제가 <b>기계학습으로 풀기에 적합한지</b> 판단하고, 그 이유를 적으세요. (규칙으로 충분한 문제라면 그렇게 판단해도 됩니다.)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="3" placeholder="내 문제가 기계학습에 적합한(또는 부적합한) 이유를 적어보세요.">${esc(A.q1_ml || '')}</textarea>`;
+      body += `<div class="ml-sub-explain">내가 정한 문제가 <b>기계학습으로 풀기에 적합한지</b> 판단하고, 그 이유를 적으세요. (규칙·계산으로 충분한 문제라면 그렇게 판단해도 됩니다.)</div>
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="4" placeholder="내 문제가 기계학습에 적합한(또는 부적합한) 이유를, 데이터·규칙 관점에서 적어보세요.">${esc(A.q1_ml || '')}</textarea>`;
     } else {
-      body += `<div class="ml-sub-explain">위 데이터를 활용해 이 조직을 도울 일을 <b>직접 찾아보세요.</b><br>
-        · 기계학습으로 풀 수 있는 일을 <b>2가지 이상</b> 찾아 쓰고<br>
-        · 반대로 <b>기계학습이 필요 없는(규칙·계산으로 충분한) 일</b>도 1가지 찾아, 왜 그런지 함께 쓰세요.</div>
-        <div class="mla-field-label">① 기계학습으로 풀 수 있는 일 (2가지 이상)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_ml" rows="3" placeholder="예: 환자가 적은 증상으로 알맞은 진료과를 안내한다 / 접수 혼잡도로 예상 대기 시간을 알려 준다 …">${esc(A.q1_ml || '')}</textarea>
-        <div class="mla-field-label">② 기계학습이 필요 없는 일 + 이유 (규칙·계산으로 충분한 것)</div>
-        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_rule" rows="2" placeholder="예: 진료비 계산 — 정해진 수가표대로 계산하면 되므로 규칙으로 충분하다.">${esc(A.q1_rule || '')}</textarea>`;
+      body += `<div class="ml-sub-explain">위 상황에서 <b>기계학습으로 풀 수 있는 일 2가지</b>를 찾아 쓰고, 각각 왜 그런지 근거를 함께 쓰세요.<br>
+        · <b>㉮ 데이터</b> 관점 — 학습할 정답(결과)이 이미 쌓여 있나요?  · <b>㉯ 규칙</b> 관점 — 정해진 공식·표만으로는 풀기 어려운가요?</div>
+        <div class="mla-field-label">① 기계학습으로 풀 수 있는 일 + 근거</div>
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_a" rows="3" placeholder="예: 환자의 예상 대기 시간을 알려 주기 — 과거에 ‘실제 대기 시간’이 쌓여 있고(데이터), 같은 시간대도 들쭉날쭉해 공식으로는 못 맞춘다(규칙).">${esc(A.q1_a || '')}</textarea>
+        <div class="mla-field-label">② 기계학습으로 풀 수 있는 일 + 근거</div>
+        <textarea class="aia-field-area" data-action="mla-input" data-fid="q1_b" rows="3" placeholder="예: 증상을 보고 알맞은 진료과 안내하기 — 증상별 ‘실제 배정 과’가 기록돼 있고(데이터), 같은 증상도 여러 과로 갈려 단순 표로는 안 된다(규칙).">${esc(A.q1_b || '')}</textarea>`;
     }
 
     // 문항 2
@@ -91,15 +108,14 @@ function vStMlAssess(){
       <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="예: 환자가 적어 낸 증상을 보고 알맞은 진료과를 안내하는 문제">${esc(A.q2_pick || '')}</textarea>`;
     const typeRadios = MLA_TYPES.map(t => `<button class="mla-radio ${A.q2_type === t ? 'on' : ''}" data-action="mla-q2type" data-type="${esc(t)}">${A.q2_type === t ? '◉' : '○'} ${esc(t)}</button>`).join('');
     body += `<div class="mla-field-label">① 유형</div><div class="mla-radio-row">${typeRadios}</div>`;
-    // 치트시트
     body += `<details class="mla-cheat"><summary>📑 모델 한눈에 보기 (참고)</summary>
-      <table class="tbl mla-cheat-tbl"><thead><tr><th>유형</th><th>모델</th><th>이런 문제에 어울려요</th></tr></thead><tbody>
-      ${MLA_MODELS.map(m => `<tr><td>${esc(m.type)}</td><td><b>${esc(m.key)}</b></td><td>${esc(m.desc)}</td></tr>`).join('')}
-      </tbody></table></details>`;
+      <table class="tbl mla-cheat-tbl"><thead><tr><th>모델</th><th>학습 유형</th><th>이런 문제에 어울려요</th></tr></thead><tbody>
+      ${MLA_MODELS.map(m => `<tr><td><b>${esc(m.key)}</b></td><td>${esc(m.type)}</td><td>${esc(m.desc)}</td></tr>`).join('')}
+      </tbody></table><div class="mla-cheat-note">※ 강화학습에 맞는 모델은 목록에 없어요(이번 상황들엔 잘 맞지 않아요).</div></details>`;
     const modelRadios = MLA_MODELS.map(m => `<button class="mla-radio ${A.q2_model === m.key ? 'on' : ''}" data-action="mla-q2model" data-model="${esc(m.key)}">${A.q2_model === m.key ? '◉' : '○'} ${esc(m.key)}</button>`).join('');
     body += `<div class="mla-field-label">② 모델</div><div class="mla-radio-row wrap">${modelRadios}</div>
-      <div class="mla-field-label">고른 이유 (유형·모델을 위 표의 특징과 연결해)</div>
-      <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="유형을 고른 이유와, 모델을 고른 이유를 적어보세요.">${esc(A.q2_why || '')}</textarea>`;
+      <div class="mla-field-label">고른 이유 + 모델 작동 방식</div>
+      <textarea class="aia-field-area" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="유형·모델을 고른 이유와, 그 모델이 대략 어떻게 작동하는지(예: kNN은 가까운 이웃의 다수결로 정한다)를 한두 줄로 적어보세요.">${esc(A.q2_why || '')}</textarea>`;
 
     // 문항 3
     body += `<div class="mla-q-head">문항 3. 선택한 모델로 해결하는 방안 <span class="mla-pt">[5점]</span></div>
@@ -128,21 +144,29 @@ function vStMlAssess(){
 }
 
 // 응답 요약 (제출 완료/교사 열람 공용)
-function _mlaAnswerSummary(a, compact){
+function _mlaAnswerSummary(a, compact, cid){
   const isMine = a.sitId === 'mine';
-  const sit = isMine ? null : mlaSituationById(a.sitId);
+  const sit = isMine ? null : mlaSituationById(a.sitId, cid);
   const sitLbl = isMine ? '✍️ 나의 문제' : (sit ? `${sit.icon} 상황 ${sit.id.slice(1)} · ${esc(sit.field)} (${esc(sit.org)})` : '–');
   const row = (k, v) => `<tr><th>${k}</th><td>${v || '<span style="color:var(--text3)">(무응답)</span>'}</td></tr>`;
+  // 문항1: 신규(q1_a/q1_b) 우선, 옛 응답(q1_ml/q1_rule) 호환
+  let q1rows;
+  if(isMine){
+    q1rows = row('문항1 · ML 적합 판단', esc(a.q1_ml || ''));
+  } else if(a.q1_a != null || a.q1_b != null){
+    q1rows = row('문항1 · 찾은 ML ①', esc(a.q1_a || '')) + row('문항1 · 찾은 ML ②', esc(a.q1_b || ''));
+  } else {
+    q1rows = row('문항1 · 찾은 ML 과제', esc(a.q1_ml || '')) + (a.q1_rule ? row('문항1 · 규칙형/이유', esc(a.q1_rule)) : '');
+  }
   return `<table class="mlp-summary"><tbody>
     ${row('선택 상황', sitLbl)}
     ${isMine ? row('나의 문제', esc(a.mineProblem || '')) : ''}
     ${a.pickReason ? row('고른 이유', esc(a.pickReason)) : ''}
-    ${row(isMine ? '문항1 · ML 적합 판단' : '문항1 · 찾은 ML 과제', esc(a.q1_ml || ''))}
-    ${isMine ? '' : row('문항1 · 규칙형/이유', esc(a.q1_rule || ''))}
+    ${q1rows}
     ${row('문항2 · 깊게 풀 문제', esc(a.q2_pick || ''))}
     ${row('문항2 · 유형', esc(a.q2_type || ''))}
     ${row('문항2 · 모델', esc(a.q2_model || ''))}
-    ${row('문항2 · 근거', esc(a.q2_why || ''))}
+    ${row('문항2 · 이유·작동방식', esc(a.q2_why || ''))}
     ${row('문항3 · 입력', esc(a.q3_input || ''))}
     ${row('문항3 · 출력', esc(a.q3_output || ''))}
     ${row('문항3 · 기대효과', esc(a.q3_effect || ''))}
@@ -152,9 +176,10 @@ function _mlaAnswerSummary(a, compact){
 /* ─────────── 선생님: 응시 관리·채점 ─────────── */
 
 function vTcMlAssess(){
-  const on = !!MLA_ACTIVE[TC_CLS?.id];
+  if(MLA_TC_VIEW === 'edit') return _vTcMlaEdit();
   if(MLA_TC_VIEW === 'student' && MLA_TC_SNUM) return _vTcMlaStudent();
 
+  const on = !!MLA_ACTIVE[TC_CLS?.id];
   const toggle = `<div class="mla-tc-toggle ${on ? 'on' : ''}">
     <div><b>${on ? '🟢 응시 열림' : '⚪ 응시 닫힘'}</b> — ${on ? '학생 화면에 <b>📝 ML 수행평가</b> 탭이 보입니다.' : '학생에게 보이지 않아요. 시험 시간에 열어주세요.'}</div>
     <button class="btn-sm ${on ? '' : 'btn-p'}" data-action="mla-active-toggle">${on ? '응시 닫기' : '응시 열기'}</button>
@@ -179,9 +204,13 @@ function vTcMlAssess(){
     </tr>`;
   }).join('');
 
+  const edited = !!MLA_CONFIG[TC_CLS?.id]?.updatedAt;
   return `<div class="aia-tc-head">
-      <div class="aia-tc-head-title">📝 ${esc(MLA_META.title)} <span style="color:var(--text3);font-size:13px">· ${MLA_META.total}점</span></div>
-      <button class="btn-sm" data-action="mla-tc-csv">📤 답안 CSV</button>
+      <div class="aia-tc-head-title">📝 ${esc(MLA_META.title)} <span style="color:var(--text3);font-size:13px">· ${MLA_META.total}점 · 개방형</span></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" data-action="mla-tc-edit">✏️ 상황·루브릭 편집${edited ? ' <span class="chip chip-green" style="margin-left:4px">수정됨</span>' : ''}</button>
+        <button class="btn-sm" data-action="mla-tc-csv">📤 답안 CSV</button>
+      </div>
     </div>
     ${toggle}
     <div class="asmt-stat-grid">
@@ -189,7 +218,7 @@ function vTcMlAssess(){
       <div class="stat-card"><div class="stat-num" style="color:#3b82f6">${written}</div><div class="stat-label">작성</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--ok)">${submitted}</div><div class="stat-label">제출</div></div>
     </div>
-    <div class="ml-sub-explain">채점 기준은 <b>「수행평가_운영안·정답(교사용)」</b> 문서를 참고하세요. 점수는 <b>🏆 점수 관리</b>에도 자동 반영되고, 거기서 학생 공개 토글을 켤 수 있어요.</div>
+    <div class="ml-sub-explain">채점 기준은 <b>「운영안·정답(교사용) v4」</b> 문서를 참고하세요. 점수는 <b>🏆 점수 관리</b>에도 자동 반영되고, 거기서 학생 공개 토글을 켤 수 있어요.</div>
     ${STUDENTS.length === 0 ? emptyBox('👥', '먼저 학생을 등록하세요.')
       : `<div style="overflow-x:auto"><table class="tbl aia-tc-table">
           <thead><tr><th>학번</th><th>이름</th><th>선택</th><th>제출</th><th>점수</th><th></th></tr></thead>
@@ -198,6 +227,7 @@ function vTcMlAssess(){
 
 function _vTcMlaStudent(){
   const snum = MLA_TC_SNUM;
+  const cid = TC_CLS?.id;
   const st = STUDENTS.find(s => s.number === snum);
   const sub = MLA_ALL_SUBS[snum];
   const back = `<div class="aia-tcs-header">
@@ -213,10 +243,57 @@ function _vTcMlaStudent(){
   const total = ['q1', 'q2', 'q3'].reduce((s, k) => s + (Number(sc[k]) || 0), 0);
   const saving = MLA_TC_SAVING === snum;
   return back
-    + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">📋 학생 답안</div>${_mlaAnswerSummary(a, false)}</div>`
+    + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">📋 학생 답안</div>${_mlaAnswerSummary(a, false, cid)}</div>`
     + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">⭐ 채점 (점수 관리에 자동 반영)</div>
         <div class="mla-score-row">${scoreInputs}<span class="mla-score-total">합계 <b>${total}</b>/15</span></div>
         <textarea class="sc-reason-area" data-action="mla-tc-comment" rows="2" placeholder="(선택) 학생에게 보일 종합 코멘트">${esc(sc.comment || '')}</textarea>
         <div style="margin-top:8px"><button class="btn-p btn-sm" data-action="mla-tc-savescore" ${saving ? 'disabled' : ''}>${saving ? '저장 중…' : '💾 점수 저장'}</button></div>
       </div>`;
+}
+
+/* ─────────── 선생님: 상황·안내·학생용 루브릭 편집 ─────────── */
+function _vTcMlaEdit(){
+  const d = MLA_EDIT_DRAFT || {};
+  const sitMap = d.situations || {};
+  const sitBlocks = MLA_SITUATIONS.map(s => {
+    const ov = sitMap[s.id] || {};
+    const title = ov.title != null ? ov.title : s.title;
+    const scene = ov.scene != null ? ov.scene : s.scene;
+    return `<div class="mla-edit-sit">
+      <div class="mla-edit-sit-h">${s.icon} 상황 ${s.id.slice(1)} · ${esc(s.field)}</div>
+      <label class="mla-edit-label">제목</label>
+      <input type="text" class="sc-cmt-in" data-action="mla-edit-input" data-field="${s.id}.title" value="${esc(title)}"/>
+      <label class="mla-edit-label">상황 글 <small>(빈 줄로 문단을 나눠요)</small></label>
+      <textarea class="aia-field-area mla-edit-scene" data-action="mla-edit-input" data-field="${s.id}.scene" rows="9">${esc(scene)}</textarea>
+    </div>`;
+  }).join('');
+  const intro = d.intro != null ? d.intro : MLA_INTRO_DEFAULT;
+  const rubric = d.rubricStudent != null ? d.rubricStudent : '';
+  return `<div class="aia-tcs-header">
+      <button class="btn-sm" data-action="mla-tc-editback">← 관리</button>
+      <div class="aia-tcs-info"><span class="aia-tcs-name">✏️ 상황·루브릭 편집</span></div>
+    </div>
+    <div class="ml-sub-explain">여기서 고친 내용은 <b>학생 화면에 바로 반영</b>됩니다. (정보 <b>2-A·2-B 두 반 모두</b>에 함께 저장돼요.) 정답은 학생 글·상황 어디에도 적지 마세요.</div>
+
+    <div class="section mla-edit-sec">
+      <div class="aia-tcs-sec-title">📢 안내문 (상단 설명)</div>
+      <textarea class="aia-field-area" data-action="mla-edit-input" data-field="intro" rows="3">${esc(intro)}</textarea>
+    </div>
+
+    <div class="section mla-edit-sec">
+      <div class="aia-tcs-sec-title">📋 상황 8개</div>
+      ${sitBlocks}
+    </div>
+
+    <div class="section mla-edit-sec">
+      <div class="aia-tcs-sec-title">📊 학생용 채점 기준 (루브릭)</div>
+      <div class="ml-sub-explain">⚠️ <b>학생에게 보이는</b> 칸입니다 — 정답(어떤 게 ML인지·유형이 무엇인지)을 쓰지 마세요. <b>비워 두면</b> 기본 채점 기준표가 자동으로 보입니다.</div>
+      <textarea class="aia-field-area mla-edit-rubric" data-action="mla-edit-input" data-field="rubric" rows="8" placeholder="(비워 두면 기본 기준표가 표시됩니다) 직접 쓰려면 점수대별 기준만 적고, 정답은 넣지 마세요.">${esc(rubric)}</textarea>
+    </div>
+
+    <div class="aia-submit-bar">
+      ${MLA_EDIT_SAVING ? '<span class="aia-meta saving">💾 저장 중…</span>' : ''}
+      <button class="btn-sm" data-action="mla-edit-reset">↩ 기본값으로 되돌리기</button>
+      <button class="btn-p btn-sm" data-action="mla-edit-save" ${MLA_EDIT_SAVING ? 'disabled' : ''}>💾 저장 (두 반 적용)</button>
+    </div>`;
 }

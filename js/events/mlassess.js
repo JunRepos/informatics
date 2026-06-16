@@ -64,6 +64,50 @@ document.addEventListener('click', async e => {
   }
   if(act === 'mla-tc-view'){ MLA_TC_SNUM = el.dataset.snum; MLA_TC_VIEW = 'student'; render(); return; }
   if(act === 'mla-tc-back'){ MLA_TC_VIEW = 'list'; MLA_TC_SNUM = null; render(); return; }
+
+  /* 선생님: 상황·루브릭 편집 */
+  if(act === 'mla-tc-edit'){
+    const cur = MLA_CONFIG[TC_CLS?.id] || {};
+    MLA_EDIT_DRAFT = JSON.parse(JSON.stringify({ intro: cur.intro ?? null, situations: cur.situations || {}, rubricStudent: cur.rubricStudent ?? null }));
+    MLA_TC_VIEW = 'edit'; render(); return;
+  }
+  if(act === 'mla-tc-editback'){ MLA_TC_VIEW = 'list'; MLA_EDIT_DRAFT = null; render(); return; }
+  if(act === 'mla-edit-save'){
+    if(!TC_CLS) return;
+    const d = MLA_EDIT_DRAFT || {};
+    const cfg = {};
+    if(d.intro && String(d.intro).trim() && d.intro !== MLA_INTRO_DEFAULT) cfg.intro = String(d.intro);
+    if(d.rubricStudent && String(d.rubricStudent).trim()) cfg.rubricStudent = String(d.rubricStudent);
+    const sm = {};
+    for(const s of MLA_SITUATIONS){
+      const ov = (d.situations || {})[s.id] || {};
+      const o = {};
+      if(ov.title != null && String(ov.title).trim() && ov.title !== s.title) o.title = String(ov.title);
+      if(ov.scene != null && String(ov.scene).trim() && ov.scene !== s.scene) o.scene = String(ov.scene);
+      if(Object.keys(o).length) sm[s.id] = o;
+    }
+    if(Object.keys(sm).length) cfg.situations = sm;
+    MLA_EDIT_SAVING = true; render();
+    try {
+      for(const t of ['info-2A', 'info-2B']) await setMlaConfig(t, cfg);
+      toast('저장됐어요 (정보 2-A·2-B 반영)', 'ok');
+      MLA_TC_VIEW = 'list'; MLA_EDIT_DRAFT = null;
+    } catch(err){ toast('저장 실패: ' + (err.message || err), 'err'); }
+    finally { MLA_EDIT_SAVING = false; render(); }
+    return;
+  }
+  if(act === 'mla-edit-reset'){
+    if(!TC_CLS) return;
+    if(!confirm('상황·안내문·루브릭을 모두 기본값으로 되돌릴까요? (정보 2-A·2-B 모두)')) return;
+    MLA_EDIT_SAVING = true; render();
+    try {
+      for(const t of ['info-2A', 'info-2B']){ await db.ref(`aiactivity/submissions/${t}/mlassessConfig`).remove(); MLA_CONFIG[t] = {}; }
+      toast('기본값으로 되돌렸어요', 'ok');
+      MLA_TC_VIEW = 'list'; MLA_EDIT_DRAFT = null;
+    } catch(err){ toast('실패: ' + (err.message || err), 'err'); }
+    finally { MLA_EDIT_SAVING = false; render(); }
+    return;
+  }
   if(act === 'mla-tc-savescore'){
     const snum = MLA_TC_SNUM;
     if(!TC_CLS || !snum) return;
@@ -91,6 +135,21 @@ document.addEventListener('input', e => {
   if(fi){
     MLA_ANSWERS[fi.dataset.fid] = e.target.value;
     _mlaQueueSave();
+    return;
+  }
+  // 선생님 편집 (상황·안내·루브릭) — 재렌더 없이 작업본만 갱신(포커스 유지)
+  const ei = e.target.closest('[data-action="mla-edit-input"]');
+  if(ei){
+    if(!MLA_EDIT_DRAFT) MLA_EDIT_DRAFT = {};
+    const f = ei.dataset.field, v = e.target.value;
+    if(f === 'intro') MLA_EDIT_DRAFT.intro = v;
+    else if(f === 'rubric') MLA_EDIT_DRAFT.rubricStudent = v;
+    else {
+      const [sid, key] = f.split('.');
+      if(!MLA_EDIT_DRAFT.situations) MLA_EDIT_DRAFT.situations = {};
+      if(!MLA_EDIT_DRAFT.situations[sid]) MLA_EDIT_DRAFT.situations[sid] = {};
+      MLA_EDIT_DRAFT.situations[sid][key] = v;
+    }
     return;
   }
   const sci = e.target.closest('[data-action="mla-tc-score"]');
@@ -122,8 +181,8 @@ function _mlaExportCSV(){
   if(!TC_CLS) return;
   const cols = [
     ['sit', '선택상황'], ['pickReason', '고른이유'],
-    ['q1_ml', '문항1_찾은ML과제'], ['q1_rule', '문항1_규칙형/이유'],
-    ['q2_pick', '문항2_깊게풀문제'], ['q2_type', '문항2_유형'], ['q2_model', '문항2_모델'], ['q2_why', '문항2_근거'],
+    ['q1_a', '문항1_ML①'], ['q1_b', '문항1_ML②'], ['q1_ml', '문항1_나의문제판단'],
+    ['q2_pick', '문항2_깊게풀문제'], ['q2_type', '문항2_유형'], ['q2_model', '문항2_모델'], ['q2_why', '문항2_이유·작동'],
     ['q3_input', '문항3_입력'], ['q3_output', '문항3_출력'], ['q3_effect', '문항3_기대효과'],
     ['score', '점수(합)'],
   ];
