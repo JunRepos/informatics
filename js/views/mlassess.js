@@ -98,33 +98,33 @@ function vStMlAssess(){
         <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_ml" rows="4" placeholder="여기에 작성하세요">${esc(A.q1_ml || '')}</textarea>`;
     } else {
       body += `<div class="ml-sub-explain">${subHtml(Q.q1sub)}</div>
-        <div class="mla-field-label">✏️ ① 기계학습으로 풀 수 있는 일 + 근거</div>
+        <div class="mla-field-label">✏️ ${esc(Q.q1aLabel)}</div>
         <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_a" rows="3" placeholder="여기에 작성하세요">${esc(A.q1_a || '')}</textarea>
-        <div class="mla-field-label">✏️ ② 기계학습으로 풀 수 있는 일 + 근거</div>
+        <div class="mla-field-label">✏️ ${esc(Q.q1bLabel)}</div>
         <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q1_b" rows="3" placeholder="여기에 작성하세요">${esc(A.q1_b || '')}</textarea>`;
     }
 
     // 문항 2
     body += `<div class="mla-q-head">문항 2. ${esc(Q.q2head)} <span class="mla-pt">[5점]</span></div>
       <div class="ml-sub-explain">${subHtml(Q.q2sub)}</div>
-      <div class="mla-field-label">✏️ ${isMine ? '내 문제' : '문항 1에서 찾은 일 중'} 깊게 풀 문제 한 가지를 한 문장으로</div>
+      <div class="mla-field-label">✏️ ${isMine ? '내 문제 중 ' : ''}${esc(Q.q2pickLabel)}</div>
       <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_pick" rows="2" placeholder="여기에 작성하세요">${esc(A.q2_pick || '')}</textarea>`;
     const typeRadios = MLA_TYPES.map(t => `<button class="mla-radio ${A.q2_type === t ? 'on' : ''}" data-action="mla-q2type" data-type="${esc(t)}">${A.q2_type === t ? '◉' : '○'} ${esc(t)}</button>`).join('');
-    body += `<div class="mla-field-label">① 유형 선택</div><div class="mla-radio-row">${typeRadios}</div>`;
+    body += `<div class="mla-field-label">${esc(Q.q2typeLabel)}</div><div class="mla-radio-row">${typeRadios}</div>`;
     const modelRadios = MLA_MODELS.map(m => `<button class="mla-radio ${A.q2_model === m.key ? 'on' : ''}" data-action="mla-q2model" data-model="${esc(m.key)}">${A.q2_model === m.key ? '◉' : '○'} ${esc(m.key)}</button>`).join('');
-    body += `<div class="mla-field-label">② 모델 선택</div><div class="mla-radio-row wrap">${modelRadios}</div>
-      <div class="mla-field-label">✏️ 고른 이유 + 모델 작동 방식</div>
+    body += `<div class="mla-field-label">${esc(Q.q2modelLabel)}</div><div class="mla-radio-row wrap">${modelRadios}</div>
+      <div class="mla-field-label">✏️ ${esc(Q.q2whyLabel)}</div>
       <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q2_why" rows="3" placeholder="여기에 작성하세요">${esc(A.q2_why || '')}</textarea>`;
 
     // 문항 3
     body += `<div class="mla-q-head">문항 3. ${esc(Q.q3head)} <span class="mla-pt">[5점]</span></div>
       <div class="ml-sub-explain">${subHtml(Q.q3sub)}</div>
       <div class="mla-q3">
-        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ① 입력 (모델에 넣을 특징)</span>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ${esc(Q.q3inLabel)}</span>
           <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_input" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_input || '')}</textarea></div>
-        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ② 출력 (모델이 내놓을 결과)</span>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ${esc(Q.q3outLabel)}</span>
           <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_output" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_output || '')}</textarea></div>
-        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ③ 기대 효과</span>
+        <div class="mla-q3-row"><span class="mla-q3-k">✏️ ${esc(Q.q3effLabel)}</span>
           <textarea class="aia-field-area mla-answer" data-action="mla-input" data-fid="q3_effect" rows="2" placeholder="여기에 작성하세요">${esc(A.q3_effect || '')}</textarea></div>
       </div>`;
   }
@@ -270,12 +270,10 @@ function _vTcMlaEdit(){
   const rubric = d.rubricStudent != null ? d.rubricStudent : '';
   const qd = d.q || {};
   const qv = k => qd[k] != null ? qd[k] : MLA_Q_DEFAULT[k];
-  const qRow = (head, sub, hk, sk) => `<div class="mla-edit-q">
-      <label class="mla-edit-label">${head} · 제목</label>
-      <input type="text" class="sc-cmt-in" data-action="mla-edit-input" data-field="q.${hk}" value="${esc(qv(hk))}"/>
-      <label class="mla-edit-label">${head} · 설명 <small>(빈 줄로 줄바꿈)</small></label>
-      <textarea class="aia-field-area" data-action="mla-edit-input" data-field="q.${sk}" rows="3">${esc(qv(sk))}</textarea>
-    </div>`;
+  const qField = (label, key, area) => `<label class="mla-edit-label">${label}</label>` + (area
+    ? `<textarea class="aia-field-area" data-action="mla-edit-input" data-field="q.${key}" rows="3">${esc(qv(key))}</textarea>`
+    : `<input type="text" class="sc-cmt-in" data-action="mla-edit-input" data-field="q.${key}" value="${esc(qv(key))}"/>`);
+  const qBlock = (title, fields) => `<div class="mla-edit-q"><div class="mla-edit-sit-h">${title}</div>${fields.map(f => qField(f[0], f[1], f[2])).join('')}</div>`;
   return `<div class="aia-tcs-header">
       <button class="btn-sm" data-action="mla-tc-editback">← 관리</button>
       <div class="aia-tcs-info"><span class="aia-tcs-name">✏️ 상황·루브릭 편집</span></div>
@@ -289,10 +287,10 @@ function _vTcMlaEdit(){
 
     <div class="section mla-edit-sec">
       <div class="aia-tcs-sec-title">📝 문항 안내 (질문 글)</div>
-      <div class="ml-sub-explain">문항의 <b>제목과 설명만</b> 고칠 수 있어요. 입력칸·유형/모델 선택지 구조는 그대로 유지됩니다.</div>
-      ${qRow('문항 1', '', 'q1head', 'q1sub')}
-      ${qRow('문항 2', '', 'q2head', 'q2sub')}
-      ${qRow('문항 3', '', 'q3head', 'q3sub')}
+      <div class="ml-sub-explain">문항의 <b>제목·설명·각 칸 라벨</b>을 고칠 수 있어요. (입력칸 자체와 유형/모델 선택지 구조는 그대로 유지) 빈칸으로 두면 기본값이 쓰입니다.</div>
+      ${qBlock('문항 1', [['제목', 'q1head', false], ['설명', 'q1sub', true], ['① 칸 라벨', 'q1aLabel', false], ['② 칸 라벨', 'q1bLabel', false]])}
+      ${qBlock('문항 2', [['제목', 'q2head', false], ['설명', 'q2sub', true], ['문제 선정칸 라벨', 'q2pickLabel', false], ['유형 라벨', 'q2typeLabel', false], ['모델 라벨', 'q2modelLabel', false], ['이유칸 라벨', 'q2whyLabel', false]])}
+      ${qBlock('문항 3', [['제목', 'q3head', false], ['설명', 'q3sub', true], ['입력칸 라벨', 'q3inLabel', false], ['출력칸 라벨', 'q3outLabel', false], ['기대효과칸 라벨', 'q3effLabel', false]])}
     </div>
 
     <div class="section mla-edit-sec">
