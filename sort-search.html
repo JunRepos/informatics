@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정렬과 탐색 시각화 · 신동고 정보</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%80%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --sub:#64748b; --line:#e2e8f0;
+  --blue:#3b82f6; --blue-d:#2563eb;
+  --amber:#f59e0b; --red:#ef4444; --green:#22c55e; --violet:#8b5cf6; --teal:#14b8a6;
+  --anim:420ms;
+  --shadow:0 1px 3px rgba(15,23,42,.08),0 6px 20px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);
+  font-family:"Pretendard Variable",Pretendard,-apple-system,system-ui,"Malgun Gothic",sans-serif;}
+body{padding:18px 16px 60px;-webkit-text-size-adjust:100%}
+.page{max-width:1080px;margin:0 auto}
+
+/* ── 헤더 ── */
+header.top{text-align:center;margin-bottom:18px}
+header.top h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+header.top h1 .em{font-weight:900}
+header.top p{color:var(--sub);font-size:14px;margin-top:4px}
+
+/* ── 탭 ── */
+.tabs{display:flex;gap:8px;justify-content:center;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:11px 22px;border-radius:999px;border:2px solid var(--line);background:var(--card);
+  font-size:16px;font-weight:700;color:var(--sub);cursor:pointer;transition:all .15s}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab:hover:not(.on){border-color:var(--blue)}
+
+.panel{display:none}
+.panel.on{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── 카드 ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:16px}
+
+/* ── 설정 줄 ── */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row + .row{margin-top:12px}
+.lbl{font-size:13px;font-weight:700;color:var(--sub);min-width:64px}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:11px;overflow:hidden}
+.seg button{border:none;background:var(--card);padding:9px 16px;font-size:15px;font-weight:700;
+  color:var(--sub);cursor:pointer;transition:all .12s}
+.seg button.on{background:var(--blue);color:#fff}
+.seg button + button{border-left:2px solid var(--line)}
+input[type=text],input[type=number]{border:2px solid var(--line);border-radius:11px;
+  padding:9px 13px;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);outline:none}
+input[type=text]{flex:1;min-width:160px}
+input[type=number]{width:96px}
+input:focus{border-color:var(--blue)}
+.btn{border:none;border-radius:11px;padding:9px 16px;font-size:15px;font-weight:700;cursor:pointer;
+  background:#eef2f7;color:var(--ink);transition:all .12s}
+.btn:hover{background:#e2e8f0}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-d)}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;
+  font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;transition:all .12s}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.note{font-size:12.5px;color:var(--sub);margin-top:8px}
+.note b{color:var(--amber)}
+
+/* ── 상태 메시지 ── */
+.statusbar{display:flex;align-items:center;gap:10px;background:#0f172a;color:#fff;border-radius:13px;
+  padding:13px 18px;font-size:17px;font-weight:600;min-height:52px;line-height:1.4}
+.statusbar .ico{font-size:20px}
+
+/* ── 카운터 ── */
+.counters{display:flex;gap:12px;margin:14px 0}
+.counter{flex:1;background:var(--card);border:2px solid var(--line);border-radius:14px;
+  padding:12px 14px;text-align:center}
+.counter .k{font-size:13px;font-weight:700;color:var(--sub)}
+.counter .v{font-size:34px;font-weight:900;letter-spacing:-1px;line-height:1.1;margin-top:2px}
+.counter.cmp .v{color:var(--amber)}
+.counter.swp .v{color:var(--red)}
+.counter.srch .v{color:var(--blue)}
+.counter .v.bump{animation:bump .3s}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+
+/* ── 무대(정렬 막대) ── */
+.stage{position:relative;background:linear-gradient(180deg,#fbfdff,#f1f5f9);
+  border:1px solid var(--line);border-radius:14px;padding:14px}
+.bars{position:relative;height:248px}
+.bar{position:absolute;bottom:0;border-radius:9px 9px 4px 4px;
+  background:linear-gradient(180deg,#60a5fa,#3b82f6);
+  display:flex;align-items:flex-start;justify-content:center;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.08);
+  transition:left var(--anim) cubic-bezier(.34,1.2,.5,1),
+             transform var(--anim) cubic-bezier(.34,1.2,.5,1),
+             background .2s, box-shadow .2s;}
+.bar .bar-val{margin-top:7px;font-size:18px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.bar.comparing{background:linear-gradient(180deg,#fbbf24,#f59e0b)}
+.bar.swapping{background:linear-gradient(180deg,#f87171,#ef4444);transform:translateY(-22px);z-index:5}
+.bar.pivot{background:linear-gradient(180deg,#a78bfa,#8b5cf6)}
+.bar.minidx{background:linear-gradient(180deg,#2dd4bf,#14b8a6)}
+.bar.sorted{background:linear-gradient(180deg,#4ade80,#22c55e)}
+.bar.found{background:linear-gradient(180deg,#4ade80,#16a34a)}
+.axis{display:flex;margin-top:8px}
+.axis-lbl{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--sub)}
+
+/* ── 무대(탐색 박스) ── */
+.boxes{display:flex;gap:8px}
+.box{flex:1;aspect-ratio:1/1;max-height:96px;min-width:0;border-radius:13px;
+  background:linear-gradient(180deg,#fff,#eef4fb);border:2px solid #c7d7ea;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:900;color:var(--ink);
+  transition:all .25s;position:relative}
+.box.comparing{background:linear-gradient(180deg,#fde68a,#f59e0b);border-color:#d97706;color:#fff;
+  transform:translateY(-8px);box-shadow:0 8px 18px rgba(245,158,11,.35)}
+.box.found{background:linear-gradient(180deg,#86efac,#16a34a);border-color:#15803d;color:#fff;
+  transform:translateY(-8px) scale(1.04);box-shadow:0 8px 20px rgba(22,163,74,.4)}
+.box.dim{opacity:.28;filter:grayscale(.6)}
+.markers{display:flex;gap:8px;margin-top:8px;min-height:30px}
+.mcell{flex:1;display:flex;gap:4px;justify-content:center;align-items:center}
+.badge{font-size:13px;font-weight:900;color:#fff;border-radius:7px;padding:3px 8px}
+.badge.L{background:#0ea5e9}.badge.M{background:#8b5cf6}.badge.R{background:#0ea5e9}
+
+/* ── 컨트롤 ── */
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.ctrl{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;
+  font-size:15px;font-weight:800;color:var(--ink);cursor:pointer;transition:all .12s}
+.ctrl:hover{border-color:var(--blue);color:var(--blue)}
+.ctrl.play{background:var(--green);border-color:var(--green);color:#fff}
+.ctrl.play.pause{background:var(--amber);border-color:var(--amber)}
+.ctrl:disabled{opacity:.4;cursor:default}
+.spd{display:flex;align-items:center;gap:8px;margin-left:auto}
+.spd input{width:120px}
+.progress{height:6px;background:var(--line);border-radius:6px;margin-top:14px;overflow:hidden}
+.progress > div{height:100%;background:var(--blue);width:0;transition:width .2s}
+
+/* ── 범례 ── */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--sub)}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.legend i{width:15px;height:15px;border-radius:5px;display:inline-block}
+
+footer{text-align:center;color:var(--sub);font-size:12.5px;margin-top:26px}
+
+@media (max-width:560px){
+  header.top h1{font-size:21px}
+  .counter .v{font-size:27px}
+  .box{font-size:19px}
+  .bar .bar-val{font-size:15px}
+  .lbl{min-width:auto;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <h1>🔀 정렬과 탐색 <span class="em">시각화</span></h1>
+    <p>비교하고, 골라내고, 절반씩 좁혀 찾는다 · 신동고 정보</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="sort">🔀 정렬</button>
+    <button class="tab" data-tab="search">🔎 탐색</button>
+  </div>
+
+  <!-- ══════════ 정렬 ══════════ -->
+  <section class="panel on" id="panel-sort">
+    <div class="card">
+      <div class="row">
+        <span class="lbl">알고리즘</span>
+        <div class="seg" id="sortAlgo">
+          <button class="on" data-v="bubble">버블 정렬</button>
+          <button data-v="selection">선택 정렬</button>
+        </div>
+        <div class="seg" id="sortOrder">
+          <button class="on" data-v="asc">오름차순</button>
+          <button data-v="desc">내림차순</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl">리스트</span>
+        <input type="text" id="sortInput" value="5, 2, 7, 3" placeholder="숫자를 쉼표로 구분 (예: 5, 2, 7, 3)">
+        <button class="btn primary" id="sortApply">적용</button>
+      </div>
+      <div class="row">
+        <span class="lbl">예시</span>
+        <div class="chips" id="sortPresets">
+          <button class="chip" data-v="5, 2, 7, 3">기본 [5,2,7,3]</button>
+          <button class="chip" data-v="8, 4, 2, 1">최악(역순)</button>
+          <button class="chip" data-v="1, 2, 3, 4">이미 정렬됨</button>
+          <button class="chip" data-v="random">🎲 무작위</button>
+        </div>
+      </div>
+      <div class="note">숫자 2~12개. 막대를 비교하고(노랑) 교환할 때(빨강) <b>자리가 이동</b>합니다.</div>
+    </div>
+
+    <div class="statusbar"><span class="ico">🔀</span><span id="sortMsg">시작 버튼을 눌러 보세요.</span></div>
+
+    <div class="counters">
+      <div class="counter cmp"><div class="k">비교 횟수</div><div class="v" id="sortCmp">0</div></div>
+      <div class="counter swp"><div class="k">교환 횟수</div><div class="v" id="sortSwp">0</div></div>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <div class="bars" id="sortBars"></div>
+        <div class="axis" id="sortAxis"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#3b82f6"></i>대기</span>
+        <span><i style="background:#f59e0b"></i>비교</span>
+        <span><i style="background:#ef4444"></i>교환</span>
+        <span><i style="background:#8b5cf6"></i>기준(선택)</span>
+        <span><i style="background:#14b8a6"></i>최솟값(선택)</span>
+        <span><i style="background:#22c55e"></i>정렬 완료</span>
+      </div>
+      <div class="controls">
+        <button class="ctrl play" id="sortPlay">▶ 재생</button>
+        <button class="ctrl" id="sortPrev">⏮ 이전</button>
+        <button class="ctrl" id="sortNext">한 단계 ⏭</button>
+        <button class="ctrl" id="sortReset">↺ 처음</button>
+        <div class="spd"><span class="lbl" style="min-width:auto">속도</span>
+          <input type="range" id="sortSpeed" min="1" max="5" value="3"></div>
+      </div>
+      <div class="progress"><div id="sortProg"></div></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 탐색 ══════════ -->
+  <section class="panel" id="panel-search">
+    <div class="card">
+      <div class="row">
+        <span class="lbl">알고리즘</span>
+        <div class="seg" id="searchAlgo">
+          <button class="on" data-v="linear">순차 탐색</button>
+          <button data-v="binary">이진 탐색</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl">리스트</span>
+        <input type="text" id="searchInput" value="10, 20, 30, 40, 50, 60, 70" placeholder="숫자를 쉼표로 구분">
+      </div>
+      <div class="row">
+        <span class="lbl">찾을 값</span>
+        <input type="number" id="searchTarget" value="50">
+        <button class="btn primary" id="searchApply">적용</button>
+        <div class="chips" id="searchPresets">
+          <button class="chip" data-v="10, 20, 30, 40, 50, 60, 70">기본 [10…70]</button>
+          <button class="chip" data-v="random">🎲 무작위(정렬)</button>
+        </div>
+      </div>
+      <div class="note" id="searchNote">이진 탐색은 <b>정렬된 목록</b>이 필요합니다.</div>
+    </div>
+
+    <div class="statusbar"><span class="ico">🔎</span><span id="searchMsg">찾을 값을 정하고 시작해 보세요.</span></div>
+
+    <div class="counters">
+      <div class="counter srch"><div class="k">탐색 횟수 (비교한 횟수)</div><div class="v" id="searchCnt">0</div></div>
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <div class="boxes" id="searchBoxes"></div>
+        <div class="axis" id="searchAxis"></div>
+        <div class="markers" id="searchMarkers"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#3b82f6"></i>대기</span>
+        <span><i style="background:#f59e0b"></i>비교 중</span>
+        <span><i style="background:#16a34a"></i>찾음</span>
+        <span><i style="background:#94a3b8"></i>탐색 제외</span>
+        <span><i style="background:#0ea5e9"></i>L·R 범위</span>
+        <span><i style="background:#8b5cf6"></i>M 가운데</span>
+      </div>
+      <div class="controls">
+        <button class="ctrl play" id="searchPlay">▶ 재생</button>
+        <button class="ctrl" id="searchPrev">⏮ 이전</button>
+        <button class="ctrl" id="searchNext">한 단계 ⏭</button>
+        <button class="ctrl" id="searchReset">↺ 처음</button>
+        <div class="spd"><span class="lbl" style="min-width:auto">속도</span>
+          <input type="range" id="searchSpeed" min="1" max="5" value="3"></div>
+      </div>
+      <div class="progress"><div id="searchProg"></div></div>
+    </div>
+  </section>
+
+  <footer>신동고 정보 · 정렬과 탐색 시각화 — 교과서 「Ⅲ. 알고리즘과 프로그래밍」</footer>
+</div>
+
+<script>
+"use strict";
+/* ══════════════════ 공용 ══════════════════ */
+const SPEED_DELAY = {1:1300,2:950,3:680,4:430,5:260}; // 슬라이더 → 단계 간격(ms)
+function parseList(str, minN, maxN){
+  let nums = (String(str).match(/-?\d+/g)||[]).map(Number).filter(x=>!isNaN(x));
+  if(nums.length<minN) return null;
+  if(nums.length>maxN) nums = nums.slice(0,maxN);
+  return nums;
+}
+function randList(n, lo, hi, step){
+  const a=[]; for(let i=0;i<n;i++) a.push(lo + Math.floor(Math.random()*((hi-lo)/step+1))*step);
+  return a;
+}
+function $(id){ return document.getElementById(id); }
+
+/* 단계 재생기: 미리 계산한 steps 배열을 앞/뒤/자동으로 재생 */
+class Player{
+  constructor(render){ this.render=render; this.steps=[]; this.i=0; this.playing=false; this.t=null; this.delay=680; this.onstate=null; }
+  load(steps){ this.stop(); this.steps=steps; this.i=0; this.draw(); }
+  draw(){ this.render(this.steps[this.i], this.i, this.steps.length); this.onstate&&this.onstate(); }
+  next(){ if(this.i<this.steps.length-1){ this.i++; this.draw(); return true; } return false; }
+  prev(){ if(this.i>0){ this.i--; this.draw(); } }
+  play(){ if(this.playing||!this.steps.length) return;
+    if(this.i>=this.steps.length-1){ this.i=0; this.draw(); }
+    this.playing=true; this.onstate&&this.onstate(); this.tick(); }
+  tick(){ this.t=setTimeout(()=>{ if(!this.playing) return;
+    if(this.next()) this.tick(); else this.stop(); }, this.delay); }
+  stop(){ this.playing=false; clearTimeout(this.t); this.onstate&&this.onstate(); }
+  reset(){ this.stop(); this.i=0; this.draw(); }
+  get done(){ return this.i>=this.steps.length-1; }
+}
+function bump(el){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+
+/* ══════════════════ 정렬 ══════════════════ */
+let sortValues=[5,2,7,3], sortBars=[];
+let sortAlgo='bubble', sortAsc=true;
+const sortPlayer = new Player(renderSort);
+
+function buildSortSteps(values, algo, asc){
+  const n=values.length, order=values.map((_,i)=>i), steps=[];
+  let comp=0, swap=0; const sorted=new Set();
+  const v=s=>values[order[s]];
+  const need=(a,b)=> asc ? a>b : a<b;   // 왼쪽(a)이 더 크면(오름차순) 교환 필요
+  const snap=e=>({order:order.slice(),sorted:new Set(sorted),
+    comparing:e.comparing||[],swapping:e.swapping||[],
+    pivot:(e.pivot==null?null:e.pivot),minidx:(e.minidx==null?null:e.minidx),
+    comp,swap,msg:e.msg||'',done:!!e.done,bumpC:!!e.bumpC,bumpS:!!e.bumpS});
+  steps.push(snap({msg:`${asc?'오름차순':'내림차순'}으로 정렬을 시작합니다.`}));
+  if(algo==='bubble'){
+    for(let i=0;i<n-1;i++){
+      for(let j=0;j<n-1-i;j++){
+        comp++;
+        steps.push(snap({comparing:[j,j+1],bumpC:true,msg:`이웃한 ${v(j)} 과(와) ${v(j+1)} 을(를) 비교합니다.`}));
+        if(need(v(j),v(j+1))){
+          [order[j],order[j+1]]=[order[j+1],order[j]]; swap++;
+          steps.push(snap({swapping:[j,j+1],bumpS:true,msg:`순서가 어긋나 자리를 교환합니다. → ${v(j)}, ${v(j+1)}`}));
+        }else{
+          steps.push(snap({comparing:[j,j+1],msg:`순서가 맞으므로 교환하지 않습니다.`}));
+        }
+      }
+      sorted.add(n-1-i);
+      steps.push(snap({msg:`한 단계 끝! 가장 ${asc?'큰':'작은'} 값이 맨 뒤에 고정됩니다.`}));
+    }
+    sorted.add(0);
+  }else{ // selection
+    for(let i=0;i<n-1;i++){
+      let m=i;
+      steps.push(snap({pivot:i,minidx:i,msg:`기준 위치 ${i}번을 정하고, 뒤에서 ${asc?'최솟':'최댓'}값을 찾습니다.`}));
+      for(let j=i+1;j<n;j++){
+        comp++;
+        steps.push(snap({pivot:i,minidx:m,comparing:[j],bumpC:true,
+          msg:`현재 ${asc?'최솟':'최댓'}값 ${v(m)} 과(와) ${v(j)} 비교`}));
+        if(need(v(m),v(j))){ m=j;
+          steps.push(snap({pivot:i,minidx:m,msg:`더 ${asc?'작은':'큰'} 값 발견 → ${v(m)} 을(를) 후보로`})); }
+      }
+      if(m!==i){ [order[i],order[m]]=[order[m],order[i]]; swap++;
+        steps.push(snap({pivot:i,swapping:[i,m],bumpS:true,msg:`기준과 ${asc?'최솟':'최댓'}값 ${v(i)} 을(를) 교환합니다.`}));
+      }else{
+        steps.push(snap({pivot:i,msg:`이미 제자리에 있어 교환하지 않습니다.`}));
+      }
+      sorted.add(i);
+      steps.push(snap({msg:`${i}번 위치가 고정되었습니다.`}));
+    }
+    sorted.add(n-1);
+  }
+  steps.push(snap({sorted:new Set(),done:true,msg:`정렬 완료! 비교 ${comp}회, 교환 ${swap}회`,
+    comparing:[],swapping:[]}));
+  // 마지막 단계는 전부 sorted 표시
+  steps[steps.length-1].sorted = new Set(values.map((_,i)=>i));
+  return steps;
+}
+
+function buildSortDOM(){
+  const wrap=$('sortBars'); wrap.innerHTML='';
+  const axis=$('sortAxis'); axis.innerHTML='';
+  const maxV=Math.max(...sortValues,1);
+  const n=sortValues.length, slotW=wrap.clientWidth/n;
+  sortBars = sortValues.map((val,idx)=>{
+    const b=document.createElement('div'); b.className='bar';
+    b.style.height=(30 + val/maxV*200)+'px';
+    b.style.width=(slotW-8)+'px';
+    b.style.left=(idx*slotW+4)+'px';
+    b.innerHTML=`<span class="bar-val">${val}</span>`;
+    wrap.appendChild(b); return b;
+  });
+  for(let s=0;s<n;s++){ const a=document.createElement('div'); a.className='axis-lbl'; a.textContent=s; axis.appendChild(a); }
+}
+
+function renderSort(step){
+  if(!step) return;
+  const n=sortValues.length, wrap=$('sortBars'), slotW=wrap.clientWidth/n;
+  step.order.forEach((vIdx,slot)=>{
+    const b=sortBars[vIdx]; if(!b) return;
+    b.style.left=(slot*slotW+4)+'px';
+    b.style.width=(slotW-8)+'px';
+    let cls='bar';
+    if(step.swapping.includes(slot)) cls+=' swapping';
+    else if(step.comparing.includes(slot)) cls+=' comparing';
+    else if(step.minidx===slot) cls+=' minidx';
+    else if(step.pivot===slot) cls+=' pivot';
+    else if(step.sorted.has(slot)) cls+=' sorted';
+    b.className=cls;
+  });
+  $('sortMsg').textContent=step.msg;
+  $('sortCmp').textContent=step.comp;
+  $('sortSwp').textContent=step.swap;
+  if(step.bumpC) bump($('sortCmp'));
+  if(step.bumpS) bump($('sortSwp'));
+}
+
+function reloadSort(){
+  buildSortDOM();
+  sortPlayer.load(buildSortSteps(sortValues, sortAlgo, sortAsc));
+}
+
+/* ══════════════════ 탐색 ══════════════════ */
+let searchRaw=[10,20,30,40,50,60,70], searchValues=[10,20,30,40,50,60,70], searchBoxes=[];
+let searchAlgo='linear', searchTarget=50;
+const searchPlayer=new Player(renderSearch);
+
+function buildSearchSteps(values, algo, target){
+  const n=values.length, steps=[]; let count=0;
+  const snap=e=>({highlight:(e.highlight==null?-1:e.highlight),found:(e.found==null?-1:e.found),
+    dimmed:new Set(e.dimmed||[]),L:(e.L==null?null:e.L),M:(e.M==null?null:e.M),R:(e.R==null?null:e.R),
+    count,msg:e.msg||'',bump:!!e.bump});
+  if(algo==='linear'){
+    steps.push(snap({msg:`순차 탐색: 맨 앞에서부터 ${target} 을(를) 차례대로 찾습니다.`}));
+    let found=-1;
+    for(let i=0;i<n;i++){
+      count++;
+      steps.push(snap({highlight:i,bump:true,msg:`${i}번 값 ${values[i]} 과(와) ${target} 비교 — ${count}번째`}));
+      if(values[i]===target){ found=i;
+        steps.push(snap({found:i,msg:`찾았습니다! ${i}번 위치, 탐색 ${count}회`})); break; }
+    }
+    if(found<0) steps.push(snap({msg:`${target} 은(는) 목록에 없습니다. 탐색 ${count}회`}));
+  }else{ // binary (values는 오름차순 정렬됨)
+    let L=0,R=n-1,found=-1;
+    const dim=(l,r)=>{const d=new Set();for(let k=0;k<n;k++) if(k<l||k>r) d.add(k); return d;};
+    steps.push(snap({L:L,R:R,M:Math.floor((L+R)/2),dimmed:dim(L,R),
+      msg:`이진 탐색: 정렬된 목록의 가운데부터 비교합니다.`}));
+    while(L<=R){
+      const M=Math.floor((L+R)/2); count++;
+      steps.push(snap({L,R,M,highlight:M,dimmed:dim(L,R),bump:true,
+        msg:`가운데 M=${M}번 값 ${values[M]} 과(와) ${target} 비교 — ${count}번째`}));
+      if(values[M]===target){ found=M;
+        steps.push(snap({L,R,M,found:M,dimmed:dim(L,R),msg:`찾았습니다! ${M}번 위치, 탐색 ${count}회`})); break; }
+      else if(target>values[M]){ L=M+1;
+        steps.push(snap({L,R,M,dimmed:dim(L,R),msg:`${target} > ${values[M]} 이므로 오른쪽 절반으로 좁힙니다.`})); }
+      else { R=M-1;
+        steps.push(snap({L,R,M,dimmed:dim(L,R),msg:`${target} < ${values[M]} 이므로 왼쪽 절반으로 좁힙니다.`})); }
+    }
+    if(found<0) steps.push(snap({dimmed:dim(0,-1),msg:`${target} 은(는) 목록에 없습니다. 탐색 ${count}회`}));
+  }
+  return steps;
+}
+
+function buildSearchDOM(){
+  const wrap=$('searchBoxes'); wrap.innerHTML='';
+  const axis=$('searchAxis'); axis.innerHTML='';
+  const mk=$('searchMarkers'); mk.innerHTML='';
+  searchBoxes = searchValues.map((val,idx)=>{
+    const b=document.createElement('div'); b.className='box'; b.textContent=val;
+    wrap.appendChild(b); return b;
+  });
+  searchValues.forEach((_,s)=>{
+    const a=document.createElement('div'); a.className='axis-lbl'; a.textContent=s; axis.appendChild(a);
+    const c=document.createElement('div'); c.className='mcell'; mk.appendChild(c);
+  });
+}
+
+function renderSearch(step){
+  if(!step) return;
+  searchBoxes.forEach((b,i)=>{
+    let cls='box';
+    if(step.found===i) cls+=' found';
+    else if(step.highlight===i) cls+=' comparing';
+    if(step.dimmed.has(i) && step.found!==i && step.highlight!==i) cls+=' dim';
+    b.className=cls;
+  });
+  const cells=$('searchMarkers').children;
+  for(const c of cells) c.innerHTML='';
+  if(step.L!=null && searchAlgo==='binary'){
+    const put=(i,t,k)=>{ if(i>=0&&i<cells.length){ const s=document.createElement('span'); s.className='badge '+k; s.textContent=t; cells[i].appendChild(s);} };
+    put(step.L,'L','L'); put(step.M,'M','M'); put(step.R,'R','R');
+  }
+  $('searchMsg').textContent=step.msg;
+  $('searchCnt').textContent=step.count;
+  if(step.bump) bump($('searchCnt'));
+}
+
+function reloadSearch(){
+  searchValues = (searchAlgo==='binary') ? searchRaw.slice().sort((a,b)=>a-b) : searchRaw.slice();
+  $('searchNote').innerHTML = (searchAlgo==='binary')
+    ? '이진 탐색은 <b>정렬된 목록</b>이 필요해 자동으로 오름차순 정렬했습니다.'
+    : '순차 탐색은 정렬되지 않은 목록에서도 동작합니다.';
+  buildSearchDOM();
+  searchPlayer.load(buildSearchSteps(searchValues, searchAlgo, searchTarget));
+}
+
+/* ══════════════════ 컨트롤 배선 ══════════════════ */
+function wireControls(prefix, player){
+  const play=$(prefix+'Play');
+  player.onstate=()=>{
+    play.textContent = player.playing ? '⏸ 정지' : (player.done ? '↺ 다시' : '▶ 재생');
+    play.classList.toggle('pause', player.playing);
+    $(prefix+'Prog').style.width = (player.i/Math.max(1,player.steps.length-1)*100)+'%';
+    $(prefix+'Prev').disabled = player.i===0;
+    $(prefix+'Next').disabled = player.done;
+  };
+  play.onclick=()=>{ if(player.playing) player.stop();
+    else { if(player.done) player.reset(); player.play(); } };
+  $(prefix+'Prev').onclick=()=>{ player.stop(); player.prev(); };
+  $(prefix+'Next').onclick=()=>{ player.stop(); player.next(); };
+  $(prefix+'Reset').onclick=()=>player.reset();
+  $(prefix+'Speed').oninput=e=>{ player.delay=SPEED_DELAY[e.target.value];
+    document.documentElement.style.setProperty('--anim',(player.delay*0.6)+'ms'); };
+}
+
+/* 세그먼트 토글 */
+function wireSeg(id, cb){
+  const seg=$(id);
+  seg.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+    [...seg.children].forEach(x=>x.classList.toggle('on',x===b)); cb(b.dataset.v); });
+}
+
+/* ── 탭 ── */
+document.querySelector('.tabs').addEventListener('click',e=>{
+  const t=e.target.closest('.tab'); if(!t) return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='panel-'+t.dataset.tab));
+  // 탭 전환 시 막대 폭 재계산
+  if(t.dataset.tab==='sort') renderSort(sortPlayer.steps[sortPlayer.i]);
+});
+
+/* ── 정렬 이벤트 ── */
+wireControls('sort', sortPlayer);
+wireSeg('sortAlgo', v=>{ sortAlgo=v; reloadSort(); });
+wireSeg('sortOrder', v=>{ sortAsc=(v==='asc'); reloadSort(); });
+$('sortApply').onclick=()=>{ const a=parseList($('sortInput').value,2,12);
+  if(!a){ alert('숫자를 2개 이상 입력하세요.'); return; } sortValues=a; reloadSort(); };
+$('sortInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('sortApply').click(); });
+$('sortPresets').addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(!c) return;
+  let v=c.dataset.v; if(v==='random') v=randList(6,1,20,1).join(', ');
+  $('sortInput').value=v; $('sortApply').click(); });
+
+/* ── 탐색 이벤트 ── */
+wireControls('search', searchPlayer);
+wireSeg('searchAlgo', v=>{ searchAlgo=v; reloadSearch(); });
+function applySearch(){
+  const a=parseList($('searchInput').value,2,15);
+  if(!a){ alert('숫자를 2개 이상 입력하세요.'); return; }
+  searchRaw=a; searchTarget=parseInt($('searchTarget').value,10)||0; reloadSearch();
+}
+$('searchApply').onclick=applySearch;
+$('searchInput').addEventListener('keydown',e=>{ if(e.key==='Enter') applySearch(); });
+$('searchTarget').addEventListener('keydown',e=>{ if(e.key==='Enter') applySearch(); });
+$('searchPresets').addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(!c) return;
+  let v=c.dataset.v; if(v==='random') v=randList(7,5,80,5).filter((x,i,a)=>a.indexOf(x)===i).sort((a,b)=>a-b).join(', ');
+  $('searchInput').value=v; applySearch(); });
+
+/* ── 리사이즈 시 막대 위치 재계산 ── */
+let rzTimer;
+window.addEventListener('resize',()=>{ clearTimeout(rzTimer); rzTimer=setTimeout(()=>{
+  renderSort(sortPlayer.steps[sortPlayer.i]); },120); });
+
+/* ── 초기화 ── */
+reloadSort();
+reloadSearch();
+</script>
+</body>
+</html>
