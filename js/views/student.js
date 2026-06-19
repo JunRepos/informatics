@@ -14,21 +14,21 @@ function _stNavGroups(){
   const cid = SEL_CLS?.id;
   const on = m => isInfo && m[cid];
 
-  // 평가 그룹은 활성화된 것만 노출 — 진행 중 표시(초록 점)용으로 개수 집계
+  // 평가 그룹은 활성화된 것만 노출 — 진행 중일 때만 그룹이 나타남(시즌성).
+  //   수행평가 = 실제 응시(ASMT) 또는 연습 안내(AG) 중 하나라도 켜지면 노출(안에서 모드 전환).
   const asmtItems = [];
-  if(on(ASMT_ACTIVE))  asmtItems.push({key:'asmt',     ico:'📝', label:'수행평가'});
-  if(on(MLA_ACTIVE))   asmtItems.push({key:'mlassess', ico:'🧪', label:'ML 수행평가'});
-  asmtItems.push({key:'myscore', ico:'📊', label:'내 점수'});
+  if(on(ASMT_ACTIVE) || on(AG_ACTIVE)) asmtItems.push({key:'asmt',     ico:'📝', label:'수행평가'});
+  if(on(MLA_ACTIVE))                   asmtItems.push({key:'mlassess', ico:'🧪', label:'ML 수행평가'});
 
   const aiItems = [];
   if(on(ML_ACTIVE))  aiItems.push({key:'ml',  ico:'🤖', label:'기계학습'});
   if(on(AIA_ACTIVE)) aiItems.push({key:'aia', ico:'🧠', label:'AI 활동지'});
 
+  // OJ + 퀴즈 → '문제풀이' 하나로 통합(내부 하위탭)
   const labItems = [
     {key:'notebook', ico:'📓', label:'노트북'},
     {key:'mission',  ico:'🎮', label:'미션'},
-    {key:'oj',       ico:'💻', label:'OJ'},
-    {key:'coderead', ico:'🧩', label:'퀴즈'},
+    {key:'practice', ico:'💻', label:'문제풀이'},
   ];
   if(on(AIC_ACTIVE)) labItems.push({key:'aicode', ico:'💬', label:'AI 코딩'});
 
@@ -44,9 +44,11 @@ function _stNavGroups(){
   if(isInfo){
     groups.push({ label:'실습', items: labItems });
     if(aiItems.length) groups.push({ label:'AI 탐구', items: aiItems });
-    groups.push({ label:'평가', dot:(on(ASMT_ACTIVE)||on(MLA_ACTIVE)), items: asmtItems });
+    // 평가 그룹: 진행 중인 항목이 하나라도 있을 때만 노출(시즌성). 점은 항상 진행 중 의미.
+    if(asmtItems.length) groups.push({ label:'평가', dot:true, items: asmtItems });
   }
-  groups.push({ items:[{key:'mine', ico:'👤', label:'내 현황'}] });
+  // 내 현황 + 내 점수(정보반) → '나' 하나로 통합(내부 하위탭)
+  groups.push({ items:[{key:'me', ico:'👤', label:'나'}] });
   return groups;
 }
 
@@ -75,6 +77,15 @@ function _stSidebar(groups, collapsed){
   </nav>`;
 }
 
+// 구버전 탭 키 → 통합 탭 키 정규화 (저장된 세션/이전 링크 호환)
+function _stNormalizeTab(){
+  if(ST_TAB === 'oj'){ ST_TAB = 'practice'; ST_PRACTICE_SUB = 'oj'; }
+  else if(ST_TAB === 'coderead'){ ST_TAB = 'practice'; ST_PRACTICE_SUB = 'quiz'; }
+  else if(ST_TAB === 'mine'){ ST_TAB = 'me'; ST_ME_SUB = 'status'; }
+  else if(ST_TAB === 'myscore'){ ST_TAB = 'me'; ST_ME_SUB = 'score'; }
+  else if(ST_TAB === 'asmt-guide'){ ST_TAB = 'asmt'; ASMT_MODE = 'guide'; }
+}
+
 // 본문 탭 내용
 function _stTabBody(){
   if     (ST_TAB === 'dashboard') return vStDashboard();
@@ -84,25 +95,23 @@ function _stTabBody(){
   else if(ST_TAB === 'attend')  return vStAttend();
   else if(ST_TAB === 'notebook')return vStNotebook();
   else if(ST_TAB === 'mission') return vStMission();
-  else if(ST_TAB === 'oj')      return vStOJ();
-  else if(ST_TAB === 'coderead')return vStCodeRead();
+  else if(ST_TAB === 'practice')return vStPractice();
   else if(ST_TAB === 'aicode')  return vStAiCode();
   else if(ST_TAB === 'aia')     return vStAiActivity();
   else if(ST_TAB === 'ml')      return vStMl();
-  else if(ST_TAB === 'asmt-guide') return vStAsmtGuide();
-  else if(ST_TAB === 'asmt')    return vStAssessment();
+  else if(ST_TAB === 'asmt')    return vStAsmt();
   else if(ST_TAB === 'mlassess')return vStMlAssess();
-  else if(ST_TAB === 'myscore') return vStMyScore();
-  else if(ST_TAB === 'mine')    return vStMine();
+  else if(ST_TAB === 'me')      return vStMe();
   return '';
 }
 
 // 본문을 넓게(IDE형) 쓰는 탭 — 좁은 탭은 가운데 정렬로 가독성 유지
 function _stWideTab(){
-  if(ST_TAB === 'notebook' || ST_TAB === 'mission' || ST_TAB === 'oj') return true;
-  if(ST_TAB === 'coderead' && CR_VIEW === 'solve') return true;
-  if(ST_TAB === 'asmt' && ASMT_STAGE === 2) return true;
-  if(ST_TAB === 'asmt-guide' && AG_STAGE === 2) return true;
+  if(ST_TAB === 'notebook' || ST_TAB === 'mission') return true;
+  if(ST_TAB === 'practice' && ST_PRACTICE_SUB === 'oj') return true;
+  if(ST_TAB === 'practice' && ST_PRACTICE_SUB === 'quiz' && CR_VIEW === 'solve') return true;
+  if(ST_TAB === 'asmt' && ASMT_MODE === 'guide' && AG_STAGE === 2) return true;
+  if(ST_TAB === 'asmt' && ASMT_MODE === 'real' && ASMT_STAGE === 2) return true;
   if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') return true;
   return false;
 }
@@ -119,6 +128,7 @@ function toggleStNav(){
 
 // 학생 대시보드 메인 — 좌측 사이드바 + 본문
 function vStudent(){
+  _stNormalizeTab();
   const collapsed = ST_NAV_COLLAPSED || _stAutoCollapse();
   const wide = _stWideTab();
   const groups = _stNavGroups();
@@ -128,30 +138,108 @@ function vStudent(){
   </div>`;
 }
 
+// 작은 밑줄형 하위탭 바
+function _subTabs(tabs, cur, fn){
+  return `<div class="prac-subtabs">${tabs.map(t =>
+    `<button class="prac-subtab${cur === t.key ? ' active' : ''}" onclick="${fn}('${t.key}')">${t.label}</button>`
+  ).join('')}</div>`;
+}
+
+// ── 💻 문제풀이 (OJ + 퀴즈 통합) ──
+function vStPractice(){
+  const sub = ST_PRACTICE_SUB === 'quiz' ? 'quiz' : 'oj';
+  // 퀴즈 풀이 중에는 하위탭 바 숨김(집중) — 퀴즈 화면 자체에 뒤로가기 있음
+  if(sub === 'quiz' && CR_VIEW === 'solve') return vStCodeRead();
+  const bar = _subTabs([{key:'oj', label:'💻 OJ'}, {key:'quiz', label:'🧩 퀴즈'}], sub, 'setPracticeSub');
+  return bar + (sub === 'oj' ? vStOJ() : vStCodeRead());
+}
+function setPracticeSub(s){
+  ST_PRACTICE_SUB = s;
+  if(s === 'quiz'){
+    CR_VIEW = 'list'; CR_SEL = null; CR_LAST_RESULT = null; CR_CLOZE_ANSWERS = null; CR_BUG_SEL = null;
+    // 진도 미로드 시(예: 구버전 세션 복원) 1회 로드
+    if(SEL_CLS && ST_USER && !Object.keys(CR_PROGRESS || {}).length){
+      _loadCrProgress().then(render);
+    }
+  }
+  render();
+}
+
+// 퀴즈(코드 읽기) 본인 진도 일괄 로드 — 목록 표시용
+async function _loadCrProgress(){
+  await loadCodeReadings(SEL_CLS.id);
+  CR_PROGRESS = {};
+  for(const r of CR_READINGS){
+    const p = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
+    if(p){
+      if(!CR_PROGRESS[r.id]) CR_PROGRESS[r.id] = {};
+      CR_PROGRESS[r.id][ST_USER.number] = p;
+    }
+  }
+}
+
+// ── 👤 나 (내 현황 + 내 점수) ──
+function vStMe(){
+  const isInfo = (SEL_CLS?.type || 'normal') === 'info';
+  const sub = (isInfo && ST_ME_SUB === 'score') ? 'score' : 'status';
+  // 일반반은 점수 탭이 없어 하위탭 바를 생략
+  if(!isInfo) return vStMine();
+  const bar = _subTabs([{key:'status', label:'📋 내 현황'}, {key:'score', label:'📊 내 점수'}], sub, 'setMeSub');
+  return bar + (sub === 'score' ? vStMyScore() : vStMine());
+}
+function setMeSub(s){
+  ST_ME_SUB = s;
+  if(s === 'score' && SEL_CLS && ST_USER && MY_SCORES === null){
+    _loadMyScores();  // 내부에서 render
+    return;
+  }
+  render();
+}
+function _loadMyScores(){
+  MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;
+  render();
+  Promise.all([
+    loadAsmtPublished(SEL_CLS.id),
+    loadAsmtReasonsPublished(SEL_CLS.id),
+    loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
+  ]).then(([pub, rpub, scores]) => {
+    MY_SCORES_PUB = pub; MY_REASONS_PUB = rpub; MY_SCORES = scores;
+    if(ST_TAB === 'me') render();
+  });
+}
+
+// ── 📝 수행평가 (실제 응시 + 연습 안내 통합) ──
+function vStAsmt(){
+  const cid = SEL_CLS?.id;
+  const real = !!ASMT_ACTIVE[cid], guide = !!AG_ACTIVE[cid];
+  if(real && guide){
+    const mode = ASMT_MODE === 'guide' ? 'guide' : 'real';
+    const bar = _subTabs([{key:'real', label:'📝 실제 응시'}, {key:'guide', label:'📖 연습'}], mode, 'setAsmtMode');
+    return bar + (mode === 'guide' ? vStAsmtGuide() : vStAssessment());
+  }
+  if(guide && !real) return vStAsmtGuide();   // 연습만 열린 상태
+  return vStAssessment();                       // 실제만(또는 둘 다 꺼짐 → 안내 카드)
+}
+function setAsmtMode(m){
+  ASMT_MODE = m;
+  if(m === 'guide'){ // 연습은 매번 새로 시작(제출·저장 없음)
+    AG_STAGE = 1; AG_ANS = { a: '', b: {}, blanks: {} };
+    AG_RUN = null; AG_TEST = null; AG_RUNNING = false; AG_STDIN = '';
+  }
+  render();
+}
+
 function setST(t){
   ST_TAB = t;
   if(t === 'attend' && SEL_CLS){
     const ym = new Date().toISOString().slice(0, 7);
     loadAttendanceMonth(SEL_CLS.id, ym).then(render);
-  } else if(t === 'coderead' && SEL_CLS && ST_USER){
-    // 학생 본인 진도만 한꺼번에 로드
-    CR_VIEW = 'list';
-    CR_SEL = null;
-    CR_LAST_RESULT = null;
-    CR_CLOZE_ANSWERS = null;
-    CR_BUG_SEL = null;
-    loadCodeReadings(SEL_CLS.id).then(async () => {
-      // 학생 진도 일괄 로드 (목록 표시용)
-      CR_PROGRESS = {};
-      for(const r of CR_READINGS){
-        const p = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
-        if(p){
-          if(!CR_PROGRESS[r.id]) CR_PROGRESS[r.id] = {};
-          CR_PROGRESS[r.id][ST_USER.number] = p;
-        }
-      }
-      render();
-    });
+  } else if(t === 'practice' && SEL_CLS && ST_USER){
+    // 문제풀이(OJ+퀴즈) — OJ는 반 로드 시 이미 적재됨, 퀴즈 진도만 로드
+    OJ_SEL_PROB = null; OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
+    CR_VIEW = 'list'; CR_SEL = null; CR_LAST_RESULT = null; CR_CLOZE_ANSWERS = null; CR_BUG_SEL = null;
+    render();                       // OJ 하위탭은 즉시 표시
+    _loadCrProgress().then(render); // 퀴즈 진도 로드 후 갱신
   } else if(t === 'aicode' && SEL_CLS && ST_USER){
     // AI 코딩 탭 — active + 저장 세션 로드 후 적절한 화면 결정
     AIC_MESSAGES = [];
@@ -172,13 +260,11 @@ function setST(t){
       AIC_VIEW = _aicInitialStudentView(s);
       render();
     });
-  } else if(t === 'asmt-guide'){
-    // 수행평가 안내(연습) — 매 진입 시 새로 시작 (제출·저장 없음)
+  } else if(t === 'asmt' && SEL_CLS && ST_USER){
+    // 수행평가(실제 응시 + 연습 통합) — 모드 기본값 + 연습 상태 초기화 + 내 제출 로드
+    ASMT_MODE = ASMT_ACTIVE[SEL_CLS.id] ? 'real' : 'guide';
     AG_STAGE = 1; AG_ANS = { a: '', b: {}, blanks: {} };
     AG_RUN = null; AG_TEST = null; AG_RUNNING = false; AG_STDIN = '';
-    render();
-  } else if(t === 'asmt' && SEL_CLS && ST_USER){
-    // 수행평가 — 내 제출(진행상황) 로드 후 적절한 단계/화면 결정
     ASMT_ANS = { a: '', b: {}, blanks: {} };
     ASMT_STAGE = 1;
     ASMT_VIEW = 'exam';
@@ -224,20 +310,13 @@ function setST(t){
     ML_UN_PHASE = 'pick'; ML_UN_DATASET = null; ML_UN_DATA = null; ML_UN_KMEANS = null; ML_UN_REVEAL = false;
     if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
     Promise.all([loadMlActive(SEL_CLS.id), loadMlRlDesc(SEL_CLS.id)]).then(() => render());
-  } else if(t === 'myscore' && SEL_CLS && ST_USER){
-    // 📊 내 점수 — 공개 토글 + 사유 공개 토글 + 내 점수 함께 로드
-    MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;
-    render(); // 로딩 표시
-    Promise.all([
-      loadAsmtPublished(SEL_CLS.id),
-      loadAsmtReasonsPublished(SEL_CLS.id),
-      loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
-    ]).then(([pub, rpub, scores]) => {
-      MY_SCORES_PUB = pub;
-      MY_REASONS_PUB = rpub;
-      MY_SCORES = scores;
-      if(ST_TAB === 'myscore') render();
-    });
+  } else if(t === 'me'){
+    // 👤 나(현황+점수) — 점수 하위탭이고 아직 미로드면 로드, 아니면 즉시 표시
+    if(SEL_CLS && ST_USER && SEL_CLS.type === 'info' && ST_ME_SUB === 'score' && MY_SCORES === null){
+      _loadMyScores();
+    } else {
+      render();
+    }
   } else if(t === 'mission' && SEL_CLS && ST_USER){
     // 미션 그리드 카드의 진행률 표시용 — 한 번에 로드
     MISSION_VIEW = 'list';
@@ -354,7 +433,7 @@ function vStDashboard(){
     <div class="dash-section">
       <div class="dash-sec-header">
         <div class="dash-sec-title">📄 최근 제출한 파일</div>
-        <button class="btn-xs" onclick="setST('mine')">전체 보기 →</button>
+        <button class="btn-xs" onclick="ST_ME_SUB='status';setST('me')">전체 보기 →</button>
       </div>
       ${mySubmitted.map(({assign: a, sub}) => {
         const subFiles = sub.files && sub.files.length ? sub.files : [{name: sub.fileName, url: sub.url}];
@@ -373,7 +452,7 @@ function vStDashboard(){
     <div class="dash-section">
       <div class="dash-sec-header">
         <div class="dash-sec-title">💻 OJ 문제</div>
-        <button class="btn-xs" onclick="setST('oj')">전체 보기 →</button>
+        <button class="btn-xs" onclick="ST_PRACTICE_SUB='oj';setST('practice')">전체 보기 →</button>
       </div>
       <div class="dash-item-meta" style="padding:0 2px">${OJ_PROBLEMS.length}개 문제 등록됨</div>
     </div>` : ''}
