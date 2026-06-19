@@ -19,6 +19,16 @@ function _ucFiles(it){
   return [];
 }
 
+// 앱 연결 종류 메타 (이모지 / 라벨 / 대상 목록 전역)
+const UC_APP_META = {
+  notebook: { ico: '📓', label: '노트북',  list: () => NOTEBOOKS },
+  mission:  { ico: '🎮', label: '미션',    list: () => MISSIONS },
+  oj:       { ico: '💻', label: 'OJ 문제', list: () => OJ_PROBLEMS },
+  quiz:     { ico: '🧩', label: '퀴즈',    list: () => CR_READINGS },
+  aicode:   { ico: '💬', label: 'AI 코딩', list: () => null },
+  assign:   { ico: '📝', label: '과제',    list: () => ASSIGNMENTS },
+};
+
 // ══════════════════════════════════════
 //  학생 뷰
 // ══════════════════════════════════════
@@ -42,13 +52,24 @@ function vStUnit(unitKey){
       sec === 'material' ? '아직 등록된 수업 자료가 없습니다.' : '아직 등록된 실습이 없습니다.'
     );
   }
-  return head + bar + items.map(_ucStudentCard).join('');
+  return head + bar + items.map(it => _ucStudentCard(it, unitKey)).join('');
 }
 
 function setUnitSec(s){ ST_UNIT_SEC = s; render(); }
 
 // 학생용 항목 카드 (유형별)
-function _ucStudentCard(it){
+function _ucStudentCard(it, unitKey){
+  if(it.type === 'app'){
+    const m = UC_APP_META[it.refType] || { ico: '🔌', label: '앱' };
+    return `<div class="list-row click" data-action="uc-open-app" data-reftype="${esc(it.refType || '')}" data-refid="${esc(it.refId || '')}" data-unit="${esc(unitKey || '')}" data-sec="${esc(ST_UNIT_SEC)}">
+      <div class="row-icon">${m.ico}</div>
+      <div class="row-info">
+        <div class="row-title">${esc(it.title)}</div>
+        <div class="row-meta">${it.desc ? esc(it.desc) + ' · ' : ''}${m.label} 열기 →</div>
+      </div>
+      <div class="row-right"><span style="color:var(--text3);font-size:15px">→</span></div>
+    </div>`;
+  }
   if(it.type === 'text'){
     return `<div class="section" style="margin-bottom:10px">
       <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 ${esc(it.title)}</div>
@@ -114,13 +135,17 @@ function setUcSec(s){ UC_TC_SEC = s; UC_EDIT = null; UC_DRAFT = null; render(); 
 
 // 선생님 항목 행 (편집/삭제/순서)
 function _ucTcRow(it, i, n){
+  const am = it.type === 'app' ? (UC_APP_META[it.refType] || { ico: '🔌', label: '앱' }) : null;
+  const ico = it.type === 'file' ? '📎' : it.type === 'link' ? '🔗' : it.type === 'text' ? '📝' : (am ? am.ico : '🔌');
   const meta = it.type === 'file'
     ? `📎 파일 ${_ucFiles(it).length}개`
     : it.type === 'link'
     ? `🔗 ${esc(it.url || '')}`
-    : '📝 글';
+    : it.type === 'text'
+    ? '📝 글'
+    : `🔌 ${am.label} 연결`;
   return `<div class="list-row">
-    <div class="row-icon">${it.type === 'file' ? '📎' : it.type === 'link' ? '🔗' : '📝'}</div>
+    <div class="row-icon">${ico}</div>
     <div class="row-info">
       <div class="row-title">${esc(it.title)}</div>
       <div class="row-meta" style="word-break:break-all">${meta}</div>
@@ -141,7 +166,7 @@ function _ucForm(){
   }
   const d = UC_DRAFT || { type: 'file', title: '', desc: '', url: '', body: '' };
   const editing = UC_EDIT !== 'new';
-  const typeBtns = [['file', '📎 파일'], ['link', '🔗 링크'], ['text', '📝 글']].map(([k, l]) =>
+  const typeBtns = [['file', '📎 파일'], ['link', '🔗 링크'], ['text', '📝 글'], ['app', '🔌 앱연결']].map(([k, l]) =>
     `<button class="btn-sm ${d.type === k ? 'btn-p' : ''}" data-action="uc-type" data-type="${k}">${l}</button>`
   ).join(' ');
 
@@ -153,15 +178,32 @@ function _ucForm(){
       <div class="prog-wrap" id="uc-prog"><div class="prog-label">업로드 중... <span id="uc-pct">0%</span></div><div class="prog-bar"><div class="prog-fill" id="uc-pfill" style="width:0%"></div></div></div>`;
   } else if(d.type === 'link'){
     typeFields = `<div class="field"><label>링크 주소 (URL)</label><input id="uc-url" type="text" placeholder="https://kosis.kr/..." value="${esc(d.url || '')}"/></div>`;
-  } else {
+  } else if(d.type === 'text'){
     typeFields = `<div class="field"><label>본문 (마크다운 지원)</label><textarea id="uc-body" style="min-height:150px" placeholder="설명/안내를 적으세요.&#10;&#10;## 활동&#10;1. KOSIS 접속&#10;2. ...">${esc(d.body || '')}</textarea></div>`;
+  } else {
+    // app — 기존 노트북/미션/OJ/퀴즈/AI코딩/과제 중 골라 연결
+    const refType = d.refType || 'notebook';
+    const refBtns = Object.entries(UC_APP_META).map(([k, m]) =>
+      `<button class="btn-xs ${refType === k ? 'btn-p' : ''}" data-action="uc-reftype" data-reftype="${k}">${m.ico} ${m.label}</button>`
+    ).join(' ');
+    let picker;
+    if(refType === 'aicode'){
+      picker = `<div class="box-info" style="font-size:12px">학생이 클릭하면 AI 코딩 메뉴가 열립니다. (선생님 'AI 코딩' 탭에서 켜져 있어야 사용 가능)</div>`;
+    } else {
+      const arr = UC_APP_META[refType].list() || [];
+      picker = arr.length
+        ? `<div class="field"><label>연결할 ${UC_APP_META[refType].label}</label><select id="uc-refid"><option value="">— 선택 —</option>${arr.map(x => `<option value="${x.id}" ${d.refId === x.id ? 'selected' : ''}>${esc(x.title || x.id)}</option>`).join('')}</select></div>`
+        : `<div class="box-warn" style="font-size:12px">연결할 ${UC_APP_META[refType].label}이(가) 없습니다. 먼저 해당 탭에서 만들어 주세요.</div>`;
+    }
+    typeFields = `<div><label style="display:block;margin-bottom:5px">연결 종류</label><div style="display:flex;gap:5px;flex-wrap:wrap">${refBtns}</div></div>${picker}`;
   }
 
+  const titleHint = d.type === 'app' ? ` <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(비우면 연결한 항목 제목 사용)</span>` : '';
   return `<div class="section">
     <div class="sec-title">${editing ? '✏️ 항목 수정' : '+ 새 항목'}</div>
     <div class="form">
       <div><label style="display:block;margin-bottom:5px">유형</label><div style="display:flex;gap:6px;flex-wrap:wrap">${typeBtns}</div></div>
-      <div class="field"><label>제목</label><input id="uc-title" type="text" placeholder="예: KOSIS로 빅데이터 분석하기" value="${esc(d.title || '')}"/></div>
+      <div class="field"><label>제목${titleHint}</label><input id="uc-title" type="text" placeholder="예: KOSIS로 빅데이터 분석하기" value="${esc(d.title || '')}"/></div>
       ${d.type !== 'text' ? `<div class="field"><label>설명 (선택)</label><input id="uc-desc" type="text" value="${esc(d.desc || '')}"/></div>` : ''}
       ${typeFields}
       <div id="uc-err" class="err"></div>

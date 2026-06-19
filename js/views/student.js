@@ -24,24 +24,16 @@ function _stNavGroups(){
   if(on(ML_ACTIVE))  aiItems.push({key:'ml',  ico:'🤖', label:'기계학습'});
   if(on(AIA_ACTIVE)) aiItems.push({key:'aia', ico:'🧠', label:'AI 활동지'});
 
-  // OJ + 퀴즈 → '문제풀이' 하나로 통합(내부 하위탭)
-  const labItems = [
-    {key:'notebook', ico:'📓', label:'노트북'},
-    {key:'mission',  ico:'🎮', label:'미션'},
-    {key:'practice', ico:'💻', label:'문제풀이'},
-  ];
-  if(on(AIC_ACTIVE)) labItems.push({key:'aicode', ico:'💬', label:'AI 코딩'});
-
   const groups = [{ items:[{key:'dashboard', ico:'🏠', label:'홈'}] }];
 
   if(isInfo){
-    // 정보반: 수업을 단원별(Ⅰ~Ⅳ)로 분리한 '수업' 그룹
+    // 정보반: 수업을 단원별(Ⅰ~Ⅳ)로 분리한 '수업' 그룹.
+    //   노트북·미션·OJ·퀴즈·AI코딩은 이제 각 단원 '실습'의 앱연결로만 노출(글로벌 실습 그룹 없앰).
     groups.push({ label:'학급', items:[
       {key:'notice', ico:'📢', label:'공지'},
       {key:'board',  ico:'📋', label:'게시판'},
     ]});
     groups.push({ label:'수업', items: ASSIGN_UNITS.map(u => ({key:'unit-'+u.key, ico:u.roman, label:u.label})) });
-    groups.push({ label:'실습', items: labItems });
     if(aiItems.length) groups.push({ label:'AI 탐구', items: aiItems });
     // 평가 그룹: 진행 중인 항목이 하나라도 있을 때만 노출(시즌성). 점은 항상 진행 중 의미.
     if(asmtItems.length) groups.push({ label:'평가', dot:true, items: asmtItems });
@@ -137,15 +129,31 @@ function toggleStNav(){
   render();
 }
 
+// 앱연결로 단원에서 연 기능 → 단원으로 복귀
+function returnToUnit(){
+  if(!UNIT_RETURN) return;
+  const { unitKey, section } = UNIT_RETURN;
+  UNIT_RETURN = null;
+  ST_TAB = 'unit-' + unitKey;
+  ST_UNIT_SEC = section || 'material';
+  VIEW = 'student';
+  render();
+}
+
 // 학생 대시보드 메인 — 좌측 사이드바 + 본문
 function vStudent(){
   _stNormalizeTab();
+  // 단원 화면에 와 있으면 복귀 마커는 의미 없으니 해제
+  if(ST_TAB.indexOf('unit-') === 0) UNIT_RETURN = null;
   const collapsed = ST_NAV_COLLAPSED || _stAutoCollapse();
   const wide = _stWideTab();
   const groups = _stNavGroups();
+  const backBar = UNIT_RETURN
+    ? `<div class="unit-return-bar" onclick="returnToUnit()">← ${esc((ASSIGN_UNIT_MAP[UNIT_RETURN.unitKey] || {}).label || '단원')}(으)로 돌아가기</div>`
+    : '';
   return `<div class="app-shell${wide ? ' shell-wide' : ' shell-narrow'}${collapsed ? ' nav-collapsed' : ''}">
     ${_stSidebar(groups, collapsed)}
-    <main class="app-main">${_stTabBody()}</main>
+    <main class="app-main">${backBar}${_stTabBody()}</main>
   </div>`;
 }
 
@@ -225,6 +233,7 @@ function setAsmtMode(m){
 }
 
 function setST(t){
+  UNIT_RETURN = null;  // 사이드바로 이동하면 단원 복귀 마커 해제
   ST_TAB = t;
   if(t.indexOf('unit-') === 0){
     ST_UNIT_SEC = 'material';  // 단원 진입 시 항상 수업 자료부터
@@ -441,14 +450,6 @@ function vStDashboard(){
       }).join('')}
     </div>` : ''}
 
-    ${isInfo && OJ_PROBLEMS.length ? `
-    <div class="dash-section">
-      <div class="dash-sec-header">
-        <div class="dash-sec-title">💻 OJ 문제</div>
-        <button class="btn-xs" onclick="ST_PRACTICE_SUB='oj';setST('practice')">전체 보기 →</button>
-      </div>
-      <div class="dash-item-meta" style="padding:0 2px">${OJ_PROBLEMS.length}개 문제 등록됨</div>
-    </div>` : ''}
   `;
 }
 

@@ -106,6 +106,10 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 .app-shell.nav-collapsed .side-item{justify-content:center;padding:8px 0}
 .app-shell.nav-collapsed .side-group-label.side-dot-only{display:flex;justify-content:center;padding:8px 0 2px}
 
+/* 앱연결로 단원에서 기능 진입 시 상단 '← 단원으로' 복귀 바 */
+.unit-return-bar{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-lt);border:1px solid var(--accent);border-radius:var(--r-sm);padding:7px 14px;margin-bottom:12px}
+.unit-return-bar:hover{background:var(--accent);color:#fff}
+
 /* 본문 안 하위탭 (문제풀이 OJ|퀴즈, 나 현황|점수, 수행평가 실제|연습) — 밑줄형 */
 .prac-subtabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border)}
 .prac-subtab{font-size:13px;padding:8px 16px;border:none;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--text2);font-weight:500}

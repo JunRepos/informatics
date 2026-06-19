@@ -38,6 +38,7 @@ let UC_TC_SEC     = 'material';  // 편집 중 섹션
 let UC_EDIT       = null;        // 편집 중 항목 id, 'new'=새 항목 폼, null=폼 닫힘
 let UC_DRAFT      = null;        // 작성 중 항목 { type, title, desc, url, body, _files? } — 유형 전환 시 입력 보존
 let UC_SAVING     = false;       // 저장 중
+let UNIT_RETURN   = null;        // 앱연결로 단원에서 기능 진입 시 { unitKey, section } — '← 단원으로' 복귀용
 
 // 데이터 캐시 (Firebase에서 로드한 데이터)
 let NOTICES     = [];
