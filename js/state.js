@@ -22,6 +22,7 @@ let FORCE_PW    = false; // 최초 로그인 비밀번호 변경 필요
 // 탭 상태
 let ST_TAB = 'dashboard'; // 학생 대시보드 현재 탭
 let TC_TAB = 'notice'; // 선생님 대시보드 현재 탭
+let ST_NAV_COLLAPSED = false; // 학생 좌측 사이드바 접힘(사용자 토글) — 노트북/미션은 자동 접힘
 
 // 데이터 캐시 (Firebase에서 로드한 데이터)
 let NOTICES     = [];

@@ -38,12 +38,8 @@ function applyWrapWidth(){
     else if(TC_TAB === 'aicode' && AIC_VIEW === 'student') cls = 'full';
     else if(TC_TAB === 'aicode') cls = 'wide';
   } else if(VIEW === 'student'){
-    if(ST_TAB === 'notebook' || ST_TAB === 'mission') cls = 'full';
-    else if(ST_TAB === 'oj') cls = 'wide';
-    else if(ST_TAB === 'coderead' && CR_VIEW === 'solve') cls = 'wide';
-    else if(ST_TAB === 'asmt' && ASMT_STAGE === 2) cls = 'wide';
-    else if(ST_TAB === 'asmt-guide' && AG_STAGE === 2) cls = 'wide';
-    else if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') cls = 'full';
+    // 사이드바 레이아웃: 항상 full 캔버스 사용. 본문 폭은 .app-main 의 narrow/wide 가 제어.
+    cls = 'full';
   }
   wrap.className = 'wrap' + (cls ? ' ' + cls : '');
 }

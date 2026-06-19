@@ -5,50 +5,127 @@
    공지, 과제, 게시판, 파일, 출결, 내 현황
 ═══════════════════════════════════════ */
 
-// 학생 대시보드 메인
+// ── 사이드바 네비 정의 ──
+// 정보반 17개 평면 탭을 5개 그룹으로 묶어 좌측 세로 네비로 렌더.
+// 각 그룹: { label, items:[{key,ico,label,badge?}] } — label 없으면 그룹 헤더 숨김(홈).
+// 토글(active 노드)로 켜진 항목만 노출. 그룹 안 항목이 0개면 그룹 자체를 안 그림.
+function _stNavGroups(){
+  const isInfo = (SEL_CLS?.type || 'normal') === 'info';
+  const cid = SEL_CLS?.id;
+  const on = m => isInfo && m[cid];
+
+  // 평가 그룹은 활성화된 것만 노출 — 진행 중 표시(초록 점)용으로 개수 집계
+  const asmtItems = [];
+  if(on(ASMT_ACTIVE))  asmtItems.push({key:'asmt',     ico:'📝', label:'수행평가'});
+  if(on(MLA_ACTIVE))   asmtItems.push({key:'mlassess', ico:'🧪', label:'ML 수행평가'});
+  asmtItems.push({key:'myscore', ico:'📊', label:'내 점수'});
+
+  const aiItems = [];
+  if(on(ML_ACTIVE))  aiItems.push({key:'ml',  ico:'🤖', label:'기계학습'});
+  if(on(AIA_ACTIVE)) aiItems.push({key:'aia', ico:'🧠', label:'AI 활동지'});
+
+  const labItems = [
+    {key:'notebook', ico:'📓', label:'노트북'},
+    {key:'mission',  ico:'🎮', label:'미션'},
+    {key:'oj',       ico:'💻', label:'OJ'},
+    {key:'coderead', ico:'🧩', label:'퀴즈'},
+  ];
+  if(on(AIC_ACTIVE)) labItems.push({key:'aicode', ico:'💬', label:'AI 코딩'});
+
+  const groups = [
+    { items:[{key:'dashboard', ico:'🏠', label:'홈'}] },
+    { label:'학급', items:[
+      {key:'notice', ico:'📢', label:'공지'},
+      {key:'assign', ico:'📖', label:'수업'},
+      {key:'board',  ico:'📋', label:'게시판'},
+      {key:'attend', ico:'🗓️', label:'내 출결'},
+    ]},
+  ];
+  if(isInfo){
+    groups.push({ label:'실습', items: labItems });
+    if(aiItems.length) groups.push({ label:'AI 탐구', items: aiItems });
+    groups.push({ label:'평가', dot:(on(ASMT_ACTIVE)||on(MLA_ACTIVE)), items: asmtItems });
+  }
+  groups.push({ items:[{key:'mine', ico:'👤', label:'내 현황'}] });
+  return groups;
+}
+
+// 사이드바 HTML
+function _stSidebar(groups, collapsed){
+  const rows = groups.map(g => {
+    const head = g.label
+      ? `<div class="side-group-label${collapsed ? ' side-dot-only' : ''}">${g.dot ? '<span class="side-dot"></span>' : ''}${collapsed ? '' : esc(g.label)}</div>`
+      : '';
+    const items = g.items.map(it => {
+      const active = ST_TAB === it.key ? ' active' : '';
+      const badge = it.badge ? `<span class="side-badge">${esc(it.badge)}</span>` : '';
+      const title = collapsed ? ` title="${esc(it.label)}"` : '';
+      return `<button class="side-item${active}" onclick="setST('${it.key}')"${title}>
+        <span class="side-ico">${it.ico}</span>${collapsed ? '' : `<span class="side-label">${esc(it.label)}</span>${badge}`}
+      </button>`;
+    }).join('');
+    return head + items;
+  }).join('');
+
+  return `<nav class="sidebar">
+    <div class="side-top">
+      <button class="side-collapse" onclick="toggleStNav()" title="${collapsed ? '메뉴 펼치기' : '메뉴 접기'}">${collapsed ? '»' : '«'}</button>
+    </div>
+    ${rows}
+  </nav>`;
+}
+
+// 본문 탭 내용
+function _stTabBody(){
+  if     (ST_TAB === 'dashboard') return vStDashboard();
+  else if(ST_TAB === 'notice')  return vStNotice();
+  else if(ST_TAB === 'assign')  return vStAssign();
+  else if(ST_TAB === 'board')   return vStBoard();
+  else if(ST_TAB === 'attend')  return vStAttend();
+  else if(ST_TAB === 'notebook')return vStNotebook();
+  else if(ST_TAB === 'mission') return vStMission();
+  else if(ST_TAB === 'oj')      return vStOJ();
+  else if(ST_TAB === 'coderead')return vStCodeRead();
+  else if(ST_TAB === 'aicode')  return vStAiCode();
+  else if(ST_TAB === 'aia')     return vStAiActivity();
+  else if(ST_TAB === 'ml')      return vStMl();
+  else if(ST_TAB === 'asmt-guide') return vStAsmtGuide();
+  else if(ST_TAB === 'asmt')    return vStAssessment();
+  else if(ST_TAB === 'mlassess')return vStMlAssess();
+  else if(ST_TAB === 'myscore') return vStMyScore();
+  else if(ST_TAB === 'mine')    return vStMine();
+  return '';
+}
+
+// 본문을 넓게(IDE형) 쓰는 탭 — 좁은 탭은 가운데 정렬로 가독성 유지
+function _stWideTab(){
+  if(ST_TAB === 'notebook' || ST_TAB === 'mission' || ST_TAB === 'oj') return true;
+  if(ST_TAB === 'coderead' && CR_VIEW === 'solve') return true;
+  if(ST_TAB === 'asmt' && ASMT_STAGE === 2) return true;
+  if(ST_TAB === 'asmt-guide' && AG_STAGE === 2) return true;
+  if(ST_TAB === 'aicode' && AIC_VIEW === 'chat') return true;
+  return false;
+}
+
+// 사이드바 자동 접힘 탭 (전체화면 IDE) — 사용자 토글보다 우선
+function _stAutoCollapse(){
+  return ST_TAB === 'notebook' || ST_TAB === 'mission';
+}
+
+function toggleStNav(){
+  ST_NAV_COLLAPSED = !ST_NAV_COLLAPSED;
+  render();
+}
+
+// 학생 대시보드 메인 — 좌측 사이드바 + 본문
 function vStudent(){
-  const clsType = SEL_CLS?.type || 'normal';
-  const isInfo = clsType === 'info';
-
-  const tabs = `<div class="tabs">
-    ${tab('🏠 홈','dashboard',ST_TAB,"setST('dashboard')")}
-    ${tab('📢 공지','notice',ST_TAB,"setST('notice')")}
-    ${tab('📖 수업','assign',ST_TAB,"setST('assign')")}
-    ${tab('📋 게시판','board',ST_TAB,"setST('board')")}
-    ${tab('🗓️ 내 출결','attend',ST_TAB,"setST('attend')")}
-    ${isInfo ? tab('📓 노트북','notebook',ST_TAB,"setST('notebook')") : ''}
-    ${isInfo ? tab('🎮 미션','mission',ST_TAB,"setST('mission')") : ''}
-    ${isInfo ? tab('💻 OJ','oj',ST_TAB,"setST('oj')") : ''}
-    ${isInfo ? tab('🧩 퀴즈','coderead',ST_TAB,"setST('coderead')") : ''}
-    ${isInfo && AIC_ACTIVE[SEL_CLS?.id] ? tab('🤖 AI 코딩','aicode',ST_TAB,"setST('aicode')") : ''}
-    ${isInfo && AIA_ACTIVE[SEL_CLS?.id] ? tab('🧠 AI 활동지','aia',ST_TAB,"setST('aia')") : ''}
-    ${isInfo && ML_ACTIVE[SEL_CLS?.id] ? tab('🤖 기계학습','ml',ST_TAB,"setST('ml')") : ''}
-    ${isInfo && AG_ACTIVE[SEL_CLS?.id] ? tab('📖 수행평가 안내','asmt-guide',ST_TAB,"setST('asmt-guide')") : ''}
-    ${isInfo && ASMT_ACTIVE[SEL_CLS?.id] ? tab('📝 수행평가','asmt',ST_TAB,"setST('asmt')") : ''}
-    ${isInfo && MLA_ACTIVE[SEL_CLS?.id] ? tab('📝 ML 수행평가','mlassess',ST_TAB,"setST('mlassess')") : ''}
-    ${isInfo ? tab('📊 내 점수','myscore',ST_TAB,"setST('myscore')") : ''}
-    ${tab('👤 내 현황','mine',ST_TAB,"setST('mine')")}
+  const collapsed = ST_NAV_COLLAPSED || _stAutoCollapse();
+  const wide = _stWideTab();
+  const groups = _stNavGroups();
+  return `<div class="app-shell${wide ? ' shell-wide' : ' shell-narrow'}${collapsed ? ' nav-collapsed' : ''}">
+    ${_stSidebar(groups, collapsed)}
+    <main class="app-main">${_stTabBody()}</main>
   </div>`;
-
-  let body = '';
-  if     (ST_TAB === 'dashboard') body = vStDashboard();
-  else if(ST_TAB === 'notice')  body = vStNotice();
-  else if(ST_TAB === 'assign')  body = vStAssign();
-  else if(ST_TAB === 'board')   body = vStBoard();
-  else if(ST_TAB === 'attend')  body = vStAttend();
-  else if(ST_TAB === 'notebook')body = vStNotebook();
-  else if(ST_TAB === 'mission') body = vStMission();
-  else if(ST_TAB === 'oj')      body = vStOJ();
-  else if(ST_TAB === 'coderead')body = vStCodeRead();
-  else if(ST_TAB === 'aicode')  body = vStAiCode();
-  else if(ST_TAB === 'aia')     body = vStAiActivity();
-  else if(ST_TAB === 'ml')      body = vStMl();
-  else if(ST_TAB === 'asmt-guide') body = vStAsmtGuide();
-  else if(ST_TAB === 'asmt')    body = vStAssessment();
-  else if(ST_TAB === 'mlassess')body = vStMlAssess();
-  else if(ST_TAB === 'myscore') body = vStMyScore();
-  else if(ST_TAB === 'mine')    body = vStMine();
-  return tabs + body;
 }
 
 function setST(t){
