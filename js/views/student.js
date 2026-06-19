@@ -50,17 +50,17 @@ function _stNavGroups(){
   return groups;
 }
 
-// 사이드바 HTML
-function _stSidebar(groups, collapsed){
+// 사이드바 HTML (학생·선생님 공용) — activeKey/setter/toggle만 갈아끼움
+function _navSidebar(groups, collapsed, activeKey, setter, toggleFn){
   const rows = groups.map(g => {
     const head = g.label
       ? `<div class="side-group-label${collapsed ? ' side-dot-only' : ''}">${g.dot ? '<span class="side-dot"></span>' : ''}${collapsed ? '' : esc(g.label)}</div>`
       : '';
     const items = g.items.map(it => {
-      const active = ST_TAB === it.key ? ' active' : '';
+      const active = activeKey === it.key ? ' active' : '';
       const badge = it.badge ? `<span class="side-badge">${esc(it.badge)}</span>` : '';
       const title = collapsed ? ` title="${esc(it.label)}"` : '';
-      return `<button class="side-item${active}" onclick="setST('${it.key}')"${title}>
+      return `<button class="side-item${active}" onclick="${setter}('${it.key}')"${title}>
         <span class="side-ico">${it.ico}</span>${collapsed ? '' : `<span class="side-label">${esc(it.label)}</span>${badge}`}
       </button>`;
     }).join('');
@@ -69,10 +69,15 @@ function _stSidebar(groups, collapsed){
 
   return `<nav class="sidebar">
     <div class="side-top">
-      <button class="side-collapse" onclick="toggleStNav()" title="${collapsed ? '메뉴 펼치기' : '메뉴 접기'}">${collapsed ? '»' : '«'}</button>
+      <button class="side-collapse" onclick="${toggleFn}()" title="${collapsed ? '메뉴 펼치기' : '메뉴 접기'}">${collapsed ? '»' : '«'}</button>
     </div>
     ${rows}
   </nav>`;
+}
+
+// 학생 사이드바
+function _stSidebar(groups, collapsed){
+  return _navSidebar(groups, collapsed, ST_TAB, 'setST', 'toggleStNav');
 }
 
 // 구버전 탭 키 → 통합 탭 키 정규화 (저장된 세션/이전 링크 호환)

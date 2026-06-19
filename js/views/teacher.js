@@ -17,56 +17,85 @@ function vTeacher(){
     <button class="btn-p btn-sm" id="tc-cls-go">이동</button>
   </div>`;
 
-  const tcClsType = TC_CLS?.type || 'normal';
-  const tcIsInfo = tcClsType === 'info';
+  const tcIsInfo = (TC_CLS?.type || 'normal') === 'info';
 
-  const tabs = `<div class="tabs">
-    ${tab('📢 공지','notice',TC_TAB,"setTC('notice')")}
-    ${tab('📖 수업','assign',TC_TAB,"setTC('assign')")}
-    ${tcIsInfo ? tab('📚 단원 구성','unit',TC_TAB,"setTC('unit')") : ''}
-    ${tab('📋 게시판','board',TC_TAB,"setTC('board')")}
-    ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
-    ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
-    ${tcIsInfo ? tab('📓 노트북','notebook',TC_TAB,"setTC('notebook')") : ''}
-    ${tcIsInfo ? tab('🎮 미션','mission',TC_TAB,"setTC('mission')") : ''}
-    ${tcIsInfo ? tab('💻 OJ','oj',TC_TAB,"setTC('oj')") : ''}
-    ${tcIsInfo ? tab('🧩 퀴즈','coderead',TC_TAB,"setTC('coderead')") : ''}
-    ${tcIsInfo ? tab('🤖 AI 코딩','aicode',TC_TAB,"setTC('aicode')") : ''}
-    ${tcIsInfo ? tab('🧠 AI 활동지','aia',TC_TAB,"setTC('aia')") : ''}
-    ${tcIsInfo ? tab('🤖 기계학습','ml',TC_TAB,"setTC('ml')") : ''}
-    ${tcIsInfo ? tab('📝 수행평가','asmt',TC_TAB,"setTC('asmt')") : ''}
-    ${tcIsInfo ? tab('📝 ML 수행평가','mlassess',TC_TAB,"setTC('mlassess')") : ''}
-    ${tcIsInfo ? tab('🏆 점수 관리','scores',TC_TAB,"setTC('scores')") : ''}
-    ${tab('📅 진도계획','curriculum',TC_TAB,"setTC('curriculum')")}
-    ${tab('⚙️ 설정','settings',TC_TAB,"setTC('settings')")}
-  </div>`;
+  const collapsed = TC_NAV_COLLAPSED || _tcAutoCollapse();
+  const wide = _tcWideTab();
+  const sidebar = _navSidebar(_tcNavGroups(tcIsInfo), collapsed, TC_TAB, 'setTC', 'toggleTcNav');
 
   // 진도계획/설정은 반 선택 없이 접근 가능
   const globalTabs = ['settings', 'curriculum'];
-  if(!TC_CLS && !globalTabs.includes(TC_TAB))
-    return clsBar + tabs + emptyBox('👆','관리할 반을 선택하세요.');
+  const body = (!TC_CLS && !globalTabs.includes(TC_TAB))
+    ? emptyBox('👆', '관리할 반을 선택하세요.')
+    : _tcTabBody();
 
-  let body = '';
-  if     (TC_TAB === 'notice')     body = vTcNotice();
-  else if(TC_TAB === 'assign')     body = vTcAssign();
-  else if(TC_TAB === 'unit')       body = vTcUnit();
-  else if(TC_TAB === 'board')      body = vTcBoard();
-  else if(TC_TAB === 'attend')     body = vTcAttend();
-  else if(TC_TAB === 'students')   body = vTcStudents();
-  else if(TC_TAB === 'oj')         body = vTcOJ();
-  else if(TC_TAB === 'notebook')   body = vTcNotebook();
-  else if(TC_TAB === 'mission')    body = vTcMission();
-  else if(TC_TAB === 'coderead')   body = vTcCodeRead();
-  else if(TC_TAB === 'aicode')     body = vTcAiCode();
-  else if(TC_TAB === 'aia')        body = vTcAiActivity();
-  else if(TC_TAB === 'ml')         body = vTcMl();
-  else if(TC_TAB === 'asmt')       body = vTcAssessment();
-  else if(TC_TAB === 'mlassess')   body = vTcMlAssess();
-  else if(TC_TAB === 'scores')     body = vTcScores();
-  else if(TC_TAB === 'curriculum') body = vTcCurriculum();
-  else if(TC_TAB === 'settings')   body = vTcSettings();
+  return clsBar + `<div class="app-shell${wide ? ' shell-wide' : ' shell-narrow'}${collapsed ? ' nav-collapsed' : ''}">
+    ${sidebar}
+    <main class="app-main">${body}</main>
+  </div>`;
+}
 
-  return clsBar + tabs + body;
+// 선생님 사이드바 그룹
+function _tcNavGroups(isInfo){
+  const groups = [{ label: '학급', items: [
+    {key:'notice',   ico:'📢', label:'공지'},
+    {key:'assign',   ico:'📖', label:'수업'},
+    {key:'board',    ico:'📋', label:'게시판'},
+    {key:'attend',   ico:'🗓️', label:'출결'},
+    {key:'students', ico:'👥', label:'학생관리'},
+  ]}];
+  if(isInfo){
+    groups.push({ label: '콘텐츠', items: [
+      {key:'unit',     ico:'📚', label:'단원 구성'},
+      {key:'notebook', ico:'📓', label:'노트북'},
+      {key:'mission',  ico:'🎮', label:'미션'},
+      {key:'oj',       ico:'💻', label:'OJ'},
+      {key:'coderead', ico:'🧩', label:'퀴즈'},
+      {key:'aicode',   ico:'💬', label:'AI 코딩'},
+    ]});
+    groups.push({ label: 'AI·평가', items: [
+      {key:'ml',       ico:'🤖', label:'기계학습'},
+      {key:'aia',      ico:'🧠', label:'AI 활동지'},
+      {key:'asmt',     ico:'📝', label:'수행평가'},
+      {key:'mlassess', ico:'🧪', label:'ML 수행평가'},
+      {key:'scores',   ico:'🏆', label:'점수 관리'},
+    ]});
+  }
+  groups.push({ label: '전체', items: [
+    {key:'curriculum', ico:'📅', label:'진도 계획'},
+    {key:'settings',   ico:'⚙️', label:'설정'},
+  ]});
+  return groups;
+}
+
+// 본문을 넓게(IDE/표형) 쓰는 선생님 탭
+function _tcWideTab(){
+  return ['notebook','mission','oj','coderead','curriculum','asmt','scores','mlassess','aicode'].includes(TC_TAB);
+}
+function _tcAutoCollapse(){ return TC_TAB === 'notebook' || TC_TAB === 'mission'; }
+function toggleTcNav(){ TC_NAV_COLLAPSED = !TC_NAV_COLLAPSED; render(); }
+
+// 선생님 본문 탭 내용
+function _tcTabBody(){
+  if     (TC_TAB === 'notice')     return vTcNotice();
+  else if(TC_TAB === 'assign')     return vTcAssign();
+  else if(TC_TAB === 'unit')       return vTcUnit();
+  else if(TC_TAB === 'board')      return vTcBoard();
+  else if(TC_TAB === 'attend')     return vTcAttend();
+  else if(TC_TAB === 'students')   return vTcStudents();
+  else if(TC_TAB === 'oj')         return vTcOJ();
+  else if(TC_TAB === 'notebook')   return vTcNotebook();
+  else if(TC_TAB === 'mission')    return vTcMission();
+  else if(TC_TAB === 'coderead')   return vTcCodeRead();
+  else if(TC_TAB === 'aicode')     return vTcAiCode();
+  else if(TC_TAB === 'aia')        return vTcAiActivity();
+  else if(TC_TAB === 'ml')         return vTcMl();
+  else if(TC_TAB === 'asmt')       return vTcAssessment();
+  else if(TC_TAB === 'mlassess')   return vTcMlAssess();
+  else if(TC_TAB === 'scores')     return vTcScores();
+  else if(TC_TAB === 'curriculum') return vTcCurriculum();
+  else if(TC_TAB === 'settings')   return vTcSettings();
+  return '';
 }
 
 function setTC(t){

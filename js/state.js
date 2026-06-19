@@ -23,6 +23,7 @@ let FORCE_PW    = false; // 최초 로그인 비밀번호 변경 필요
 let ST_TAB = 'dashboard'; // 학생 대시보드 현재 탭
 let TC_TAB = 'notice'; // 선생님 대시보드 현재 탭
 let ST_NAV_COLLAPSED = false; // 학생 좌측 사이드바 접힘(사용자 토글) — 노트북/미션은 자동 접힘
+let TC_NAV_COLLAPSED = false; // 선생님 좌측 사이드바 접힘(사용자 토글)
 let ST_PRACTICE_SUB = 'oj';   // 통합 '문제풀이' 탭 하위: 'oj' | 'quiz'
 let ST_ME_SUB       = 'status'; // 통합 '나' 탭 하위: 'status'(현황) | 'score'(점수)
 let ASMT_MODE       = 'real'; // 수행평가 탭 모드: 'real'(실제 응시) | 'guide'(연습)

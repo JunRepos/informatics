@@ -579,7 +579,9 @@ label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.04em;tex
 
 /* 인쇄: 메뉴/사이드바/툴바 숨김 */
 @media print{
-  .cb-toolbar,.cb-menubar,.cb-sidebar,.cb-add-row,.cb-stdin-wrap,.cb-cell-actions,.header,.tabs,.cb-out-toggle{display:none !important}
+  .cb-toolbar,.cb-menubar,.cb-sidebar,.cb-add-row,.cb-stdin-wrap,.cb-cell-actions,.header,.tabs,.sidebar,.side-top,.cb-out-toggle{display:none !important}
+  .app-shell{display:block !important}
+  .app-main{max-width:none !important}
   .cb-wrap,.cb-body,.cb-main{display:block !important;border:none !important;box-shadow:none !important}
   .cb-output{break-inside:avoid;border:1px solid #ddd !important}
   .cb-cell{break-inside:avoid;page-break-inside:avoid}
@@ -1471,7 +1473,9 @@ input.quiz-cloze-blank:focus{outline:none;border-color:#d97706;box-shadow:0 0 0 
 
 /* 인쇄 — 헤더/액션 숨김, 깔끔하게 */
 @media print{
-  .header, .tabs, .asmt-tcs-header button{display:none !important}
+  .header, .tabs, .sidebar, .side-top, .asmt-tcs-header button{display:none !important}
+  .app-shell{display:block !important}
+  .app-main{max-width:none !important}
   .asmt-tcs-sec{break-inside:avoid;box-shadow:none;border:1px solid #ddd}
   body, .wrap{background:#fff !important}
 }

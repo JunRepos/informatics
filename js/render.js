@@ -32,11 +32,8 @@ function applyWrapWidth(){
   if(VIEW === 'oj-solve'){
     cls = 'full';
   } else if(VIEW === 'teacher'){
-    if(TC_TAB === 'notebook' || TC_TAB === 'mission') cls = 'full';
-    else if(TC_TAB === 'oj' || TC_TAB === 'curriculum' || TC_TAB === 'coderead') cls = 'wide';
-    else if(TC_TAB === 'asmt') cls = 'wide';
-    else if(TC_TAB === 'aicode' && AIC_VIEW === 'student') cls = 'full';
-    else if(TC_TAB === 'aicode') cls = 'wide';
+    // 사이드바 레이아웃: 항상 full 캔버스. 본문 폭은 .app-shell 의 shell-narrow/shell-wide 가 제어.
+    cls = 'full';
   } else if(VIEW === 'student'){
     // 사이드바 레이아웃: 항상 full 캔버스 사용. 본문 폭은 .app-main 의 narrow/wide 가 제어.
     cls = 'full';
