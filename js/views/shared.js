@@ -33,6 +33,64 @@ function tab(label, key, active, fn){
   return `<button class="tab${active === key ? ' active' : ''}" onclick="${fn}">${label}</button>`;
 }
 
+// ── 드로어(슬라이드 사이드바) 메뉴 — 현재 메뉴 구조 재사용 ──
+// 그룹 데이터는 _stNavGroups()/_tcNavGroups() 그대로, 마크업만 .drawer-item 으로.
+// onclick 의 setST/setTC 는 기존 그대로 + closeDrawer() 추가.
+function drawerNavHtml(){
+  const isTC = IS_TC;
+  const groups = isTC ? _tcNavGroups((TC_CLS?.type || 'normal') === 'info') : _stNavGroups();
+  const activeKey = isTC ? TC_TAB : ST_TAB;
+  const setter = isTC ? 'setTC' : 'setST';
+  const cls = isTC ? TC_CLS : SEL_CLS;
+  const who = isTC
+    ? '👩‍🏫 선생님'
+    : `${esc(ST_USER?.number || '')} ${esc(ST_USER?.name || '')}`;
+  const brand = `<div class="drawer-brand">
+      <div class="hicon">📂</div>
+      <div style="min-width:0">
+        <div style="color:var(--side-text-strong);font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${who}</div>
+        <div style="color:var(--side-sub);font-size:12px">${esc(cls?.label || '학급 파일함')}</div>
+      </div>
+    </div>`;
+  const nav = groups.map(g => {
+    const head = g.label
+      ? `<div class="drawer-label">${g.dot ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle"></span>' : ''}${esc(g.label)}</div>`
+      : '';
+    const items = g.items.map(it =>
+      `<button class="drawer-item${activeKey === it.key ? ' active' : ''}" onclick="${setter}('${it.key}');closeDrawer()"><span class="ico">${it.ico}</span>${esc(it.label)}</button>`
+    ).join('');
+    return head + items;
+  }).join('');
+  return brand + `<nav class="drawer-nav">${nav}</nav>`;
+}
+
+// 현재 탭 라벨 (상단바 제목)
+function currentTitle(){
+  if(VIEW === 'post-detail') return '게시물';
+  if(VIEW === 'assign-detail') return '수업';
+  if(VIEW === 'new-post') return '게시물 작성';
+  if(VIEW === 'oj-solve') return OJ_SEL_PROB?.title || '문제 풀이';
+  const isTC = IS_TC;
+  const key = isTC ? TC_TAB : ST_TAB;
+  if(!isTC && key.indexOf('unit-') === 0){
+    const u = ASSIGN_UNIT_MAP[key.slice(5)];
+    return u ? `${u.roman}. ${u.label}` : '수업';
+  }
+  const groups = isTC ? _tcNavGroups((TC_CLS?.type || 'normal') === 'info') : _stNavGroups();
+  for(const g of groups) for(const it of g.items) if(it.key === key) return it.label;
+  return isTC ? '관리' : '홈';
+}
+
+// 콘텐츠 폭 클래스 — IDE형은 full, 표/분할은 wide, 나머지 기본(960)
+function contentWidthClass(){
+  if(VIEW === 'oj-solve') return 'full';   // 분할 패널 — 전체 폭
+  const key = IS_TC ? TC_TAB : ST_TAB;
+  if(key === 'notebook' || key === 'mission') return 'full';
+  const wide = IS_TC ? (typeof _tcWideTab === 'function' && _tcWideTab())
+                     : (VIEW === 'student' && typeof _stWideTab === 'function' && _stWideTab());
+  return wide ? 'wide' : '';
+}
+
 // 빈 화면 표시
 function emptyBox(icon, msg){
   return `<div class="empty"><div class="empty-icon">${icon}</div>${msg}</div>`;

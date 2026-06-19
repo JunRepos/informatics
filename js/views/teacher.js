@@ -17,22 +17,14 @@ function vTeacher(){
     <button class="btn-p btn-sm" id="tc-cls-go">이동</button>
   </div>`;
 
-  const tcIsInfo = (TC_CLS?.type || 'normal') === 'info';
-
-  const collapsed = TC_NAV_COLLAPSED || _tcAutoCollapse();
-  const wide = _tcWideTab();
-  const sidebar = _navSidebar(_tcNavGroups(tcIsInfo), collapsed, TC_TAB, 'setTC', 'toggleTcNav');
-
   // 진도계획/설정은 반 선택 없이 접근 가능
   const globalTabs = ['settings', 'curriculum'];
   const body = (!TC_CLS && !globalTabs.includes(TC_TAB))
     ? emptyBox('👆', '관리할 반을 선택하세요.')
     : _tcTabBody();
 
-  return clsBar + `<div class="app-shell${wide ? ' shell-wide' : ' shell-narrow'}${collapsed ? ' nav-collapsed' : ''}">
-    ${sidebar}
-    <main class="app-main">${body}</main>
-  </div>`;
+  // 본문만 반환 (내비는 드로어, 셸은 render.js). 반 선택 바는 콘텐츠 상단에 유지.
+  return clsBar + body;
 }
 
 // 선생님 사이드바 그룹

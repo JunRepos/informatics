@@ -20,25 +20,32 @@ function toggleTheme(){
   document.querySelectorAll('.theme-btn').forEach(b => b.textContent = next === 'dark' ? '☀️' : '🌙');
 }
 
+// ── 드로어(슬라이드 사이드바) 토글 — UI 전용 ──
+function openDrawer(){
+  document.querySelector('.drawer')?.classList.add('open');
+  document.querySelector('.scrim')?.classList.add('open');
+  document.body.classList.add('drawer-locked');
+}
+function closeDrawer(){
+  document.querySelector('.drawer')?.classList.remove('open');
+  document.querySelector('.scrim')?.classList.remove('open');
+  document.body.classList.remove('drawer-locked');
+}
+// ESC 로 닫기 (앱 시작 시 1회만 등록)
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDrawer(); });
+
 // ── 본문 너비 결정 ──
 // 화면/탭에 따라 .wrap 컨테이너 너비 조정
 //   full(1600px): 노트북 / 미션 / OJ 풀이 (IDE 느낌)
 //   wide(1280px): OJ 목록 / 진도 계획 (테이블·분할 뷰)
 //   기본(840px) : 공지/수업/게시판/출결/학생관리/로그인 등 텍스트·폼 위주
+// 로그인 후 드로어 셸을 쓰는 화면들 — .wrap 을 전체 폭(app-mode)으로
+const SHELL_VIEWS = ['student', 'teacher', 'post-detail', 'assign-detail', 'oj-solve', 'new-post'];
 function applyWrapWidth(){
   const wrap = document.querySelector('.wrap');
   if(!wrap) return;
-  let cls = '';
-  if(VIEW === 'oj-solve'){
-    cls = 'full';
-  } else if(VIEW === 'teacher'){
-    // 사이드바 레이아웃: 항상 full 캔버스. 본문 폭은 .app-shell 의 shell-narrow/shell-wide 가 제어.
-    cls = 'full';
-  } else if(VIEW === 'student'){
-    // 사이드바 레이아웃: 항상 full 캔버스 사용. 본문 폭은 .app-main 의 narrow/wide 가 제어.
-    cls = 'full';
-  }
-  wrap.className = 'wrap' + (cls ? ' ' + cls : '');
+  if(SHELL_VIEWS.includes(VIEW)){ wrap.className = 'wrap app-mode'; return; }
+  wrap.className = 'wrap';   // 인증 전(홈/로그인) — 중앙 카드
 }
 
 // ── 메인 렌더링 ──
@@ -46,40 +53,6 @@ function render(){
   applyWrapWidth();
   const theme = document.documentElement.getAttribute('data-theme');
   const themeIcon = theme === 'dark' ? '☀️' : '🌙';
-
-  // OJ 풀이 화면 (특수 처리 — 분할 패널)
-  if(VIEW === 'oj-solve'){
-    document.getElementById('root').innerHTML = `
-      <div class="header">
-        <div class="hbrand"><div class="hicon">📂</div>
-          <div><span style="font-size:13px;font-weight:600">${esc(ST_USER?.number)} ${esc(ST_USER?.name)}</span><span class="chip chip-blue" style="margin-left:6px">${esc(SEL_CLS?.label)}</span></div>
-        </div>
-        <div class="hright">
-          <button class="btn-sm" onclick="goHome()">🏠 홈</button>
-          <button class="btn-sm btn-danger" onclick="logoutStudent()">로그아웃</button>
-          <button class="theme-btn" onclick="toggleTheme()">${themeIcon}</button>
-        </div>
-      </div>${vStOJSolve()}`;
-    afterRender();
-    return;
-  }
-
-  // 새 게시물 작성 화면 (특수 처리)
-  if(VIEW === 'new-post'){
-    document.getElementById('root').innerHTML = `
-      <div class="header">
-        <div class="hbrand"><div class="hicon">📂</div>
-          <div><span style="font-size:13px;font-weight:600">${esc(ST_USER?.number)} ${esc(ST_USER?.name)}</span><span class="chip chip-blue" style="margin-left:6px">${esc(SEL_CLS?.label)}</span></div>
-        </div>
-        <div class="hright">
-          <button class="btn-sm" onclick="goHome()">🏠 홈</button>
-          <button class="btn-sm btn-danger" onclick="logoutStudent()">로그아웃</button>
-          <button class="theme-btn" onclick="toggleTheme()">${themeIcon}</button>
-        </div>
-      </div>${vNewPost()}`;
-    afterRender();
-    return;
-  }
 
   // 헤더 좌측
   let hLeft = '', hRight = '';
@@ -119,12 +92,30 @@ function render(){
   else if(VIEW === 'assign-detail')  body = vAssignDetail();
   else if(VIEW === 'teacher-login')  body = vTeacherLogin();
   else if(VIEW === 'teacher')        body = vTeacher();
+  else if(VIEW === 'oj-solve')       body = vStOJSolve();
+  else if(VIEW === 'new-post')       body = vNewPost();
 
-  document.getElementById('root').innerHTML = `
-    <div class="header">
-      <div class="hbrand"><div class="hicon">📂</div><div>${hLeft}</div></div>
-      <div class="hright">${hRight}</div>
-    </div>${body}`;
+  if(SHELL_VIEWS.includes(VIEW)){
+    // 로그인 후: 상단바 + 콘텐츠 + 드로어 셸
+    document.getElementById('root').innerHTML = `
+      <div class="app">
+        <header class="topbar">
+          <button class="topbar-menu" id="drawer-open" aria-label="메뉴 열기">☰</button>
+          <div class="topbar-title">${esc(currentTitle())}</div>
+          <div class="topbar-actions">${hRight}</div>
+        </header>
+        <main class="content ${contentWidthClass()}">${body}</main>
+        <div class="scrim" id="drawer-scrim"></div>
+        <aside class="drawer">${drawerNavHtml()}</aside>
+      </div>`;
+  } else {
+    // 인증 전(홈/로그인/비번변경): 기존 중앙 카드 레이아웃
+    document.getElementById('root').innerHTML = `
+      <div class="header">
+        <div class="hbrand"><div class="hicon">📂</div><div>${hLeft}</div></div>
+        <div class="hright">${hRight}</div>
+      </div>${body}`;
+  }
   afterRender();
 }
 
@@ -177,6 +168,10 @@ function closeModal(){
 
 // ── 렌더링 후 바인딩 ──
 function afterRender(){
+  // 드로어 토글 바인딩 (열기 버튼 / 스크림 클릭으로 닫기)
+  document.getElementById('drawer-open')?.addEventListener('click', openDrawer);
+  document.getElementById('drawer-scrim')?.addEventListener('click', closeDrawer);
+
   document.getElementById('mig-load-btn')?.addEventListener('click', bindMigration);
 
   document.getElementById('zip-btn')?.addEventListener('click', e => {

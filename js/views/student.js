@@ -141,21 +141,15 @@ function returnToUnit(){
   render();
 }
 
-// 학생 대시보드 메인 — 좌측 사이드바 + 본문
+// 학생 대시보드 메인 — 본문만 반환 (내비는 드로어가 담당, 셸은 render.js)
 function vStudent(){
   _stNormalizeTab();
   // 단원 화면에 와 있으면 복귀 마커는 의미 없으니 해제
   if(ST_TAB.indexOf('unit-') === 0) UNIT_RETURN = null;
-  const collapsed = ST_NAV_COLLAPSED || _stAutoCollapse();
-  const wide = _stWideTab();
-  const groups = _stNavGroups();
   const backBar = UNIT_RETURN
     ? `<div class="unit-return-bar" onclick="returnToUnit()">← ${esc((ASSIGN_UNIT_MAP[UNIT_RETURN.unitKey] || {}).label || '단원')}(으)로 돌아가기</div>`
     : '';
-  return `<div class="app-shell${wide ? ' shell-wide' : ' shell-narrow'}${collapsed ? ' nav-collapsed' : ''}">
-    ${_stSidebar(groups, collapsed)}
-    <main class="app-main">${backBar}${_stTabBody()}</main>
-  </div>`;
+  return backBar + _stTabBody();
 }
 
 // 작은 밑줄형 하위탭 바
