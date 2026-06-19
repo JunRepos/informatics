@@ -20,21 +20,17 @@ function _stNavGroups(){
   if(on(ASMT_ACTIVE) || on(AG_ACTIVE)) asmtItems.push({key:'asmt',     ico:'📝', label:'수행평가'});
   if(on(MLA_ACTIVE))                   asmtItems.push({key:'mlassess', ico:'🧪', label:'ML 수행평가'});
 
-  const aiItems = [];
-  if(on(ML_ACTIVE))  aiItems.push({key:'ml',  ico:'🤖', label:'기계학습'});
-  if(on(AIA_ACTIVE)) aiItems.push({key:'aia', ico:'🧠', label:'AI 활동지'});
-
   const groups = [{ items:[{key:'dashboard', ico:'🏠', label:'홈'}] }];
 
   if(isInfo){
     // 정보반: 수업을 단원별(Ⅰ~Ⅳ)로 분리한 '수업' 그룹.
-    //   노트북·미션·OJ·퀴즈·AI코딩은 이제 각 단원 '실습'의 앱연결로만 노출(글로벌 실습 그룹 없앰).
+    //   노트북·미션·OJ·퀴즈·AI코딩·기계학습·AI활동지는 이제 각 단원 '실습'의 앱연결로만 노출
+    //   (글로벌 실습·AI 탐구 그룹 없앰).
     groups.push({ label:'학급', items:[
       {key:'notice', ico:'📢', label:'공지'},
       {key:'board',  ico:'📋', label:'게시판'},
     ]});
     groups.push({ label:'수업', items: ASSIGN_UNITS.map(u => ({key:'unit-'+u.key, ico:u.roman, label:u.label})) });
-    if(aiItems.length) groups.push({ label:'AI 탐구', items: aiItems });
     // 평가 그룹: 진행 중인 항목이 하나라도 있을 때만 노출(시즌성). 점은 항상 진행 중 의미.
     if(asmtItems.length) groups.push({ label:'평가', dot:true, items: asmtItems });
     // 내 점수 (정보반 — 공개된 수행평가 점수)

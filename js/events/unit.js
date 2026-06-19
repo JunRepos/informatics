@@ -69,6 +69,22 @@ async function openUnitApp(refType, refId, unitKey, section){
       AIC_VIEW = _aicInitialStudentView(s);
       render();
     });
+  } else if(refType === 'ml'){
+    ST_TAB = 'ml';
+    UNIT_RETURN = { unitKey, section };
+    ML_TAB = 'supervised';
+    ML_SUP_PHASE = 'pick'; ML_SUP_DATASET = null; ML_SUP_TRAIN_DATA = null; ML_SUP_TEST_DATA = null;
+    ML_SUP_TRAINED = false; ML_SUP_TEST_IDX = 0; ML_SUP_TEST_RESULTS = []; ML_SUP_LAST_RESULT = null;
+    ML_UN_PHASE = 'pick'; ML_UN_DATASET = null; ML_UN_DATA = null; ML_UN_KMEANS = null; ML_UN_REVEAL = false;
+    if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
+    render();
+    Promise.all([loadMlActive(SEL_CLS.id), loadMlRlDesc(SEL_CLS.id)]).then(() => render());
+  } else if(refType === 'aia'){
+    ST_TAB = 'aia';
+    UNIT_RETURN = { unitKey, section };
+    AIA_VIEW = 'list'; AIA_SEL = null; AIA_ANSWERS = {}; AIA_SUB = null; AIA_SAVING = false;
+    render();
+    loadAiaActive(SEL_CLS.id).then(() => render());
   } else if(refType === 'oj'){
     if(whole){
       // OJ 전체 목록 → 문제풀이(OJ) 탭. 복귀 바로 단원 복귀.
@@ -150,7 +166,7 @@ document.addEventListener('click', async e => {
     const it = (((UNIT_CONTENT[UC_TC_UNIT] || {})[UC_TC_SEC]) || []).find(x => x.id === el.dataset.id);
     if(!it) return;
     UC_EDIT = it.id;
-    UC_DRAFT = { type: it.type || 'file', title: it.title || '', desc: it.desc || '', url: it.url || '', body: it.body || '', _files: _ucFiles(it) };
+    UC_DRAFT = { type: it.type || 'file', title: it.title || '', desc: it.desc || '', url: it.url || '', body: it.body || '', refType: it.refType || 'notebook', refId: it.refId || '', _files: _ucFiles(it) };
     render(); return;
   }
   if(act === 'uc-cancel'){
@@ -168,7 +184,7 @@ document.addEventListener('click', async e => {
     if(type !== 'app' && !(d.title || '').trim()){ setErr('제목을 입력하세요.'); return; }
     if(type === 'link' && !(d.url || '').trim()){ setErr('링크 주소를 입력하세요.'); return; }
     if(type === 'text' && !(d.body || '').trim()){ setErr('본문을 입력하세요.'); return; }
-    if(type === 'app' && (d.refType || 'notebook') !== 'aicode' && !(d.refId || '').trim()){ setErr('연결할 항목을 선택하세요.'); return; }
+    if(type === 'app' && !UC_APP_FEATURE.includes(d.refType || 'notebook') && !(d.refId || '').trim()){ setErr('연결할 항목을 선택하세요.'); return; }
 
     const editing = UC_EDIT !== 'new';
     const fileInput = document.getElementById('uc-file');
@@ -192,9 +208,9 @@ document.addEventListener('click', async e => {
       if(type === 'app'){
         const refType = d.refType || 'notebook';
         data.refType = refType;
-        if(refType === 'aicode'){
+        if(UC_APP_FEATURE.includes(refType)){
           data.refId = '';
-          if(!data.title) data.title = 'AI 코딩';
+          if(!data.title) data.title = UC_APP_META[refType] ? UC_APP_META[refType].label : '';
         } else {
           data.refId = d.refId;
           if(!data.title){
