@@ -32,23 +32,29 @@ function _stNavGroups(){
   ];
   if(on(AIC_ACTIVE)) labItems.push({key:'aicode', ico:'💬', label:'AI 코딩'});
 
-  const groups = [
-    { items:[{key:'dashboard', ico:'🏠', label:'홈'}] },
-    { label:'학급', items:[
-      {key:'notice', ico:'📢', label:'공지'},
-      {key:'assign', ico:'📖', label:'수업'},
-      {key:'board',  ico:'📋', label:'게시판'},
-      {key:'attend', ico:'🗓️', label:'내 출결'},
-    ]},
-  ];
+  const groups = [{ items:[{key:'dashboard', ico:'🏠', label:'홈'}] }];
+
   if(isInfo){
+    // 정보반: 수업을 단원별(Ⅰ~Ⅳ)로 분리한 '수업' 그룹
+    groups.push({ label:'학급', items:[
+      {key:'notice', ico:'📢', label:'공지'},
+      {key:'board',  ico:'📋', label:'게시판'},
+    ]});
+    groups.push({ label:'수업', items: ASSIGN_UNITS.map(u => ({key:'unit-'+u.key, ico:u.roman, label:u.label})) });
     groups.push({ label:'실습', items: labItems });
     if(aiItems.length) groups.push({ label:'AI 탐구', items: aiItems });
     // 평가 그룹: 진행 중인 항목이 하나라도 있을 때만 노출(시즌성). 점은 항상 진행 중 의미.
     if(asmtItems.length) groups.push({ label:'평가', dot:true, items: asmtItems });
+    // 내 점수 (정보반 — 공개된 수행평가 점수)
+    groups.push({ items:[{key:'myscore', ico:'📊', label:'내 점수'}] });
+  } else {
+    // 일반반: 수업 단일 탭 유지
+    groups.push({ label:'학급', items:[
+      {key:'notice', ico:'📢', label:'공지'},
+      {key:'assign', ico:'📖', label:'수업'},
+      {key:'board',  ico:'📋', label:'게시판'},
+    ]});
   }
-  // 내 현황 + 내 점수(정보반) → '나' 하나로 통합(내부 하위탭)
-  groups.push({ items:[{key:'me', ico:'👤', label:'나'}] });
   return groups;
 }
 
@@ -81,9 +87,13 @@ function _stSidebar(groups, collapsed){
 function _stNormalizeTab(){
   if(ST_TAB === 'oj'){ ST_TAB = 'practice'; ST_PRACTICE_SUB = 'oj'; }
   else if(ST_TAB === 'coderead'){ ST_TAB = 'practice'; ST_PRACTICE_SUB = 'quiz'; }
-  else if(ST_TAB === 'mine'){ ST_TAB = 'me'; ST_ME_SUB = 'status'; }
-  else if(ST_TAB === 'myscore'){ ST_TAB = 'me'; ST_ME_SUB = 'score'; }
+  else if(ST_TAB === 'mine' || ST_TAB === 'me'){ ST_TAB = 'myscore'; } // 내현황·나 삭제 → 내 점수로
+  else if(ST_TAB === 'attend'){ ST_TAB = 'dashboard'; } // 내 출결 삭제 → 홈
   else if(ST_TAB === 'asmt-guide'){ ST_TAB = 'asmt'; ASMT_MODE = 'guide'; }
+  // 정보반의 옛 '수업' 단일 탭 → 첫 단원
+  if(ST_TAB === 'assign' && (SEL_CLS?.type || 'normal') === 'info') ST_TAB = 'unit-' + ASSIGN_UNITS[0].key;
+  // 일반반은 내 점수가 없으니 홈으로
+  if(ST_TAB === 'myscore' && (SEL_CLS?.type || 'normal') !== 'info') ST_TAB = 'dashboard';
 }
 
 // 본문 탭 내용
@@ -93,6 +103,7 @@ function _stTabBody(){
   else if(ST_TAB === 'assign')  return vStAssign();
   else if(ST_TAB === 'board')   return vStBoard();
   else if(ST_TAB === 'attend')  return vStAttend();
+  else if(ST_TAB.indexOf('unit-') === 0) return vStAssign(ST_TAB.slice(5));
   else if(ST_TAB === 'notebook')return vStNotebook();
   else if(ST_TAB === 'mission') return vStMission();
   else if(ST_TAB === 'practice')return vStPractice();
@@ -101,7 +112,7 @@ function _stTabBody(){
   else if(ST_TAB === 'ml')      return vStMl();
   else if(ST_TAB === 'asmt')    return vStAsmt();
   else if(ST_TAB === 'mlassess')return vStMlAssess();
-  else if(ST_TAB === 'me')      return vStMe();
+  else if(ST_TAB === 'myscore') return vStMyScore();
   return '';
 }
 
@@ -178,23 +189,7 @@ async function _loadCrProgress(){
   }
 }
 
-// ── 👤 나 (내 현황 + 내 점수) ──
-function vStMe(){
-  const isInfo = (SEL_CLS?.type || 'normal') === 'info';
-  const sub = (isInfo && ST_ME_SUB === 'score') ? 'score' : 'status';
-  // 일반반은 점수 탭이 없어 하위탭 바를 생략
-  if(!isInfo) return vStMine();
-  const bar = _subTabs([{key:'status', label:'📋 내 현황'}, {key:'score', label:'📊 내 점수'}], sub, 'setMeSub');
-  return bar + (sub === 'score' ? vStMyScore() : vStMine());
-}
-function setMeSub(s){
-  ST_ME_SUB = s;
-  if(s === 'score' && SEL_CLS && ST_USER && MY_SCORES === null){
-    _loadMyScores();  // 내부에서 render
-    return;
-  }
-  render();
-}
+// ── 📊 내 점수 — 공개된 수행평가 점수 로드 ──
 function _loadMyScores(){
   MY_SCORES = null; MY_SCORES_PUB = null; MY_REASONS_PUB = null;
   render();
@@ -204,7 +199,7 @@ function _loadMyScores(){
     loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
   ]).then(([pub, rpub, scores]) => {
     MY_SCORES_PUB = pub; MY_REASONS_PUB = rpub; MY_SCORES = scores;
-    if(ST_TAB === 'me') render();
+    if(ST_TAB === 'myscore') render();
   });
 }
 
@@ -310,13 +305,9 @@ function setST(t){
     ML_UN_PHASE = 'pick'; ML_UN_DATASET = null; ML_UN_DATA = null; ML_UN_KMEANS = null; ML_UN_REVEAL = false;
     if(ML_UN_AUTO_TIMER){ clearInterval(ML_UN_AUTO_TIMER); ML_UN_AUTO_TIMER = null; }
     Promise.all([loadMlActive(SEL_CLS.id), loadMlRlDesc(SEL_CLS.id)]).then(() => render());
-  } else if(t === 'me'){
-    // 👤 나(현황+점수) — 점수 하위탭이고 아직 미로드면 로드, 아니면 즉시 표시
-    if(SEL_CLS && ST_USER && SEL_CLS.type === 'info' && ST_ME_SUB === 'score' && MY_SCORES === null){
-      _loadMyScores();
-    } else {
-      render();
-    }
+  } else if(t === 'myscore' && SEL_CLS && ST_USER){
+    // 📊 내 점수 — 공개 토글 + 사유 공개 + 내 점수 로드 (내부에서 render)
+    _loadMyScores();
   } else if(t === 'mission' && SEL_CLS && ST_USER){
     // 미션 그리드 카드의 진행률 표시용 — 한 번에 로드
     MISSION_VIEW = 'list';
@@ -433,7 +424,6 @@ function vStDashboard(){
     <div class="dash-section">
       <div class="dash-sec-header">
         <div class="dash-sec-title">📄 최근 제출한 파일</div>
-        <button class="btn-xs" onclick="ST_ME_SUB='status';setST('me')">전체 보기 →</button>
       </div>
       ${mySubmitted.map(({assign: a, sub}) => {
         const subFiles = sub.files && sub.files.length ? sub.files : [{name: sub.fileName, url: sub.url}];
@@ -466,11 +456,16 @@ function vStNotice(){
 }
 
 // ── 수업 탭 (날짜별 오름차순, 월별 접기/펼치기) ──
-function vStAssign(){
-  if(!ASSIGNMENTS.length) return emptyBox('📖','등록된 수업이 없습니다.');
+//   unitKey 지정 시 그 단원으로 태그된 수업 + 아직 단원 미지정인 수업을 함께 표시
+//   (선생님이 태그하기 전엔 모든 단원에 보여 기존 수업이 사라지지 않게 함)
+function vStAssign(unitKey){
+  const u = unitKey ? ASSIGN_UNIT_MAP[unitKey] : null;
+  const head = u ? `<div class="sec-title" style="margin-bottom:10px">${u.roman}. ${esc(u.label)}</div>` : '';
+  const src = u ? ASSIGNMENTS.filter(a => a.unit === unitKey || !a.unit) : ASSIGNMENTS;
+  if(!src.length) return head + emptyBox('📖', u ? '이 단원에 등록된 수업이 없습니다.' : '등록된 수업이 없습니다.');
 
   // 수업 날짜(classDate) 기준 오름차순 정렬, 없으면 createdAt 사용
-  const sorted = [...ASSIGNMENTS].sort((a, b) => {
+  const sorted = [...src].sort((a, b) => {
     const da = a.classDate || a.createdAt?.slice(0, 10) || '';
     const db = b.classDate || b.createdAt?.slice(0, 10) || '';
     return da.localeCompare(db);
@@ -488,7 +483,7 @@ function vStAssign(){
   // 현재 월 계산
   const curYM = new Date().toISOString().slice(0, 7);
 
-  return Object.entries(months).map(([ym, items]) => {
+  return head + Object.entries(months).map(([ym, items]) => {
     const label = ym === '미정' ? '날짜 미정' : ym.replace('-', '년 ') + '월';
     const isOpen = ym === curYM || ym === '미정';
     return `<div class="month-group${isOpen ? '' : ' collapsed'}">
@@ -501,10 +496,11 @@ function vStAssign(){
         ${items.map(a => {
           const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER.number];
           const dateDisp = a.classDate ? fmtDay(a.classDate) : '';
+          const unmarked = u && !a.unit ? ` <span class="chip chip-gray" style="font-size:10px">단원 미지정</span>` : '';
           return `<div class="list-row click" data-action="pick-assign" data-aid="${a.id}">
             <div class="row-icon">📖</div>
             <div class="row-info">
-              <div class="row-title">${esc(a.title)}</div>
+              <div class="row-title">${esc(a.title)}${unmarked}</div>
               <div class="row-meta">${dateDisp ? `📅 ${dateDisp}` : ''}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}</div>
               ${a.dueDate ? `<div class="sbar"><div class="sbar-fill" style="width:${done ? 100 : 0}%"></div></div>` : ''}
             </div>

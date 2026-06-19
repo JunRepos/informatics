@@ -305,6 +305,7 @@ document.addEventListener('click', async e => {
     const title = document.getElementById('ac-title')?.value?.trim();
     const desc = document.getElementById('ac-desc')?.value?.trim();
     const classDate = document.getElementById('ac-class-date')?.value || null;
+    const unit = document.getElementById('ac-unit')?.value || null;
     const due = document.getElementById('ac-due')?.value;
     const files = Array.from(document.getElementById('ac-file')?.files || []);
     const err = document.getElementById('ac-err');
@@ -317,7 +318,7 @@ document.addEventListener('click', async e => {
       const editId = t.dataset.editId;
       if(editId){
         const existing = ASSIGNMENTS.find(a => a.id === editId);
-        const updates = {title, description: desc || '', dueDate: due || null, classDate: classDate || null};
+        const updates = {title, description: desc || '', dueDate: due || null, classDate: classDate || null, unit: unit || null};
         if(files.length){
           document.getElementById('ac-prog').style.display = 'block';
           if(existing?.filePath) await storage.ref(existing.filePath).delete().catch(() => {});
@@ -361,7 +362,7 @@ document.addEventListener('click', async e => {
           const id = genId();
           await db.ref(`assignments/${targetCid}/${id}`).set({
             title, description: desc || '', dueDate: due || null,
-            classDate: classDate || null, createdAt: now, ...fileData
+            classDate: classDate || null, unit: unit || null, createdAt: now, ...fileData
           });
         }
         if(targetClasses.length > 1) toast(`${targetClasses.length}개 반에 과제가 등록됐습니다.`, 'ok');

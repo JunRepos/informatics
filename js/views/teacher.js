@@ -222,6 +222,12 @@ function vTcAssign(){
     <div class="form">
       <div class="field"><label>제목</label><input id="ac-title" type="text" placeholder="예: 3단원 - 반복문" value="${editData ? esc(editData.title) : ''}"/></div>
       <div class="field"><label>설명</label><textarea id="ac-desc" placeholder="수업 내용 또는 과제 설명 (선택)">${editData ? esc(editData.description || '') : ''}</textarea></div>
+      <div class="field"><label>단원 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(정보반 학생 메뉴 분류용 · 미지정이면 모든 단원에 표시)</span></label>
+        <select id="ac-unit">
+          <option value="">— 단원 미지정 —</option>
+          ${ASSIGN_UNITS.map(u => `<option value="${u.key}" ${editData?.unit === u.key ? 'selected' : ''}>${u.roman}. ${u.label}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-row">
         <div class="field"><label>📅 수업 날짜</label><input id="ac-class-date" type="date" value="${editData?.classDate || todayStr}"/></div>
         <div class="field"><label>과제 마감일 (선택)</label><input id="ac-due" type="date" value="${editData?.dueDate || ''}"/></div>
@@ -247,6 +253,10 @@ function vTcAssign(){
     const aFiles = a.files && a.files.length > 1 ? a.files : a.fileName ? [{name: a.fileName, url: a.fileUrl}] : [];
     const fileChip = aFiles.length ? `<span style="font-size:11px;color:var(--text3)">📎 ${aFiles.length}개 파일</span>` : '';
     const classDateStr = a.classDate ? `📅 ${fmtDay(a.classDate)}` : '';
+    const u = a.unit && ASSIGN_UNIT_MAP[a.unit];
+    const unitChip = u
+      ? `<span class="chip chip-blue" style="font-size:10px">${u.roman}. ${esc(u.label)}</span>`
+      : `<span class="chip chip-gray" style="font-size:10px">단원 미지정</span>`;
     const dlLocked = !!a.studentDownloadLocked;
     const lockChip = aFiles.length
       ? `<button class="btn-xs ${dlLocked ? 'btn-warn' : ''}" data-action="toggle-dl-lock" data-aid="${a.id}" title="${dlLocked ? '학생이 첨부 파일을 다운로드할 수 없음 (클릭하여 해제)' : '학생이 첨부 파일을 다운로드할 수 있음 (클릭하여 잠금)'}">${dlLocked ? '🔒 학생 잠금' : '🔓 학생 허용'}</button>`
@@ -254,7 +264,7 @@ function vTcAssign(){
     return `<div class="list-row">
       <div class="row-icon">📖</div>
       <div class="row-info">
-        <div class="row-title">${esc(a.title)}${dlLocked ? ' <span class="chip chip-red" style="font-size:10px">🔒 학생 다운로드 잠금</span>' : ''}</div>
+        <div class="row-title">${esc(a.title)} ${unitChip}${dlLocked ? ' <span class="chip chip-red" style="font-size:10px">🔒 학생 다운로드 잠금</span>' : ''}</div>
         <div class="row-meta">${classDateStr}${a.dueDate ? ` · 마감: ${fmtDay(a.dueDate)}` : ''}${subCount ? ` · ${subCount}/${total}명 제출` : ''} ${fileChip}</div>
         <div class="sbar"><div class="sbar-fill" style="width:${pct}%"></div></div>
       </div>
