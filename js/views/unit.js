@@ -28,6 +28,8 @@ const UC_APP_META = {
   aicode:   { ico: '💬', label: 'AI 코딩', list: () => null },
   assign:   { ico: '📝', label: '과제',    list: () => ASSIGNMENTS },
 };
+// '전체 목록 통째로 연결'(refId='*') 지원 종류 — 목록 화면이 있는 기능
+const UC_APP_SCOPE_ALL = ['notebook', 'mission', 'oj', 'quiz'];
 
 // ══════════════════════════════════════
 //  학생 뷰
@@ -61,11 +63,13 @@ function setUnitSec(s){ ST_UNIT_SEC = s; render(); }
 function _ucStudentCard(it, unitKey){
   if(it.type === 'app'){
     const m = UC_APP_META[it.refType] || { ico: '🔌', label: '앱' };
+    const isAll = it.refId === '*';
+    const meta = `${it.desc ? esc(it.desc) + ' · ' : ''}${m.label}${isAll ? ' 전체 목록' : ''} 열기 →`;
     return `<div class="list-row click" data-action="uc-open-app" data-reftype="${esc(it.refType || '')}" data-refid="${esc(it.refId || '')}" data-unit="${esc(unitKey || '')}" data-sec="${esc(ST_UNIT_SEC)}">
       <div class="row-icon">${m.ico}</div>
       <div class="row-info">
         <div class="row-title">${esc(it.title)}</div>
-        <div class="row-meta">${it.desc ? esc(it.desc) + ' · ' : ''}${m.label} 열기 →</div>
+        <div class="row-meta">${meta}</div>
       </div>
       <div class="row-right"><span style="color:var(--text3);font-size:15px">→</span></div>
     </div>`;
@@ -143,7 +147,7 @@ function _ucTcRow(it, i, n){
     ? `🔗 ${esc(it.url || '')}`
     : it.type === 'text'
     ? '📝 글'
-    : `🔌 ${am.label} 연결`;
+    : `🔌 ${am.label} ${it.refId === '*' ? '전체 목록 ' : ''}연결`;
   return `<div class="list-row">
     <div class="row-icon">${ico}</div>
     <div class="row-info">
@@ -190,9 +194,15 @@ function _ucForm(){
     if(refType === 'aicode'){
       picker = `<div class="box-info" style="font-size:12px">학생이 클릭하면 AI 코딩 메뉴가 열립니다. (선생님 'AI 코딩' 탭에서 켜져 있어야 사용 가능)</div>`;
     } else {
+      // 노트북·미션·OJ·퀴즈는 '전체 목록 통째로' 옵션 제공 → 항목을 일일이 추가 안 해도 됨
+      const supportsAll = UC_APP_SCOPE_ALL.includes(refType);
       const arr = UC_APP_META[refType].list() || [];
-      picker = arr.length
-        ? `<div class="field"><label>연결할 ${UC_APP_META[refType].label}</label><select id="uc-refid"><option value="">— 선택 —</option>${arr.map(x => `<option value="${x.id}" ${d.refId === x.id ? 'selected' : ''}>${esc(x.title || x.id)}</option>`).join('')}</select></div>`
+      const allOpt = supportsAll ? `<option value="*" ${d.refId === '*' ? 'selected' : ''}>📋 전체 목록 (이 메뉴 통째로 연결)</option>` : '';
+      const pickOpt = supportsAll ? '' : `<option value="" ${!d.refId ? 'selected' : ''}>— 항목 선택 —</option>`;
+      const itemOpts = arr.map(x => `<option value="${x.id}" ${d.refId === x.id ? 'selected' : ''}>${esc(x.title || x.id)}</option>`).join('');
+      picker = (arr.length || supportsAll)
+        ? `<div class="field"><label>연결 대상</label><select id="uc-refid">${allOpt}${pickOpt}${itemOpts}</select>
+            ${supportsAll ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">💡 <b>전체 목록</b>을 고르면 학생이 ${UC_APP_META[refType].label} 전체를 한 메뉴에서 보고 골라요. (20개를 일일이 추가할 필요 없음)</div>` : ''}</div>`
         : `<div class="box-warn" style="font-size:12px">연결할 ${UC_APP_META[refType].label}이(가) 없습니다. 먼저 해당 탭에서 만들어 주세요.</div>`;
     }
     typeFields = `<div><label style="display:block;margin-bottom:5px">연결 종류</label><div style="display:flex;gap:5px;flex-wrap:wrap">${refBtns}</div></div>${picker}`;

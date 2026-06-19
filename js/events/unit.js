@@ -18,32 +18,47 @@ function _ucReadForm(){
 
 // 앱연결 항목 열기 — 단원에서 기능(노트북/미션/OJ/퀴즈/AI코딩/과제) 진입
 async function openUnitApp(refType, refId, unitKey, section){
+  const whole = refId === '*';   // 전체 목록 통째로 연결
   if(refType === 'notebook'){
     ST_TAB = 'notebook';
     UNIT_RETURN = { unitKey, section };
-    await openNotebook(refId);                 // 내부에서 render
+    if(whole){ SEL_NOTEBOOK = null; render(); }   // 노트북 목록
+    else await openNotebook(refId);               // 내부에서 render
   } else if(refType === 'mission'){
     ST_TAB = 'mission';
     UNIT_RETURN = { unitKey, section };
-    await openMission(refId);                  // 내부에서 render
+    if(whole){
+      MISSION_VIEW = 'list'; SEL_MISSION = null; MISSION_PROGRESS_ALL = null;
+      render();
+      if(SEL_CLS && ST_USER) loadAllMissionProgress(SEL_CLS.id, ST_USER.number).then(p => {
+        MISSION_PROGRESS_ALL = p;
+        if(ST_TAB === 'mission' && MISSION_VIEW === 'list') render();
+      });
+    } else await openMission(refId);              // 내부에서 render
   } else if(refType === 'quiz'){
     ST_TAB = 'practice'; ST_PRACTICE_SUB = 'quiz';
     UNIT_RETURN = { unitKey, section };
-    const r = (CR_READINGS || []).find(x => x.id === refId);
-    if(r){
-      CR_SEL = r; CR_VIEW = 'solve'; CR_STEP_IDX = 0; CR_ANSWER = ''; CR_LAST_RESULT = null;
-      CR_CLOZE_ANSWERS = (r.type === 'cloze') ? new Array((r.blanks || []).length).fill('') : null;
-      CR_BUG_SEL = null;
-      if(r.type === 'codetest') CR_CT = { blanks: {}, run: null, test: null, running: false, stdin: '' };
-      if(ST_USER && SEL_CLS){
-        try {
-          const prog = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
-          if(!CR_PROGRESS[r.id]) CR_PROGRESS[r.id] = {};
-          if(prog) CR_PROGRESS[r.id][ST_USER.number] = prog;
-        } catch(e){}
+    if(whole){
+      CR_VIEW = 'list'; CR_SEL = null; CR_LAST_RESULT = null;
+      render();
+      if(SEL_CLS && ST_USER) _loadCrProgress().then(render);   // 목록 진도 갱신
+    } else {
+      const r = (CR_READINGS || []).find(x => x.id === refId);
+      if(r){
+        CR_SEL = r; CR_VIEW = 'solve'; CR_STEP_IDX = 0; CR_ANSWER = ''; CR_LAST_RESULT = null;
+        CR_CLOZE_ANSWERS = (r.type === 'cloze') ? new Array((r.blanks || []).length).fill('') : null;
+        CR_BUG_SEL = null;
+        if(r.type === 'codetest') CR_CT = { blanks: {}, run: null, test: null, running: false, stdin: '' };
+        if(ST_USER && SEL_CLS){
+          try {
+            const prog = await loadCodeReadingProgress(SEL_CLS.id, r.id, ST_USER.number);
+            if(!CR_PROGRESS[r.id]) CR_PROGRESS[r.id] = {};
+            if(prog) CR_PROGRESS[r.id][ST_USER.number] = prog;
+          } catch(e){}
+        }
       }
+      render();
     }
-    render();
   } else if(refType === 'aicode'){
     ST_TAB = 'aicode';
     UNIT_RETURN = { unitKey, section };
@@ -55,7 +70,15 @@ async function openUnitApp(refType, refId, unitKey, section){
       render();
     });
   } else if(refType === 'oj'){
-    // OJ는 별도 전체화면(oj-solve). ST_TAB(단원)은 그대로라 oj-back이 단원으로 복귀.
+    if(whole){
+      // OJ 전체 목록 → 문제풀이(OJ) 탭. 복귀 바로 단원 복귀.
+      ST_TAB = 'practice'; ST_PRACTICE_SUB = 'oj';
+      OJ_SEL_PROB = null; OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
+      UNIT_RETURN = { unitKey, section };
+      render();
+      return;
+    }
+    // 특정 OJ 문제는 별도 전체화면(oj-solve). ST_TAB(단원)은 그대로라 oj-back이 단원으로 복귀.
     const p = (OJ_PROBLEMS || []).find(x => x.id === refId);
     if(!p){ toast('연결된 OJ 문제를 찾을 수 없어요.', 'err'); render(); return; }
     OJ_SEL_PROB = p; OJ_CODE = ''; OJ_RUN_RESULTS = null; OJ_SUBMIT_RESULTS = null;
@@ -111,13 +134,16 @@ document.addEventListener('click', async e => {
   if(act === 'uc-type'){
     _ucReadForm();
     UC_DRAFT.type = el.dataset.type;
-    if(UC_DRAFT.type === 'app' && !UC_DRAFT.refType) UC_DRAFT.refType = 'notebook';
+    if(UC_DRAFT.type === 'app' && !UC_DRAFT.refType){
+      UC_DRAFT.refType = 'notebook';
+      UC_DRAFT.refId = UC_APP_SCOPE_ALL.includes('notebook') ? '*' : '';
+    }
     render(); return;
   }
   if(act === 'uc-reftype'){
     _ucReadForm();
     UC_DRAFT.refType = el.dataset.reftype;
-    UC_DRAFT.refId = '';
+    UC_DRAFT.refId = UC_APP_SCOPE_ALL.includes(UC_DRAFT.refType) ? '*' : '';  // 전체목록 기본
     render(); return;
   }
   if(act === 'uc-edit'){
@@ -172,9 +198,13 @@ document.addEventListener('click', async e => {
         } else {
           data.refId = d.refId;
           if(!data.title){
-            const arr = (UC_APP_META[refType] && UC_APP_META[refType].list()) || [];
-            const ref = arr.find(x => x.id === d.refId);
-            data.title = (ref && (ref.title || '')) || (UC_APP_META[refType] ? UC_APP_META[refType].label : '연결');
+            if(d.refId === '*'){
+              data.title = UC_APP_META[refType] ? UC_APP_META[refType].label : '전체';
+            } else {
+              const arr = (UC_APP_META[refType] && UC_APP_META[refType].list()) || [];
+              const ref = arr.find(x => x.id === d.refId);
+              data.title = (ref && (ref.title || '')) || (UC_APP_META[refType] ? UC_APP_META[refType].label : '연결');
+            }
           }
         }
       }
