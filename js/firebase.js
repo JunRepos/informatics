@@ -689,6 +689,45 @@ async function setMlRlDesc(cid, text){
   ML_RL_DESC[cid] = String(text || '');
 }
 
+// ── 📚 단원 콘텐츠 (단원별 수업자료/실습 항목) ──
+//   aiactivity/submissions/{cid}/unitContent/{unitKey}/{section}/{itemId}
+//   쓰기 허용된 aiactivity/submissions 하위라 Firebase 규칙 재게시 불필요.
+async function loadUnitContent(cid){
+  UNIT_CONTENT = {};
+  // 단원·섹션 골격은 항상 만들어 둠 (없어도 빈 배열)
+  for(const u of ASSIGN_UNITS) UNIT_CONTENT[u.key] = { material: [], practice: [] };
+  try {
+    const s = await db.ref(`aiactivity/submissions/${cid}/unitContent`).get();
+    if(!s.exists()) return;
+    const raw = s.val() || {};
+    for(const u of ASSIGN_UNITS){
+      const uu = raw[u.key] || {};
+      ['material', 'practice'].forEach(sec => {
+        const items = uu[sec] || {};
+        UNIT_CONTENT[u.key][sec] = Object.entries(items)
+          .map(([id, v]) => ({ id, ...v }))
+          .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+      });
+    }
+  } catch(err){
+    console.warn('[단원] 콘텐츠 로드 실패:', err.message || err);
+  }
+}
+
+async function saveUnitItem(cid, unitKey, section, itemId, data){
+  await db.ref(`aiactivity/submissions/${cid}/unitContent/${unitKey}/${section}/${itemId}`).set(data);
+}
+
+async function deleteUnitItem(cid, unitKey, section, itemId){
+  await db.ref(`aiactivity/submissions/${cid}/unitContent/${unitKey}/${section}/${itemId}`).remove();
+}
+
+// 항목 순서 ▲▼ — 인접 항목의 createdAt 만 swap (다른 탭과 동일 패턴)
+async function moveUnitItem(cid, unitKey, section, itemId, direction){
+  const items = (UNIT_CONTENT[unitKey] && UNIT_CONTENT[unitKey][section]) || [];
+  return _moveItemBy(`aiactivity/submissions/${cid}/unitContent/${unitKey}/${section}`, items, itemId, direction);
+}
+
 // ── 반 전체 데이터 로드 ──
 async function loadAllClassData(cid){
   await Promise.all([
@@ -706,7 +745,8 @@ async function loadAllClassData(cid){
     loadAicActive(cid),
     loadAiaActive(cid),
     loadMlActive(cid),
-    loadMlaActive(cid)
+    loadMlaActive(cid),
+    loadUnitContent(cid)
   ]);
 }
 

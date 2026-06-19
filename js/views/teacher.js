@@ -23,6 +23,7 @@ function vTeacher(){
   const tabs = `<div class="tabs">
     ${tab('📢 공지','notice',TC_TAB,"setTC('notice')")}
     ${tab('📖 수업','assign',TC_TAB,"setTC('assign')")}
+    ${tcIsInfo ? tab('📚 단원 구성','unit',TC_TAB,"setTC('unit')") : ''}
     ${tab('📋 게시판','board',TC_TAB,"setTC('board')")}
     ${tab('🗓️ 출결','attend',TC_TAB,"setTC('attend')")}
     ${tab('👥 학생관리','students',TC_TAB,"setTC('students')")}
@@ -48,6 +49,7 @@ function vTeacher(){
   let body = '';
   if     (TC_TAB === 'notice')     body = vTcNotice();
   else if(TC_TAB === 'assign')     body = vTcAssign();
+  else if(TC_TAB === 'unit')       body = vTcUnit();
   else if(TC_TAB === 'board')      body = vTcBoard();
   else if(TC_TAB === 'attend')     body = vTcAttend();
   else if(TC_TAB === 'students')   body = vTcStudents();
@@ -169,6 +171,10 @@ function setTC(t){
       }
       render();
     });
+  } else if(t === 'unit' && TC_CLS){
+    // 📚 단원 구성 — 폼 닫고 콘텐츠 최신화
+    UC_EDIT = null; UC_DRAFT = null;
+    loadUnitContent(TC_CLS.id).then(render);
   } else {
     render();
   }

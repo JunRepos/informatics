@@ -103,7 +103,7 @@ function _stTabBody(){
   else if(ST_TAB === 'assign')  return vStAssign();
   else if(ST_TAB === 'board')   return vStBoard();
   else if(ST_TAB === 'attend')  return vStAttend();
-  else if(ST_TAB.indexOf('unit-') === 0) return vStAssign(ST_TAB.slice(5));
+  else if(ST_TAB.indexOf('unit-') === 0) return vStUnit(ST_TAB.slice(5));
   else if(ST_TAB === 'notebook')return vStNotebook();
   else if(ST_TAB === 'mission') return vStMission();
   else if(ST_TAB === 'practice')return vStPractice();
@@ -226,7 +226,10 @@ function setAsmtMode(m){
 
 function setST(t){
   ST_TAB = t;
-  if(t === 'attend' && SEL_CLS){
+  if(t.indexOf('unit-') === 0){
+    ST_UNIT_SEC = 'material';  // 단원 진입 시 항상 수업 자료부터
+    render();
+  } else if(t === 'attend' && SEL_CLS){
     const ym = new Date().toISOString().slice(0, 7);
     loadAttendanceMonth(SEL_CLS.id, ym).then(render);
   } else if(t === 'practice' && SEL_CLS && ST_USER){

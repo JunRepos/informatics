@@ -27,6 +27,18 @@ let ST_PRACTICE_SUB = 'oj';   // 통합 '문제풀이' 탭 하위: 'oj' | 'quiz'
 let ST_ME_SUB       = 'status'; // 통합 '나' 탭 하위: 'status'(현황) | 'score'(점수)
 let ASMT_MODE       = 'real'; // 수행평가 탭 모드: 'real'(실제 응시) | 'guide'(연습)
 
+// 📚 단원 콘텐츠 (단원별 수업자료/실습 = 선생님이 구성하는 항목 리스트)
+//   저장: aiactivity/submissions/{cid}/unitContent/{unitKey}/{section}/{itemId} (규칙 재게시 불필요)
+//   항목 type: 'file'(업로드) | 'link'(URL) | 'text'(글) | 'app'(앱연결, Phase B)
+let UNIT_CONTENT  = {};        // 현재 반: { [unitKey]: { material:[item], practice:[item] } }
+let ST_UNIT_SEC   = 'material'; // 학생: 단원 안 하위탭 'material'(수업자료) | 'practice'(실습)
+// 선생님 단원 구성 화면 상태
+let UC_TC_UNIT    = 'computing'; // 편집 중 단원 key
+let UC_TC_SEC     = 'material';  // 편집 중 섹션
+let UC_EDIT       = null;        // 편집 중 항목 id, 'new'=새 항목 폼, null=폼 닫힘
+let UC_DRAFT      = null;        // 작성 중 항목 { type, title, desc, url, body, _files? } — 유형 전환 시 입력 보존
+let UC_SAVING     = false;       // 저장 중
+
 // 데이터 캐시 (Firebase에서 로드한 데이터)
 let NOTICES     = [];
 let ASSIGNMENTS = [];
