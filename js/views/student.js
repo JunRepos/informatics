@@ -516,24 +516,23 @@ function vStAssign(unitKey){
   }).join('');
 }
 
-// ── 궁금증 게시판 탭 (학생: 익명 표시) ──
+// ── 궁금증 게시판 탭 (학생: 내 궁금증만 — 친구에겐 안 보임) ──
 function vStBoard(){
   const btn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
     <button class="btn-p btn-sm" data-action="new-post">+ 궁금증 남기기</button></div>`;
-  const intro = `<div class="box-info" style="margin-bottom:10px">💡 궁금한 점을 남기면 선생님이 답변해줘요. 작성자는 <b>익명</b>으로 표시됩니다.</div>`;
-  if(!POSTS.length) return btn + intro + emptyBox('❓','아직 궁금증이 없습니다.');
-  return btn + intro + POSTS.map(p => {
-    const isMine = p.authorId === ST_USER?.number;
+  const intro = `<div class="box-info" style="margin-bottom:10px">💡 여기 남긴 궁금증은 <b>선생님만</b> 봐요. 다른 친구들에게는 보이지 않아요. 아래는 <b>내가 남긴 궁금증</b>이에요.</div>`;
+  const mine = POSTS.filter(p => p.authorId === ST_USER?.number);
+  if(!mine.length) return btn + intro + emptyBox('❓','아직 남긴 궁금증이 없어요.');
+  return btn + intro + mine.map(p => {
     const hasFile = p.fileName && p.fileName.length;
     const answered = p.answer && p.answer.length;
     return `<div class="list-row click" data-action="pick-post" data-pid="${p.id}">
       <div class="row-icon">${answered ? '💬' : '❓'}</div>
       <div class="row-info">
         <div class="row-title">${esc(p.title)}${hasFile ? ' 📎' : ''}</div>
-        <div class="row-meta">${isMine ? '내 궁금증 · ' : ''}${fmtDt(p.uploadedAt)}</div>
+        <div class="row-meta">${fmtDt(p.uploadedAt)}</div>
       </div>
       <div class="row-right">
-        ${isMine ? `<span class="chip chip-purple">내 글</span>` : ''}
         ${answered ? `<span class="chip chip-green">✓ 답변완료</span>` : `<span class="chip chip-gray">답변대기</span>`}
       </div>
     </div>`;

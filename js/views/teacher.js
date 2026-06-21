@@ -358,7 +358,7 @@ function vStatusTable(aid){
 function vTcBoard(){
   if(!POSTS.length) return emptyBox('❓','학생이 올린 궁금증이 없습니다.');
   const waiting = POSTS.filter(p => !(p.answer && p.answer.length)).length;
-  return `<div class="box-ok">🔓 선생님께는 작성자 <b>실명</b>이 보입니다 (학생들에게는 익명). ${waiting ? `<b>답변 대기 ${waiting}건</b> — 궁금증을 눌러 답변을 달아주세요.` : '모든 궁금증에 답변했어요. 👍'}</div>`
+  return `<div class="box-ok">🔓 학생들이 남긴 궁금증이에요. 학생끼리는 서로 볼 수 없고 <b>선생님만</b> 봐요 (작성자 <b>실명</b> 표시). ${waiting ? `<b>답변 대기 ${waiting}건</b> — 궁금증을 눌러 답변을 달아주세요.` : '모든 궁금증에 답변했어요. 👍'}</div>`
     + POSTS.map(p => {
       const hasFile = p.fileName && p.fileName.length;
       const answered = p.answer && p.answer.length;

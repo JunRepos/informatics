@@ -15,10 +15,11 @@ function vPostDetail(){
     ? `<div class="back-btn" onclick="go('teacher')">← 궁금증 게시판으로</div>`
     : `<div class="back-btn" onclick="go('student')">← 궁금증 게시판으로</div>`;
 
-  // 작성자 표시 — 선생님만 실명, 학생에게는 익명(본인은 '나')
-  const who = IS_TC
-    ? `${esc(p.authorName)} (${esc(p.authorId)})`
-    : (isMine ? '나 (익명으로 표시됨)' : '익명');
+  // 학생은 본인 궁금증만 열람 가능 (다른 친구 글 접근 차단)
+  if(!IS_TC && !isMine) return back + emptyBox('🔒','볼 수 없는 궁금증입니다.');
+
+  // 작성자 — 선생님에게만 실명 표시
+  const meta = (IS_TC ? `${esc(p.authorName)} (${esc(p.authorId)}) · ` : '') + fmtDt(p.uploadedAt);
 
   const hasFile = p.fileName && p.fileName.length;
   const fileHtml = hasFile ? `
@@ -51,7 +52,7 @@ function vPostDetail(){
 
   return back + `<div class="section">
     <div style="font-size:16px;font-weight:700;margin-bottom:5px">${esc(p.title)}</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${who} · ${fmtDt(p.uploadedAt)}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">${meta}</div>
     ${p.memo ? `<div style="font-size:14px;color:var(--text);white-space:pre-line;line-height:1.7">${esc(p.memo)}</div>` : ''}
     ${fileHtml}
     ${answerHtml}
@@ -70,7 +71,7 @@ function vNewPost(){
     <div class="back-btn" onclick="setST('board');go('student')">← 궁금증 게시판으로</div>
     <div class="section">
       <div class="sec-title">❓ 궁금증 남기기</div>
-      <div class="box-info">궁금한 점을 자유롭게 남겨주세요.<br>친구들에게는 <b>익명</b>으로 보이고, 선생님께만 이름이 보여요. 답변은 선생님이 달아드립니다.</div>
+      <div class="box-info">궁금한 점을 자유롭게 남겨주세요.<br><b>선생님만</b> 보고 답변해줘요. 다른 친구들에게는 보이지 않아요.</div>
       <div class="form" id="np-form">
         <div class="field"><label>제목 (궁금한 점 한 줄 요약)</label><input id="np-title" type="text" maxlength="200" placeholder="예: 반복문에서 i는 왜 0부터 시작하나요?" autocomplete="off"/></div>
         <div class="field"><label>궁금한 내용 (선택)</label><textarea id="np-memo" maxlength="1000" placeholder="자세히 적으면 더 정확한 답변을 받을 수 있어요"></textarea></div>

@@ -39,15 +39,11 @@ async function getAuth(){
   return s.exists() ? s.val() : null;
 }
 
-// ── 게시물 개수 (홈 화면용) ──
+// ── 궁금증 개수 (홈 화면용) ──
+//   궁금증을 비공개로 전환하면서 홈 화면의 공개 카운트를 제거.
+//   로그아웃 상태 브라우저가 전체 글을 내려받지 않도록 더 이상 fetch 하지 않음.
 async function loadPostCounts(){
-  const s = await db.ref('posts').get();
   CLASSES.forEach(c => { POST_COUNTS[c.id] = 0; });
-  if(!s.exists()) return;
-  Object.entries(s.val()).forEach(([k, v]) => {
-    if(KNOWN_CLS.has(k) && typeof v === 'object')
-      POST_COUNTS[k] = Object.keys(v).length;
-  });
 }
 
 // ── 공지사항 ──
@@ -77,12 +73,15 @@ async function setAssignDownloadLock(cid, aid, on){
   await db.ref(`assignments/${cid}/${aid}/studentDownloadLocked`).set(!!on);
 }
 
-// ── 게시판 글 ──
+// ── 궁금증 글 ──
+//   학생은 본인이 남긴 글만 메모리에 보관 → 다른 학생 글이 화면·콘솔에 노출되지 않음.
+//   (선생님은 전체. 네트워크 레벨 완전 차단은 Firebase 규칙 재게시 필요 — 메모 참고)
 async function loadPosts(cid){
   const s = await db.ref(`posts/${cid}`).get();
   if(!s.exists()){ POSTS = []; return; }
-  POSTS = Object.entries(s.val()).map(([id, v]) => ({id, ...v}))
-    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  let arr = Object.entries(s.val()).map(([id, v]) => ({id, ...v}));
+  if(!IS_TC && ST_USER?.number) arr = arr.filter(p => p.authorId === ST_USER.number);
+  POSTS = arr.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 }
 
 // ── 선생님 공유 파일 ──
