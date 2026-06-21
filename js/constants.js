@@ -23,7 +23,7 @@ const AT_REASONS = ['질병', '인정', '미인정'];
 // 키는 DB의 assignments/{}/unit 에 저장. 로마자 번호는 메뉴/칩 표기에 사용.
 const ASSIGN_UNITS = [
   { key: 'computing',   roman: 'Ⅰ', label: '컴퓨팅 시스템' },
-  { key: 'bigdata',     roman: 'Ⅱ', label: '빅데이터' },
+  { key: 'bigdata',     roman: 'Ⅱ', label: '데이터' },
   { key: 'programming', roman: 'Ⅲ', label: '프로그래밍' },
   { key: 'ai',          roman: 'Ⅳ', label: '인공지능' },
 ];

@@ -330,121 +330,128 @@ function setST(t){
   }
 }
 
+// 단원 카드 비주얼 (이모지·색)
+const DASH_UNIT_VIS = {
+  computing:   { emoji: '🖥️', color: '#3B82F6' },
+  bigdata:     { emoji: '📊', color: '#10B981' },
+  programming: { emoji: '💻', color: '#8B5CF6' },
+  ai:          { emoji: '🤖', color: '#EC4899' },
+};
+
+// ── 📊 내 점수 — 대시보드용 lazy 로드 (한 번만 트리거, 완료 시 재렌더) ──
+let _dashScoreLoading = false;
+function _ensureMyScores(){
+  if(MY_SCORES != null || _dashScoreLoading) return;
+  if(!SEL_CLS || !ST_USER) return;
+  _dashScoreLoading = true;
+  Promise.all([
+    loadAsmtPublished(SEL_CLS.id),
+    loadAsmtReasonsPublished(SEL_CLS.id),
+    loadMyAsmtScores(SEL_CLS.id, ST_USER.number),
+  ]).then(([pub, rpub, scores]) => {
+    MY_SCORES_PUB = pub; MY_REASONS_PUB = rpub; MY_SCORES = scores;
+    _dashScoreLoading = false;
+    if(ST_TAB === 'dashboard' || ST_TAB === 'myscore') render();
+  }).catch(() => { _dashScoreLoading = false; });
+}
+
 // ── 대시보드 홈 탭 ──
 function vStDashboard(){
-  const clsType = SEL_CLS?.type || 'normal';
-  const isInfo = clsType === 'info';
+  const isInfo = (SEL_CLS?.type || 'normal') === 'info';
 
-  // 과제 통계
-  const totalAssign = ASSIGNMENTS.length;
-  const doneAssign = ASSIGNMENTS.filter(a => SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number]).length;
-  const pendingAssign = totalAssign - doneAssign;
-  const urgentAssigns = ASSIGNMENTS.filter(a => {
-    const done = SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number];
-    return !done && a.dueDate && !isPastDue(a.dueDate);
-  }).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 3);
+  // ① 최근 공지 배너 (고정 우선·최신)
+  const n = NOTICES[0];
+  const noticeBanner = n
+    ? `<div class="dash-notice" onclick="setST('notice')">
+        <div class="dash-notice-ico">${n.isPinned ? '📌' : '📢'}</div>
+        <div class="dash-notice-body">
+          <div class="dash-notice-label">${n.isPinned ? '고정 공지' : '최근 공지'}</div>
+          <div class="dash-notice-title">${esc(n.title)}</div>
+          ${n.content ? `<div class="dash-notice-text">${esc(n.content)}</div>` : ''}
+        </div>
+        <div class="dash-notice-go">전체 보기 →</div>
+      </div>`
+    : `<div class="dash-notice" onclick="setST('notice')">
+        <div class="dash-notice-ico">📢</div>
+        <div class="dash-notice-body"><div class="dash-notice-title">아직 등록된 공지가 없어요</div></div>
+        <div class="dash-notice-go">공지 →</div>
+      </div>`;
 
-  // 최근 공지 (최대 3개)
-  const recentNotices = NOTICES.slice(0, 3);
+  // ② 내 궁금증 — 개수 + 답변 여부
+  const myQ = POSTS.filter(p => p.authorId === ST_USER?.number);
+  const qTotal = myQ.length;
+  const qAnswered = myQ.filter(p => p.answer && p.answer.length).length;
+  const qWaiting = qTotal - qAnswered;
+  const qnaCard = `<div class="dash-qna" onclick="setST('board')">
+      <div class="dash-qna-ico">❓</div>
+      <div class="dash-qna-body">
+        <div class="dash-qna-title">내 궁금증 ${qTotal}개</div>
+        <div class="dash-qna-sub">${qTotal
+          ? `<span class="dash-q-done">✓ 답변완료 ${qAnswered}</span> · <span class="dash-q-wait">⏳ 답변대기 ${qWaiting}</span>`
+          : '궁금한 점을 남기면 선생님이 답변해줘요'}</div>
+      </div>
+      <div class="dash-qna-go">→</div>
+    </div>`;
 
-  // 제출한 파일 목록 (최근 5개)
-  const mySubmitted = ASSIGNMENTS
-    .filter(a => SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number])
-    .map(a => ({assign: a, sub: SUBMISSIONS[a.id][ST_USER.number]}))
-    .sort((a, b) => b.sub.uploadedAt.localeCompare(a.sub.uploadedAt))
-    .slice(0, 5);
+  // ③ 단원 카드 (정보반: 2×2) / 일반반: 수업 바로가기
+  let unitsBlock = '';
+  if(isInfo){
+    const cards = ASSIGN_UNITS.map(u => {
+      const vis = DASH_UNIT_VIS[u.key] || { emoji: '📚', color: '#6366F1' };
+      const list = ASSIGNMENTS.filter(a => a.unit === u.key || !a.unit);
+      const done = list.filter(a => SUBMISSIONS[a.id] && SUBMISSIONS[a.id][ST_USER?.number]).length;
+      const meta = list.length ? `수업 ${list.length}개 · 제출 ${done}/${list.length}` : '수업 준비 중';
+      return `<div class="dash-unit" onclick="setST('unit-${u.key}')">
+        <div class="dash-unit-top">
+          <div class="dash-unit-emoji" style="background:${vis.color}1A">${vis.emoji}</div>
+          <div class="dash-unit-roman" style="color:${vis.color};background:${vis.color}1A">${u.roman}</div>
+        </div>
+        <div>
+          <div class="dash-unit-label">${esc(u.label)}</div>
+          <div class="dash-unit-meta">${meta}</div>
+        </div>
+      </div>`;
+    }).join('');
+    unitsBlock = `<div class="dash-sec-label">📚 수업 단원</div><div class="dash-units">${cards}</div>`;
+  } else {
+    unitsBlock = `<div class="dash-cta" onclick="setST('assign')">📖 수업 보러 가기 →</div>`;
+  }
 
-  // 내 궁금증 수
-  const myPosts = POSTS.filter(p => p.authorId === ST_USER?.number).length;
+  // ④ 내 점수 (정보반만)
+  let scoreBlock = '';
+  if(isInfo){
+    _ensureMyScores();
+    let body;
+    if(MY_SCORES == null){
+      body = `<div class="dash-score-loading">⏳ 점수 불러오는 중...</div>`;
+    } else {
+      const pub = MY_SCORES_PUB || {};
+      let sum = 0, max = 0, cnt = 0;
+      for(const a of ASMT_LIST){
+        if(pub[a.id]){ const t = _scTotal(a, MY_SCORES[a.id]); if(t != null){ sum += t; max += a.total; cnt++; } }
+      }
+      body = cnt
+        ? `<div class="dash-score-num">${_scRound(sum)}<span class="dash-score-max">/${max}</span></div>
+           <div class="dash-score-cap">공개된 ${cnt}개 수행평가 합계 (전체 만점 ${ASMT_TOTAL_ALL}점)</div>`
+        : `<div class="dash-score-num muted">–</div>
+           <div class="dash-score-cap">아직 공개된 점수가 없어요. 선생님이 채점·공개하면 여기서 볼 수 있어요.</div>`;
+    }
+    scoreBlock = `<div class="dash-sec-label">📊 내 점수</div>
+      <div class="dash-score" onclick="setST('myscore')">
+        <div class="dash-score-head"><span>수행평가 점수</span><span class="dash-score-go">자세히 →</span></div>
+        ${body}
+      </div>`;
+  }
 
   return `
     <div class="dash-greeting">
       <div class="dash-hello">안녕하세요, <strong>${esc(ST_USER?.name)}</strong>님! 👋</div>
       <div class="dash-class">${esc(SEL_CLS?.emoji)} ${esc(SEL_CLS?.label)}</div>
     </div>
-
-    <div class="dash-stats">
-      <div class="dash-stat-card" onclick="setST('assign')">
-        <div class="dash-stat-icon">📖</div>
-        <div class="dash-stat-body">
-          <div class="dash-stat-num">${pendingAssign}</div>
-          <div class="dash-stat-label">미제출 수업</div>
-        </div>
-      </div>
-      <div class="dash-stat-card" onclick="setST('assign')">
-        <div class="dash-stat-icon">✅</div>
-        <div class="dash-stat-body">
-          <div class="dash-stat-num" style="color:var(--ok)">${doneAssign}</div>
-          <div class="dash-stat-label">제출 완료</div>
-        </div>
-      </div>
-      <div class="dash-stat-card" onclick="setST('assign')">
-        <div class="dash-stat-icon">📖</div>
-        <div class="dash-stat-body">
-          <div class="dash-stat-num">${totalAssign}</div>
-          <div class="dash-stat-label">전체 수업</div>
-        </div>
-      </div>
-      <div class="dash-stat-card" onclick="setST('board')">
-        <div class="dash-stat-icon">❓</div>
-        <div class="dash-stat-body">
-          <div class="dash-stat-num">${myPosts}</div>
-          <div class="dash-stat-label">내 궁금증</div>
-        </div>
-      </div>
-    </div>
-
-    ${urgentAssigns.length ? `
-    <div class="dash-section">
-      <div class="dash-sec-header">
-        <div class="dash-sec-title">⏰ 다가오는 마감</div>
-        <button class="btn-xs" onclick="setST('assign')">전체 보기 →</button>
-      </div>
-      ${urgentAssigns.map(a => `
-        <div class="dash-item click" data-action="pick-assign" data-aid="${a.id}">
-          <div class="dash-item-icon">📖</div>
-          <div class="dash-item-body">
-            <div class="dash-item-title">${esc(a.title)}</div>
-            <div class="dash-item-meta">마감: ${fmtDay(a.dueDate)}</div>
-          </div>
-          <div class="dash-item-right">${dday(a.dueDate)}</div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${recentNotices.length ? `
-    <div class="dash-section">
-      <div class="dash-sec-header">
-        <div class="dash-sec-title">📢 최근 공지</div>
-        <button class="btn-xs" onclick="setST('notice')">전체 보기 →</button>
-      </div>
-      ${recentNotices.map(n => `
-        <div class="dash-item">
-          <div class="dash-item-icon">${n.isPinned ? '📌' : '📢'}</div>
-          <div class="dash-item-body">
-            <div class="dash-item-title">${esc(n.title)}</div>
-            <div class="dash-item-meta">${fmtDt(n.createdAt)}${n.content ? ' · ' + esc(n.content).slice(0, 40) + (n.content.length > 40 ? '…' : '') : ''}</div>
-          </div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${mySubmitted.length ? `
-    <div class="dash-section">
-      <div class="dash-sec-header">
-        <div class="dash-sec-title">📄 최근 제출한 파일</div>
-      </div>
-      ${mySubmitted.map(({assign: a, sub}) => {
-        const subFiles = sub.files && sub.files.length ? sub.files : [{name: sub.fileName, url: sub.url}];
-        return `<div class="dash-item">
-          <div class="dash-item-icon">📄</div>
-          <div class="dash-item-body">
-            <div class="dash-item-title">${esc(a.title)}</div>
-            <div class="dash-item-meta">${subFiles.map(f => esc(f.name)).join(', ')} · ${fmtDt(sub.uploadedAt)}</div>
-          </div>
-          <div class="dash-item-right"><span class="chip chip-green" style="font-size:10px">제출</span></div>
-        </div>`;
-      }).join('')}
-    </div>` : ''}
-
+    ${noticeBanner}
+    ${qnaCard}
+    ${unitsBlock}
+    ${scoreBlock}
   `;
 }
 
