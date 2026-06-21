@@ -15,7 +15,6 @@ document.addEventListener('keydown', e => {
   const t = e.target;
   if(t.id === 'sl-pw') document.getElementById('sl-btn')?.click();
   if(t.id === 'tl-pw' || t.id === 'tl-pw2') document.getElementById('tl-btn')?.click();
-  if(t.id === 'pd-pw') document.getElementById('pd-ok')?.click();
   if(t.id === 'cp-new' || t.id === 'cp-con') document.getElementById('cp-btn')?.click();
 });
 
@@ -202,33 +201,23 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // ── 게시물 비밀번호 확인 ──
-  if(t.id === 'pd-ok'){
-    const pw = document.getElementById('pd-pw')?.value;
-    const err = document.getElementById('pd-err');
-    if(!pw){ err.textContent = '비밀번호를 입력하세요.'; return; }
-    t.textContent = '...'; t.disabled = true;
-    const ok = await verifyPassword(pw, SEL_POST?.passwordHash, SEL_POST?.salt);
-    if(ok){ POST_UNLOCKED = true; render(); }
-    else { err.textContent = '비밀번호가 틀렸습니다.'; t.textContent = '확인'; t.disabled = false; }
-    return;
-  }
-
-  // ── 게시물 비밀번호 초기화 (선생님) ──
-  if(t.id === 'reset-btn'){
-    const input = document.getElementById('reset-pw');
-    const newPw = input?.value || '0000';
-    const msg = document.getElementById('reset-msg');
-    const cid = TC_CLS?.id || SEL_CLS?.id; if(!cid) return;
+  // ── 선생님 답변 등록/수정 ──
+  if(t.id === 'ans-submit'){
+    if(!IS_TC) return;
+    const ans = document.getElementById('ans-text')?.value?.trim();
+    const msg = document.getElementById('ans-msg');
+    const cid = TC_CLS?.id || SEL_CLS?.id; if(!cid || !SEL_POST) return;
+    if(!ans){ if(msg){ msg.style.color = 'var(--danger)'; msg.textContent = '답변 내용을 입력하세요.'; } return; }
     t.disabled = true;
-    const salt = generateSalt();
-    const h = await hashWithSalt(newPw, salt);
-    await db.ref(`posts/${cid}/${SEL_POST.id}`).update({passwordHash: h, salt});
-    SEL_POST.passwordHash = h; SEL_POST.salt = salt;
-    const label = input?.value ? `"${input.value}"` : '0000';
-    msg.style.color = 'var(--ok)'; msg.textContent = `✓ 비밀번호가 ${label}(으)로 초기화됐습니다.`;
-    if(input) input.value = '';
-    t.disabled = false; return;
+    try{
+      const answeredAt = new Date().toISOString();
+      await db.ref(`posts/${cid}/${SEL_POST.id}`).update({answer: ans, answeredAt});
+      SEL_POST.answer = ans; SEL_POST.answeredAt = answeredAt;
+      await loadPosts(cid);
+      if(msg){ msg.style.color = 'var(--ok)'; msg.textContent = '✓ 답변이 등록됐습니다.'; }
+      t.textContent = '답변 수정'; t.disabled = false;
+    } catch(err2){ if(msg){ msg.style.color = 'var(--danger)'; msg.textContent = '오류: ' + err2.message; } t.disabled = false; }
+    return;
   }
 
   // ── 공지 등록/수정 (선생님) ──
@@ -372,38 +361,39 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  // ── 새 게시물 제출 (학생) ──
+  // ── 새 궁금증 제출 (학생) — 비번 없음, 파일은 선택 ──
   if(t.id === 'np-submit'){
     const title = document.getElementById('np-title')?.value?.trim();
-    const pw = document.getElementById('np-pw')?.value?.trim();
     const memo = document.getElementById('np-memo')?.value?.trim();
     const file = document.getElementById('np-file')?.files[0];
     const err = document.getElementById('np-err');
     const cid = SEL_CLS?.id; if(!cid) return;
     if(!title){ err.textContent = '제목을 입력하세요.'; return; }
-    if(!pw){ err.textContent = '비밀번호를 설정하세요.'; return; }
-    if(!file){ err.textContent = '파일을 선택하세요.'; return; }
-    if(file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
-    t.disabled = true; document.getElementById('np-prog').style.display = 'block'; err.textContent = '';
+    if(file && file.size > MAX_FILE_SIZE){ err.textContent = '50MB 이하 파일만 가능합니다.'; return; }
+    t.disabled = true; err.textContent = '';
     try{
-      const salt = generateSalt();
-      const passwordHash = await hashWithSalt(pw, salt);
       const id = genId();
-      const path = `posts/${cid}/${id}/${file.name}`;
-      const url = await uploadFile(file, path, document.getElementById('np-pfill'), document.getElementById('np-pct'));
+      let fileData = { fileName: '', fileSize: 0 };
+      if(file){
+        document.getElementById('np-prog').style.display = 'block';
+        const path = `posts/${cid}/${id}/${file.name}`;
+        const url = await uploadFile(file, path, document.getElementById('np-pfill'), document.getElementById('np-pct'));
+        fileData = { fileName: file.name, fileSize: file.size, storagePath: path, url };
+      }
       await db.ref(`posts/${cid}/${id}`).set({
         title, authorName: ST_USER?.name || '익명', authorId: ST_USER?.number || '',
-        fileName: file.name, fileSize: file.size, uploadedAt: new Date().toISOString(),
-        passwordHash, salt, storagePath: path, url, memo: memo || ''
+        uploadedAt: new Date().toISOString(), memo: memo || '',
+        passwordHash: '0'.repeat(64),   // 비번 미사용 — 레거시 DB 규칙(필수·64자) 호환용 더미
+        ...fileData
       });
       await loadPosts(cid);
       document.getElementById('np-form').innerHTML = `<div class="success-pg">
         <div class="ico">✅</div>
-        <div class="t">게시물이 등록됐습니다!</div>
-        <div class="s">비밀번호를 아는 사람만 파일을 다운로드할 수 있습니다.</div>
-        <button onclick="ST_TAB='board';go('student')" style="margin-top:14px" class="btn-p btn-sm">← 게시판으로</button>
+        <div class="t">궁금증이 등록됐습니다!</div>
+        <div class="s">선생님이 답변을 달면 게시판에서 확인할 수 있어요.</div>
+        <button onclick="ST_TAB='board';go('student')" style="margin-top:14px" class="btn-p btn-sm">← 궁금증 게시판으로</button>
       </div>`;
-    } catch(err2){ err.textContent = '업로드 실패: ' + err2.message; document.getElementById('np-prog').style.display = 'none'; t.disabled = false; }
+    } catch(err2){ err.textContent = '등록 실패: ' + err2.message; document.getElementById('np-prog').style.display = 'none'; t.disabled = false; }
     return;
   }
 

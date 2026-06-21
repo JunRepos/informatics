@@ -66,9 +66,9 @@ function drawerNavHtml(){
 
 // 현재 탭 라벨 (상단바 제목)
 function currentTitle(){
-  if(VIEW === 'post-detail') return '게시물';
+  if(VIEW === 'post-detail') return '궁금증';
   if(VIEW === 'assign-detail') return '수업';
-  if(VIEW === 'new-post') return '게시물 작성';
+  if(VIEW === 'new-post') return '궁금증 남기기';
   if(VIEW === 'oj-solve') return OJ_SEL_PROB?.title || '문제 풀이';
   const isTC = IS_TC;
   const key = isTC ? TC_TAB : ST_TAB;

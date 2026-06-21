@@ -28,7 +28,7 @@ function _stNavGroups(){
     //   (글로벌 실습·AI 탐구 그룹 없앰).
     groups.push({ label:'학급', items:[
       {key:'notice', ico:'📢', label:'공지'},
-      {key:'board',  ico:'📋', label:'게시판'},
+      {key:'board',  ico:'❓', label:'궁금증'},
     ]});
     groups.push({ label:'수업', items: ASSIGN_UNITS.map(u => ({key:'unit-'+u.key, ico:u.roman, label:u.label})) });
     // 평가 그룹: 진행 중인 항목이 하나라도 있을 때만 노출(시즌성). 점은 항상 진행 중 의미.
@@ -40,7 +40,7 @@ function _stNavGroups(){
     groups.push({ label:'학급', items:[
       {key:'notice', ico:'📢', label:'공지'},
       {key:'assign', ico:'📖', label:'수업'},
-      {key:'board',  ico:'📋', label:'게시판'},
+      {key:'board',  ico:'❓', label:'궁금증'},
     ]});
   }
   return groups;
@@ -354,7 +354,7 @@ function vStDashboard(){
     .sort((a, b) => b.sub.uploadedAt.localeCompare(a.sub.uploadedAt))
     .slice(0, 5);
 
-  // 게시물 수
+  // 내 궁금증 수
   const myPosts = POSTS.filter(p => p.authorId === ST_USER?.number).length;
 
   return `
@@ -386,10 +386,10 @@ function vStDashboard(){
         </div>
       </div>
       <div class="dash-stat-card" onclick="setST('board')">
-        <div class="dash-stat-icon">📋</div>
+        <div class="dash-stat-icon">❓</div>
         <div class="dash-stat-body">
           <div class="dash-stat-num">${myPosts}</div>
-          <div class="dash-stat-label">내 게시물</div>
+          <div class="dash-stat-label">내 궁금증</div>
         </div>
       </div>
     </div>
@@ -516,22 +516,25 @@ function vStAssign(unitKey){
   }).join('');
 }
 
-// ── 게시판 탭 ──
+// ── 궁금증 게시판 탭 (학생: 익명 표시) ──
 function vStBoard(){
   const btn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <button class="btn-p btn-sm" data-action="new-post">+ 게시물 올리기</button></div>`;
-  if(!POSTS.length) return btn + emptyBox('📋','아직 게시물이 없습니다.');
-  return btn + POSTS.map(p => {
+    <button class="btn-p btn-sm" data-action="new-post">+ 궁금증 남기기</button></div>`;
+  const intro = `<div class="box-info" style="margin-bottom:10px">💡 궁금한 점을 남기면 선생님이 답변해줘요. 작성자는 <b>익명</b>으로 표시됩니다.</div>`;
+  if(!POSTS.length) return btn + intro + emptyBox('❓','아직 궁금증이 없습니다.');
+  return btn + intro + POSTS.map(p => {
     const isMine = p.authorId === ST_USER?.number;
+    const hasFile = p.fileName && p.fileName.length;
+    const answered = p.answer && p.answer.length;
     return `<div class="list-row click" data-action="pick-post" data-pid="${p.id}">
-      <div class="row-icon">${fIcon(p.fileName)}</div>
+      <div class="row-icon">${answered ? '💬' : '❓'}</div>
       <div class="row-info">
-        <div class="row-title">${esc(p.title)}</div>
-        <div class="row-meta">${esc(p.authorName)} (${esc(p.authorId)}) · ${fmtDt(p.uploadedAt)} · ${fmtSz(p.fileSize)}</div>
+        <div class="row-title">${esc(p.title)}${hasFile ? ' 📎' : ''}</div>
+        <div class="row-meta">${isMine ? '내 궁금증 · ' : ''}${fmtDt(p.uploadedAt)}</div>
       </div>
       <div class="row-right">
         ${isMine ? `<span class="chip chip-purple">내 글</span>` : ''}
-        ${isMine ? `<span style="font-size:14px;color:var(--ok)">🔓</span>` : `<span style="font-size:14px;color:var(--text3)">🔒</span>`}
+        ${answered ? `<span class="chip chip-green">✓ 답변완료</span>` : `<span class="chip chip-gray">답변대기</span>`}
       </div>
     </div>`;
   }).join('');

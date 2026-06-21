@@ -10,7 +10,7 @@ function vHome(){
     return `<div class="class-card${c.type === 'info' ? ' info-type' : ''}" data-action="pick-class" data-cid="${c.id}">
       <div class="cc-emoji">${c.emoji}</div>
       <div class="cc-label">${esc(c.label)}</div>
-      <div class="cc-meta">게시물 ${cnt}개</div>
+      <div class="cc-meta">궁금증 ${cnt}개</div>
     </div>`;
   }).join('');
 

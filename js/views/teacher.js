@@ -32,7 +32,7 @@ function _tcNavGroups(isInfo){
   const groups = [{ label: '학급', items: [
     {key:'notice',   ico:'📢', label:'공지'},
     {key:'assign',   ico:'📖', label:'수업'},
-    {key:'board',    ico:'📋', label:'게시판'},
+    {key:'board',    ico:'❓', label:'궁금증'},
     {key:'attend',   ico:'🗓️', label:'출결'},
     {key:'students', ico:'👥', label:'학생관리'},
   ]}];
@@ -354,23 +354,25 @@ function vStatusTable(aid){
   </div>`;
 }
 
-// ── 게시판 (선생님은 모든 글 열람 가능) ──
+// ── 궁금증 게시판 (선생님: 실명 열람 + 답변) ──
 function vTcBoard(){
-  if(!POSTS.length) return emptyBox('📋','학생이 올린 게시물이 없습니다.');
-  return `<div class="box-ok">🔓 선생님은 모든 게시물을 비밀번호 없이 열람할 수 있습니다.</div>`
-    + POSTS.map(p => `
-      <div class="list-row">
-        <div class="row-icon" data-action="pick-post" data-pid="${p.id}" style="cursor:pointer">${fIcon(p.fileName)}</div>
-        <div class="row-info" data-action="pick-post" data-pid="${p.id}" style="cursor:pointer">
-          <div class="row-title">${esc(p.title)}</div>
-          <div class="row-meta">${esc(p.authorName)} (${esc(p.authorId)}) · ${fmtDt(p.uploadedAt)} · ${fmtSz(p.fileSize)}</div>
+  if(!POSTS.length) return emptyBox('❓','학생이 올린 궁금증이 없습니다.');
+  const waiting = POSTS.filter(p => !(p.answer && p.answer.length)).length;
+  return `<div class="box-ok">🔓 선생님께는 작성자 <b>실명</b>이 보입니다 (학생들에게는 익명). ${waiting ? `<b>답변 대기 ${waiting}건</b> — 궁금증을 눌러 답변을 달아주세요.` : '모든 궁금증에 답변했어요. 👍'}</div>`
+    + POSTS.map(p => {
+      const hasFile = p.fileName && p.fileName.length;
+      const answered = p.answer && p.answer.length;
+      return `<div class="list-row click" data-action="pick-post" data-pid="${p.id}">
+        <div class="row-icon">${answered ? '💬' : '❓'}</div>
+        <div class="row-info">
+          <div class="row-title">${esc(p.title)}${hasFile ? ' 📎' : ''}</div>
+          <div class="row-meta">${esc(p.authorName)} (${esc(p.authorId)}) · ${fmtDt(p.uploadedAt)}</div>
         </div>
         <div class="row-right">
-          <button class="btn-xs" data-action="post-move-up" data-pid="${p.id}" title="위로">▲</button>
-          <button class="btn-xs" data-action="post-move-down" data-pid="${p.id}" title="아래로">▼</button>
-          <span style="font-size:14px;color:var(--ok)">🔓</span>
+          ${answered ? `<span class="chip chip-green">✓ 답변완료</span>` : `<span class="chip chip-gray">답변대기</span>`}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 }
 
 // ── 출결 관리 ──

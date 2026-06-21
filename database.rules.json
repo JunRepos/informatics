@@ -54,25 +54,28 @@
       }
     },
 
-    // ── 게시판 (학생 게시물)
-    //    동일 레벨에 와일드카드 2개는 불가 → $classId 하나로 통일 ──
+    // ── 궁금증 게시판 (학생 질문 + 선생님 답변)
+    //    누구나 열람. 파일·비번 없음. (앱은 레거시 호환용 더미 passwordHash 를
+    //    계속 써서 재게시 전에도 동작 — 재게시하면 더미 불필요해짐) ──
     "posts": {
       ".read": true,
       "$classId": {
         ".write": true,
         "$postId": {
-          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/) && newData.hasChildren(['title', 'authorName', 'fileName', 'uploadedAt', 'passwordHash'])",
+          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/) && newData.hasChildren(['title', 'authorName', 'uploadedAt'])",
           "title":        { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
           "authorName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
           "authorId":     { ".validate": "newData.isString() && newData.val().length <= 20" },
           "fileName":     { ".validate": "newData.isString() && newData.val().length <= 300" },
           "fileSize":     { ".validate": "newData.isNumber() && newData.val() <= 52428800" },
           "uploadedAt":   { ".validate": "newData.isString()" },
-          "passwordHash": { ".validate": "newData.isString() && newData.val().length === 64" },
+          "passwordHash": { ".validate": "newData.isString() && newData.val().length <= 64" },
           "salt":         { ".validate": "newData.isString() && newData.val().length === 32" },
           "storagePath":  { ".validate": "newData.isString()" },
           "url":          { ".validate": "newData.isString()" },
-          "memo":         { ".validate": "newData.isString() && newData.val().length <= 1000" },
+          "memo":         { ".validate": "newData.isString() && newData.val().length <= 2000" },
+          "answer":       { ".validate": "newData.isString() && newData.val().length <= 5000" },
+          "answeredAt":   { ".validate": "newData.isString()" },
           "files":        { ".validate": true }
         }
       }

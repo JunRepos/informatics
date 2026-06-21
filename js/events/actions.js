@@ -288,9 +288,9 @@ document.addEventListener('click', async e => {
     await loadTcFiles(cid); render(); return;
   }
 
-  // 게시물 삭제
+  // 궁금증 삭제
   if(act.action === 'del-post'){
-    if(!confirm(`"${SEL_POST?.title}" 게시물을 삭제할까요?`)) return;
+    if(!confirm(`"${SEL_POST?.title}" 궁금증을 삭제할까요?`)) return;
     const cid = CID(); if(!cid) return;
     if(SEL_POST?.storagePath) await storage.ref(SEL_POST.storagePath).delete().catch(() => {});
     await db.ref(`posts/${cid}/${SEL_POST.id}`).remove();
