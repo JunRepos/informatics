@@ -229,15 +229,18 @@ function _vTcMlaStudent(){
       ${sub?.submittedAt ? `<span class="chip chip-green">✓ 제출 ${fmtDt(sub.submittedAt)}</span>` : (sub ? '<span class="chip">작성 중</span>' : '<span class="chip">미응시</span>')}</div>
     ${retakeBtn}
   </div>`;
-  if(!sub) return back + emptyBox('📭', '아직 응시 기록이 없어요.');
-  const a = sub.answers || {};
+  const a = sub?.answers || {};
   const sc = MLA_TC_SCORES[snum] || {};
   const scoreInputs = MLA_PARTS.map(p => `<label class="mla-score-in">${esc(p.label)}
       <input type="number" min="0" max="${p.max}" step="1" value="${sc[p.key] != null ? esc(String(sc[p.key])) : ''}" data-action="mla-tc-score" data-key="${p.key}" placeholder="/${p.max}"/></label>`).join('');
   const total = ['q1', 'q2', 'q3'].reduce((s, k) => s + (Number(sc[k]) || 0), 0);
   const saving = MLA_TC_SAVING === snum;
+  // 미응시 학생도 채점 가능 — 답안 대신 안내만 띄우고 채점 칸은 그대로 노출
+  const answerSection = sub
+    ? `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">📋 학생 답안</div>${_mlaAnswerSummary(a, false, cid)}</div>`
+    : `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">📋 학생 답안</div>${emptyBox('📭', '미응시 — 제출한 답안이 없어요. 아래에서 점수를 직접 줄 수 있어요(예: 기본점수).')}</div>`;
   return back
-    + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">📋 학생 답안</div>${_mlaAnswerSummary(a, false, cid)}</div>`
+    + answerSection
     + `<div class="section aia-tcs-sec"><div class="aia-tcs-sec-title">⭐ 채점 (점수 관리에 자동 반영)</div>
         <div class="mla-score-row">${scoreInputs}<span class="mla-score-total">합계 <b>${total}</b>/15</span></div>
         <textarea class="sc-reason-area" data-action="mla-tc-comment" rows="2" placeholder="(선택) 학생에게 보일 종합 코멘트">${esc(sc.comment || '')}</textarea>
