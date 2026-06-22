@@ -190,7 +190,7 @@ function vTcMlAssess(){
       <td>${sub ? esc(sitLbl) : '<span style="color:var(--text3)">–</span>'}</td>
       <td>${sub?.submittedAt ? `<span class="chip chip-green">✓ 제출</span>` : (sub ? '<span class="chip">작성 중</span>' : '<span style="color:var(--text3)">미응시</span>')}</td>
       <td>${hasScore ? `<b>${total}</b>/15` : '<span style="color:var(--text3)">미채점</span>'}</td>
-      <td><button class="btn-xs" data-action="mla-tc-view" data-snum="${esc(st.number)}">답안·채점 →</button></td>
+      <td style="white-space:nowrap"><button class="btn-xs" data-action="mla-tc-view" data-snum="${esc(st.number)}">답안·채점 →</button>${sub?.submittedAt ? ` <button class="btn-xs" data-action="mla-tc-retake" data-snum="${esc(st.number)}" title="제출을 해제해 재시험을 허용합니다">🔄 재시험</button>` : ''}</td>
     </tr>`;
   }).join('');
 
@@ -220,10 +220,14 @@ function _vTcMlaStudent(){
   const cid = TC_CLS?.id;
   const st = STUDENTS.find(s => s.number === snum);
   const sub = MLA_ALL_SUBS[snum];
+  const retakeBtn = sub?.submittedAt
+    ? `<button class="btn-sm" data-action="mla-tc-retake" data-snum="${esc(snum)}" style="margin-left:auto;border-color:var(--warn-bd);color:var(--warn-txt);background:var(--warn-bg)">🔄 재시험 허용</button>`
+    : '';
   const back = `<div class="aia-tcs-header">
     <button class="btn-sm" data-action="mla-tc-back">← 목록</button>
     <div class="aia-tcs-info"><span class="aia-tcs-snum">${esc(snum)}</span><span class="aia-tcs-name">${esc(st?.name || '')}</span>
       ${sub?.submittedAt ? `<span class="chip chip-green">✓ 제출 ${fmtDt(sub.submittedAt)}</span>` : (sub ? '<span class="chip">작성 중</span>' : '<span class="chip">미응시</span>')}</div>
+    ${retakeBtn}
   </div>`;
   if(!sub) return back + emptyBox('📭', '아직 응시 기록이 없어요.');
   const a = sub.answers || {};

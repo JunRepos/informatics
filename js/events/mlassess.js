@@ -65,6 +65,22 @@ document.addEventListener('click', async e => {
   if(act === 'mla-tc-view'){ MLA_TC_SNUM = el.dataset.snum; MLA_TC_VIEW = 'student'; render(); return; }
   if(act === 'mla-tc-back'){ MLA_TC_VIEW = 'list'; MLA_TC_SNUM = null; render(); return; }
 
+  /* 선생님: 재시험 허용 — 제출 잠금 해제(답안은 보존) */
+  if(act === 'mla-tc-retake'){
+    if(!TC_CLS) return;
+    const snum = el.dataset.snum;
+    const st = STUDENTS.find(s => s.number === snum);
+    if(!confirm(`${snum} ${st?.name || ''} 학생의 제출을 해제하고 재시험을 허용할까요?\n\n학생 화면의 잠금이 풀려 다시 응시·수정·재제출할 수 있어요. 지금까지 작성한 답안은 그대로 남아 있어요.\n(학생이 보려면 "응시 열기"가 켜져 있어야 하고, 학생은 탭을 다시 열거나 새로고침해야 반영됩니다.)`)) return;
+    el.disabled = true;
+    try {
+      await db.ref(`aiactivity/submissions/${TC_CLS.id}/mlassess/${snum}/submittedAt`).remove();
+      MLA_ALL_SUBS = (await loadAllAiaSubmissions(TC_CLS.id, 'mlassess')) || {};
+      toast(`🔄 ${st?.name || snum} 학생 재시험을 허용했어요`, 'ok');
+    } catch(err){ toast('실패: ' + (err.message || err), 'err'); el.disabled = false; return; }
+    render();
+    return;
+  }
+
   /* 선생님: 상황·루브릭 편집 */
   if(act === 'mla-tc-edit'){
     const cur = MLA_CONFIG[TC_CLS?.id] || {};
