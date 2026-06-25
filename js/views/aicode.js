@@ -25,7 +25,37 @@ function vStAiCode(){
   if(!active) return emptyBox('🔒', 'AI 코딩 메뉴가 아직 열려있지 않아요. 선생님 안내를 기다려주세요.');
 
   if(AIC_VIEW === 'chat')     return vStAicChat();
+  if(AIC_VIEW === 'brief')    return vStAicBrief();
   return vStAicEntry();
+}
+
+// ── 학생: 설계 브리프 (AI에게 시키기 전, 내가 먼저 설계) ──
+function vStAicBrief(){
+  const b = AIC_BRIEF || {};
+  return `
+    <div class="asmt-entry-wrap">
+      <div class="asmt-hero">
+        <div class="asmt-hero-title">📝 먼저, 내 프로그램을 설계해요</div>
+        <div class="asmt-hero-sub">AI에게 시키기 전에 <b>내가 무엇을 만들지</b> 먼저 정해봐요.<br>또렷이 적을수록 AI가 더 잘 도와줘요.</div>
+      </div>
+      <div class="section aic-brief">
+        <div class="field"><label>① 만들고 싶은 프로그램 (한 줄)</label>
+          <input id="aicb-problem" type="text" maxlength="120" autocomplete="off" placeholder="예: 증상을 입력하면 예방 수칙을 알려주는 프로그램" value="${esc(b.problem || '')}"/></div>
+        <div class="field"><label>② 내 진로·관심과 어떻게 연결되나요? <span class="aic-opt">(선택)</span></label>
+          <input id="aicb-connect" type="text" maxlength="120" autocomplete="off" placeholder="예: 의학에 관심이 있어서" value="${esc(b.connect || '')}"/></div>
+        <div class="field"><label>③ 무엇을 입력받고, 무엇을 출력하나요?</label>
+          <input id="aicb-io" type="text" maxlength="160" autocomplete="off" placeholder="예: 증상(입력) → 예방 수칙(출력)" value="${esc(b.io || '')}"/></div>
+        <div class="field"><label>④ 어떤 판단이나 반복이 필요할까요? <span class="aic-opt">(선택)</span></label>
+          <input id="aicb-ctrl" type="text" maxlength="160" autocomplete="off" placeholder="예: 증상에 따라 다른 안내(조건), 종료까지 계속 묻기(반복)" value="${esc(b.ctrl || '')}"/></div>
+        <div id="aicb-err" class="err"></div>
+        <div class="aic-brief-btns">
+          <button class="btn-sm" data-action="aic-brief-skip">설계 없이 바로 채팅</button>
+          <button class="btn-p btn-sm" data-action="aic-brief-submit">설계 완료 · AI와 시작 →</button>
+        </div>
+      </div>
+      <div class="asmt-entry-note">💡 ①만 적어도 시작할 수 있어요. 나머지는 AI와 이야기하며 채워도 돼요.</div>
+    </div>
+  `;
 }
 
 function vStAicEntry(){
@@ -119,6 +149,21 @@ function vStAicChat(){
          <div class="asmt-code-empty-msg">AI에게 만들고 싶은 프로그램을 설명해주세요.<br>코드가 만들어지면 여기에 표시돼요.</div>
        </div>`;
 
+  // 내 설계 칩 (브리프가 있으면 상단에 계속 보이게)
+  const briefChip = AIC_BRIEF?.problem
+    ? `<div class="aic-brief-chip" title="내가 처음 설계한 내용">📝 내 설계: ${esc(AIC_BRIEF.problem)}</div>` : '';
+
+  // 확장 도전 카드 — 코드가 생긴 뒤, 한 걸음 더 (학생이 직접 다듬어 전송)
+  const challenge = (AIC_CODE && !isLimit) ? `
+    <div class="aic-chal">
+      <div class="aic-chal-head">🚀 한 걸음 더 — 골라서 이어가 보세요</div>
+      <div class="aic-chal-cards">
+        <button class="aic-chal-card" data-action="aic-challenge" data-prompt="잘못된 값을 입력하면 다시 입력하도록 막고 싶어. 어떤 경우를 걸러야 할지 내가 먼저 생각해볼게 — 힌트만 줘.">🧪 잘못된 입력 막기</button>
+        <button class="aic-chal-card" data-action="aic-challenge" data-prompt="조건을 하나 더 넣고 싶어.    인 경우에    하도록 하고 싶은데, 어떻게 짜면 좋을지 같이 생각해보자.">🔧 조건 하나 더</button>
+        <button class="aic-chal-card" data-action="aic-challenge" data-prompt="이 문제를 살짝 바꿔서    도 풀 수 있을까? 먼저 어떻게 접근하면 좋을지 나한테 물어봐줘.">🌱 문제 바꿔보기</button>
+      </div>
+    </div>` : '';
+
   const inputDisabled = AIC_LOADING || isLimit;
   const placeholder = isLimit
     ? `대화 한도(${AIC_TURN_LIMIT}회)를 모두 사용했어요. "새로 시작"으로 다시 만들 수 있어요.`
@@ -138,6 +183,7 @@ function vStAicChat(){
         </div>
       </div>
 
+      ${briefChip}
       <div class="asmt-chat-split">
         <div class="asmt-chat-left">
           <div class="asmt-msg-list" id="aic-msg-list">
@@ -156,7 +202,7 @@ function vStAicChat(){
           </div>
         </div>
 
-        <div class="asmt-chat-right">${codePanel}</div>
+        <div class="asmt-chat-right">${codePanel}${challenge}</div>
       </div>
     </div>
   `;

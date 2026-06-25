@@ -167,7 +167,8 @@ let MY_REASONS_PUB   = null;        // { bigdata:bool, petbottle:bool, aicode:bo
 // 🤖 AI 코딩 (자유 실습 메뉴) — 수행평가와 분리된 독립 기능
 // 백엔드: Cloudflare Worker (Gemini). 선생님이 on/off 토글로 노출 제어.
 let AIC_ACTIVE       = {};      // { [classId]: bool } 캐시
-let AIC_VIEW         = 'entry'; // 학생: 'entry'|'chat' / 선생님: 'manage'|'student'
+let AIC_VIEW         = 'entry'; // 학생: 'entry'|'brief'|'chat' / 선생님: 'manage'|'student'
+let AIC_BRIEF        = null;    // 학생 설계 브리프 {problem, connect, io, ctrl}
 let AIC_MESSAGES     = [];      // 채팅 메시지 [{role, content, ts}]
 let AIC_CODE         = '';      // AI가 만든 현재 코드
 let AIC_TURN_COUNT   = 0;       // 학생 메시지 누적

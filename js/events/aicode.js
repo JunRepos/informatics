@@ -8,6 +8,19 @@
    코드 실행: js/oj-worker.js (Pyodide, 실시간 input 지원)
 ═══════════════════════════════════════ */
 
+// ── AI 코칭 지침 (학생에게 안 보임, 첫 사용자 메시지에만 주입) ──
+//   서버 워커 시스템 프롬프트는 못 바꾸므로 클라이언트에서 첫 턴에 끼워 넣어 역할을 '동료'로 유도.
+const AIC_COACH = [
+  '[지도 지침 — 학생에게는 보이지 않음]',
+  '너는 학생이 진로·관심사 프로그램을 "스스로 설계"하도록 돕는 코딩 동료다. 답을 대신 내주는 도구가 아니다.',
+  '1) 요청이 막연하거나 처음이면 코드를 한 번에 다 주지 말고, 먼저 1~2개의 짧은 설계 질문을 한다(무엇을 입력받고 무엇을 출력할지, 어떤 경우에 다르게 동작해야 할지).',
+  '2) 코드는 단계적으로 만들고, 조건문·반복문 같은 핵심 선택은 "왜 그렇게 했는지" 한 줄로 설명한다.',
+  '3) 학생이 스스로 정하도록 유도하고, 동작하면 한 걸음 더 갈 거리(조건 추가, 잘못된 입력 처리, 문제 살짝 바꾸기)를 짧게 제안한다.',
+  '4) "빨리/답만/아무거나" 같은 회피에는 짧은 질문 하나로 다시 생각을 끌어낸 뒤 돕는다.',
+  '5) 항상 한국어로 친근하고 간결하게(중학생 눈높이). 파이썬 코드는 ```python 코드블록으로 제공한다.',
+  '아래는 학생이 쓴 설계와 메시지다.',
+].join('\n');
+
 // ── 채팅 모드로 진입 (빈 채팅 — 학생이 직접 입력) ──
 function _enterAicChat(){
   AIC_VIEW = 'chat';
@@ -18,6 +31,25 @@ function _enterAicChat(){
   AIC_RUN_RESULT = null;
   AIC_RUN_STDIN = '';
   render();
+}
+
+// ── 설계 브리프 제출 → 브리프를 첫 메시지로 채팅 시작 ──
+function _submitAicBrief(){
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const problem = v('aicb-problem');
+  const err = document.getElementById('aicb-err');
+  if(!problem){ if(err) err.textContent = '① 만들고 싶은 프로그램은 한 줄이라도 적어주세요.'; return; }
+  AIC_BRIEF = { problem, connect: v('aicb-connect'), io: v('aicb-io'), ctrl: v('aicb-ctrl') };
+  AIC_VIEW = 'chat';
+  AIC_MESSAGES = []; AIC_CODE = ''; AIC_TURN_COUNT = 0;
+  AIC_LOADING = false; AIC_RUN_RESULT = null; AIC_RUN_STDIN = '';
+  const b = AIC_BRIEF;
+  const briefMsg = `[내 설계]\n· 만들 프로그램: ${b.problem}`
+    + (b.connect ? `\n· 진로·관심 연결: ${b.connect}` : '')
+    + (b.io ? `\n· 입력 → 출력: ${b.io}` : '')
+    + (b.ctrl ? `\n· 필요한 판단·반복: ${b.ctrl}` : '');
+  render();
+  _sendAicMessage(briefMsg);
 }
 
 // ── 학생 메시지 전송 + AI 응답 ──
@@ -36,12 +68,14 @@ async function _sendAicMessage(userText){
   _scrollAicListToBottom();
 
   try {
+    // 첫 사용자 메시지에 코칭 지침을 끼워 보냄(화면엔 안 보임 → AIC_MESSAGES 원본은 그대로)
+    const outMsgs = AIC_MESSAGES.map(m => ({ role: m.role, content: m.content }));
+    const fi = outMsgs.findIndex(m => m.role === 'user');
+    if(fi >= 0) outMsgs[fi] = { role: 'user', content: AIC_COACH + '\n\n' + outMsgs[fi].content };
     const r = await fetch(AIC_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: AIC_MESSAGES.map(m => ({ role: m.role, content: m.content }))
-      })
+      body: JSON.stringify({ messages: outMsgs })
     });
     if(!r.ok){
       const errText = await r.text().catch(() => '');
@@ -82,7 +116,8 @@ function _saveAicSession(){
       await saveAicSession(SEL_CLS.id, ST_USER.number, {
         messages: AIC_MESSAGES,
         code: AIC_CODE || null,
-        turnCount: AIC_TURN_COUNT
+        turnCount: AIC_TURN_COUNT,
+        brief: AIC_BRIEF || null
       });
     } catch(err){
       console.warn('[AI코딩] 세션 저장 실패:', err);
@@ -219,9 +254,31 @@ document.addEventListener('click', async e => {
   if(!el) return;
   const act = el.dataset;
 
-  // 학생: 시작 ("제가 만들어볼래요" → 빈 채팅)
+  // 학생: 시작 ("제가 만들어볼래요" → 설계 브리프)
   if(act.action === 'aic-begin'){
+    AIC_BRIEF = null;
+    AIC_VIEW = 'brief';
+    render();
+    return;
+  }
+
+  // 학생: 설계 브리프 제출 → 채팅 시작
+  if(act.action === 'aic-brief-submit'){
+    _submitAicBrief();
+    return;
+  }
+
+  // 학생: 설계 없이 바로 채팅
+  if(act.action === 'aic-brief-skip'){
+    AIC_BRIEF = null;
     _enterAicChat();
+    return;
+  }
+
+  // 학생: 확장 도전 카드 → 입력창에 채워 넣기(학생이 다듬어 전송)
+  if(act.action === 'aic-challenge'){
+    const inp = document.getElementById('aic-input');
+    if(inp && !inp.disabled){ inp.value = act.prompt || ''; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     return;
   }
 
@@ -257,6 +314,7 @@ document.addEventListener('click', async e => {
     AIC_TURN_COUNT = 0;
     AIC_RUN_RESULT = null;
     AIC_RUN_STDIN = '';
+    AIC_BRIEF = null;
     AIC_VIEW = 'entry';
     render();
     _saveAicSession();
@@ -339,6 +397,10 @@ document.addEventListener('keydown', e => {
 // ── render 후 처리 ──
 function afterRenderAiCode(){
   if(ST_TAB !== 'aicode') return;
+  if(AIC_VIEW === 'brief'){
+    setTimeout(() => document.getElementById('aicb-problem')?.focus(), 50);
+    return;
+  }
   if(AIC_VIEW === 'chat'){
     _scrollAicListToBottom();
     setTimeout(() => {

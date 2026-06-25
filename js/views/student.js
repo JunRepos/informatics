@@ -249,6 +249,7 @@ function setST(t){
     AIC_TURN_COUNT = 0;
     AIC_RUN_RESULT = null;
     AIC_RUN_STDIN = '';
+    AIC_BRIEF = null;
     AIC_VIEW = 'entry';
     Promise.all([
       loadAicActive(SEL_CLS.id),
@@ -258,6 +259,7 @@ function setST(t){
         AIC_MESSAGES = Array.isArray(s.messages) ? s.messages : [];
         AIC_CODE = s.code || '';
         AIC_TURN_COUNT = s.turnCount || 0;
+        AIC_BRIEF = s.brief || null;
       }
       AIC_VIEW = _aicInitialStudentView(s);
       render();
