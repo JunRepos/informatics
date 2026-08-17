@@ -17,7 +17,7 @@
     "notices": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$noticeId": {
           ".validate": "newData.hasChildren(['title', 'createdAt']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 200 && newData.child('createdAt').isString()",
           "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
@@ -36,7 +36,7 @@
     "assignments": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$assignId": {
           ".validate": "newData.hasChildren(['title', 'createdAt']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 200",
           "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
@@ -62,7 +62,7 @@
       "$classId": {
         ".write": true,
         "$postId": {
-          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/) && newData.hasChildren(['title', 'authorName', 'uploadedAt'])",
+          ".validate": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/) && newData.hasChildren(['title', 'authorName', 'uploadedAt'])",
           "title":        { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
           "authorName":   { ".validate": "newData.isString() && newData.val().length <= 50" },
           "authorId":     { ".validate": "newData.isString() && newData.val().length <= 20" },
@@ -85,7 +85,7 @@
     "submissions": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$assignId": {
           "$studentNum": {
             ".validate": "newData.hasChildren(['studentName', 'fileName', 'uploadedAt', 'url'])",
@@ -108,7 +108,7 @@
     "students": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$studentNum": {
           ".validate": "newData.hasChildren(['name', 'passwordHash'])",
           "name":         { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" },
@@ -125,7 +125,7 @@
     "teacherFiles": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$fileId": {
           ".validate": "newData.hasChildren(['name', 'uploadedAt', 'url'])",
           "name":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
@@ -145,7 +145,7 @@
     "attendance": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$date": {
           ".validate": "$date.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
           "$studentNum": {
@@ -163,7 +163,7 @@
     "problems": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$problemId": {
           ".validate": "newData.hasChildren(['title', 'createdAt'])",
           "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
@@ -188,7 +188,7 @@
     "ojSubmissions": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$problemId": {
           "$studentNum": {
             ".validate": "newData.hasChildren(['code', 'submittedAt', 'status'])",
@@ -208,7 +208,7 @@
     "ojDrafts": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$problemId": {
           "$studentNum": {
             ".validate": "newData.hasChildren(['code', 'updatedAt'])",
@@ -224,7 +224,7 @@
     "notebooks": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$nbId": {
           ".validate": "newData.hasChildren(['title', 'cells', 'createdAt'])",
           "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
@@ -239,7 +239,7 @@
     "notebookProgress": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$nbId": {
           "$studentNum": {
             ".validate": "newData.hasChild('cells')",
@@ -255,7 +255,7 @@
     "missions": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$missionId": {
           ".validate": "newData.hasChildren(['title', 'gameType', 'steps', 'createdAt'])",
           "title":       { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 300" },
@@ -272,7 +272,7 @@
     "missionProgress": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$missionId": {
           "$studentNum": {
             ".validate": "newData.hasChild('stepPass')",
@@ -290,7 +290,7 @@
     "codeReadings": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$rdId": {
           ".validate": "newData.hasChildren(['title', 'type', 'createdAt'])"
         }
@@ -308,43 +308,43 @@
       "active": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "guideActive": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "submissions": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "scores": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "scoresExt": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "published": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "reasonsPublished": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       }
     },
@@ -356,13 +356,13 @@
       "active": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "sessions": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       }
     },
@@ -374,13 +374,13 @@
       "active": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "submissions": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       }
     },
@@ -392,13 +392,13 @@
       "active": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       },
       "rlDesc": {
         "$classId": {
           ".read": true,
-          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)"
+          ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)"
         }
       }
     },
@@ -407,7 +407,7 @@
     "codeReadingProgress": {
       "$classId": {
         ".read": true,
-        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB])$/)",
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[AB]|career-2[AB])$/)",
         "$rdId": {
           "$studentNum": {
             "passed":      { ".validate": "newData.isBoolean()" },
