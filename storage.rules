@@ -7,7 +7,7 @@ service firebase.storage {
     }
 
     function isValidClass(classId) {
-      return classId.matches('c2-[1-6]|info-2[AB]|ai-2[AB]|career-2-[1-6]');
+      return classId.matches('c2-[1-6]|info-2[AB]|ai-2[BD]|career-2-[1-6]');
     }
 
     match /notices/{classId}/{noticeId}/{fileName} {
