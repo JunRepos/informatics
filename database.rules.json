@@ -370,6 +370,16 @@
     // ── 🧠 AI 활동지 (인공지능 단원 학습지) ──
     //   active/{cid}                       : bool — 메뉴 노출 토글
     //   submissions/{cid}/{actId}/{학번}    : { answers:{...}, updatedAt }
+    // ── 🖥️ 수업자료 슬라이드 (선생님 화면을 학생과 같이 보기) ──
+    //   slides/{cid}/deck        : 업로드한 슬라이드 목록
+    //   slides/{cid}/live        : { on, page } — 선생님이 넘기면 학생 화면이 따라감
+    "slides": {
+      "$classId": {
+        ".read": true,
+        ".write": "$classId.matches(/^(c2-[1-6]|info-2[AB]|ai-2[BD]|career-2-[1-6])$/)"
+      }
+    },
+
     "aiactivity": {
       "active": {
         "$classId": {

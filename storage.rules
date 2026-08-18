@@ -35,6 +35,11 @@ service firebase.storage {
       allow write: if isValidClass(classId) && isValidSize();
     }
 
+    match /slides/{classId}/{fileName} {
+      allow read: if isValidClass(classId);
+      allow write: if isValidClass(classId) && isValidSize();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
