@@ -2,8 +2,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    /* 올리는 파일 크기 제한.
+       ⚠ 삭제(delete)에는 올라가는 파일이 없어서 request.resource 가 null 입니다.
+         예전엔 그대로 request.resource.size 를 봐서 삭제가 항상 거부됐고,
+         앱은 그 오류를 삼켜서 '지운 것처럼 보이지만 파일은 남는' 상태였습니다.
+         (공지·과제·제출물·수업자료 전부 해당 — 안 쓰는 파일이 계속 쌓였습니다)
+         그래서 삭제일 때는 크기 검사를 건너뜁니다. */
     function isValidSize() {
-      return request.resource.size <= 50 * 1024 * 1024;
+      return request.resource == null || request.resource.size <= 50 * 1024 * 1024;
     }
 
     function isValidClass(classId) {
